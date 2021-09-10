@@ -8,7 +8,7 @@ from arkouda.strings import Strings
 from arkouda.categorical import Categorical
 
 __all__ = ["ls_hdf", "read_hdf", "read_all", "load", "get_datasets",
-           "load_all", "save_all"]
+           "load_all", "save_all", "read_parquet"]
 
 
 @typechecked
@@ -111,6 +111,43 @@ def read_hdf(dsetName : str, filenames : Union[str,List[str]],
                 read_all(filenames, datasets=dsetName, strictTypes=strictTypes, allow_errors=allow_errors,
                          calc_string_offsets=calc_string_offsets))
 
+def read_parquet(filenames : Union[str, List[str]])\
+             -> Union[pdarray, Strings, Mapping[str,Union[pdarray,Strings]]]:
+    if isinstance(filenames, str):
+        filenames = [filenames]
+
+    rep_msg = generic_msg(cmd="readAllParquet", args=
+                          f"{len(filenames)} {json.dumps(filenames)}"
+                          )
+    rep = json.loads(rep_msg)  # See GenSymIO._buildReadAllHdfMsgJson for json structure
+    items = rep["items"] if "items" in rep else []
+    file_errors = rep["file_errors"] if "file_errors" in rep else []
+
+    # We have a couple possible return conditions
+    # 1. We have multiple items returned i.e. multi pdarrays, multi strings, multi pdarrays & strings
+    # 2. We have a single pdarray
+    # 3. We have a single strings object
+    if len(items) > 1: #  DataSets condition
+        d: Dict[str, Union[pdarray, Strings]] = {}
+        for item in items:
+            if "seg_string" == item["arkouda_type"]:
+                d[item["dataset_name"]] = Strings(*item["created"].split("+"))
+            elif "pdarray" == item["arkouda_type"]:
+                d[item["dataset_name"]] = create_pdarray(item["created"])
+            else:
+                raise TypeError(f"Unknown arkouda type:{item['arkouda_type']}")
+        return d
+
+    elif len(items) == 1:
+        item = items[0]
+        if "pdarray" == item["arkouda_type"]:
+            return create_pdarray(item["created"])
+        elif "seg_string" == item["arkouda_type"]:
+            return Strings(*item["created"].split("+"))
+        else:
+            raise TypeError(f"Unknown arkouda type:{item['arkouda_type']}")
+    else:
+        raise RuntimeError("No items were returned")
 
 def read_all(filenames : Union[str, List[str]],
              datasets: Optional[Union[str, List[str]]] = None,

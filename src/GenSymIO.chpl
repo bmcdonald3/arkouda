@@ -1,4 +1,6 @@
 module GenSymIO {
+  require 'src/ArrowAll.chpl';
+  use ArrowAll as Arrow;
     use HDF5;
     use Time only;
     use IO;
@@ -568,6 +570,86 @@ module GenSymIO {
         return new MsgTuple(repMsg,MsgType.NORMAL);
     }
 
+    proc readAllParquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+      var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
+        var repMsg: string;
+        // May need a more robust delimiter then " | "
+        var (nfilesStr, arraysStr) = payload.splitMsgToTuple(2);
+
+        if (!checkCast(nfilesStr, int)) {
+          var errMsg = "Number of files:`%s` could not be cast to an integer".format(nfilesStr);
+          gsLogger.error(getModuleName(), getRoutineName(), getLineNumber(), errMsg);
+          return new MsgTuple(errMsg, MsgType.ERROR);
+        }
+
+        var jsonfiles = arraysStr;
+        var nfiles = nfilesStr:int; // Error checked above
+        var filelist: [0..#nfiles] string;
+
+        try {
+            filelist = jsonToPdArray(jsonfiles, nfiles);
+        } catch {
+            var errorMsg = "Could not decode json filenames via tempfile (%i files: %s)".format(nfiles, jsonfiles);
+            gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+            return new MsgTuple(errorMsg, MsgType.ERROR);
+        }
+        
+        var filedom = filelist.domain;
+        var filenames: [filedom] string;
+
+        if filelist.size == 1 {
+            if filelist[0].strip().size == 0 {
+                var errorMsg = "filelist was empty.";
+                gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+                return new MsgTuple(errorMsg, MsgType.ERROR);
+            }
+            var tmp = glob(filelist[0]);
+            gsLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
+                                  "glob expanded %s to %i files".format(filelist[0], tmp.size));
+            if tmp.size == 0 {
+                var errorMsg = "The wildcarded filename %s either corresponds to files inaccessible to Arkouda or files of an invalid format".format(filelist[0]);
+                gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+                return new MsgTuple(errorMsg, MsgType.ERROR);
+            }
+            // Glob returns filenames in weird order. Sort for consistency
+            sort(tmp);
+            filedom = tmp.domain;
+            filenames = tmp;
+        } else {
+            filenames = filelist;
+        }
+
+        var fileErrors: list(string);
+        var fileErrorCount:int = 0;
+        var fileErrorMsg:string = "";
+
+        for (i, fname) in zip(filedom, filenames) {
+          var hadError = false;
+          //(segArrayFlags[i], dclasses[i], bytesizes[i], signFlags[i]) = get_dtype(fname, dsetName, calcStringOffsets);
+
+        }
+        
+        var subdoms: [filedom] domain(1);
+        var segSubdoms: [filedom] domain(1);
+        var len: int;
+        var nSeg: int;
+        // TODO GET SUBDOMAINS
+        var (sizes, ty) = getArrSizeAndType(filenames, 0);
+        len = + reduce sizes;
+
+        // Load the strings bytes/values first
+        var entryVal = new shared SymEntry(len, int);
+        readFiles(entryVal.a, filenames, sizes);
+        var valName = st.nextName();
+        st.addEntry(valName, entryVal);
+
+        var errors: list(string);
+        rnames.append(("", "pdarray", valName));
+        repMsg = _buildReadAllHdfMsgJson(rnames, false, 0, errors, st);
+        gsLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+        return new MsgTuple(repMsg,MsgType.NORMAL);
+    }
+    
     /**
      * Construct json object to be returned from readAllHdfMsg
      * :arg rnames: List of (DataSetName, arkouda_type, id of SymEntry) for items read from HDF5 files

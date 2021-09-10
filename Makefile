@@ -23,6 +23,7 @@ CHPL_FLAGS += --fast
 endif
 CHPL_FLAGS += -smemTrack=true
 CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq
+CHPL_FLAGS += -I /usr/local/include/glib-2.0 -I /usr/local/lib/glib-2.0/include -larrow-glib -lparquet-glib -lglib-2.0 -lgobject-2.0
 
 # We have seen segfaults with cache remote at some node counts
 CHPL_FLAGS += --no-cache-remote

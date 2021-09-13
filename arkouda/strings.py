@@ -965,6 +965,17 @@ class Strings:
         args = f"{self.bytes.name} {dataset} {m} {json_array} {self.dtype} {self.offsets.name} {save_offsets}"
         return cast(str, generic_msg(cmd, args))
 
+    def save_parquet(self, prefix_path : str) -> str:
+        try:
+            json_array = json.dumps([prefix_path])
+        except Exception as e:
+            raise ValueError(e)
+
+        cmd = "writeParquet"
+        args = f"{self.bytes.name} {json_array} {self.dtype}"
+        return cast(str, generic_msg(cmd, args))
+
+    
     def is_registered(self) -> np.bool_:
         """
         Return True iff the object is contained in the registry

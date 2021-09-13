@@ -638,13 +638,22 @@ module GenSymIO {
         len = + reduce sizes;
 
         // Load the strings bytes/values first
-        var entryVal = new shared SymEntry(len, int);
-        readFiles(entryVal.a, filenames, sizes);
-        var valName = st.nextName();
-        st.addEntry(valName, entryVal);
+        if ty == "int" {
+          var entryVal = new shared SymEntry(len, int);
+          readFiles(entryVal.a, filenames, sizes);
+          var valName = st.nextName();
+          st.addEntry(valName, entryVal);
+          rnames.append(("", "pdarray", valName));
+        } else {
+          var entryVal = new shared SymEntry(len, uint(8));
+          //readFilesStr(entryVal.a, filenames, sizes);
+          var valName = st.nextName();
+          st.addEntry(valName, entryVal);
+          rnames.append(("", "pdarray", valName));
+        }
 
         var errors: list(string);
-        rnames.append(("", "pdarray", valName));
+        
         repMsg = _buildReadAllHdfMsgJson(rnames, false, 0, errors, st);
         gsLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
         return new MsgTuple(repMsg,MsgType.NORMAL);
@@ -1227,7 +1236,11 @@ module GenSymIO {
             select entry.dtype {
                 when DType.Int64 {
                     var e = toSymEntry(entry, int);
-                    warnFlag = write1DDistArrayParquet(filename, e.a, DType.Int64);
+                    warnFlag = write1DDistArrayParquet(filename, e.a);
+                }
+                otherwise {
+                    var e = toSymEntry(entry, uint(8));
+                    warnFlag = write1DDistArrayParquet(filename, e.a);
                 }
             }
         } catch e: FileNotFoundError {
@@ -1716,8 +1729,7 @@ module GenSymIO {
         return warnFlag;
     }
 
-    proc write1DDistArrayParquet(filename: string, A,
-                                                                array_type: DType) throws {
+    proc write1DDistArrayParquet(filename: string, A) throws {
         var prefix = filename;
         var extension = ".parquet";
         //Generate a list of matching filenames to test against. 

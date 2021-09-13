@@ -8935,6 +8935,25 @@ module ArrowAll {
     }
   }
 
+  proc readFilesStr(A, filenames: [] string, sizes: [] int) {
+    var (subdoms, length) = getSubdomains(sizes);
+
+    coforall loc in A.targetLocales() do on loc {
+        var locFiles = filenames;
+        var locFiledoms = subdoms;
+        for (filedom, filename) in zip(locFiledoms, locFiles) {
+          for locdom in A.localSubdomains() {
+            const intersection = domain_intersection(locdom, filedom);
+            if intersection.size > 0 {
+              var pqReader = new parquetFileReader(filename);
+              var col = pqReader.readColumnStr(0);
+              A[filedom] = col;
+            }
+          }
+        }
+    }
+  }
+
   proc writeDistArrayParquet(A, filename) {
     var filenames: [0..#A.targetLocales().size] string;
     for i in 0..#A.targetLocales().size {

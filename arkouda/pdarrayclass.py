@@ -1006,7 +1006,7 @@ class pdarray:
                            format(self.name, dataset, m, json_array, self.dtype)))
 
     @typechecked
-    def saveParquet(self, prefix_path : str) -> str:
+    def save_parquet(self, prefix_path : str) -> str:
         try:
             json_array = json.dumps([prefix_path])
         except Exception as e:

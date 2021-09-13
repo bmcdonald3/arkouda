@@ -1006,6 +1006,15 @@ class pdarray:
                            format(self.name, dataset, m, json_array, self.dtype)))
 
     @typechecked
+    def saveParquet(self, prefix_path : str) -> str:
+        try:
+            json_array = json.dumps([prefix_path])
+        except Exception as e:
+            raise ValueError(e)
+        return cast(str, generic_msg(cmd="writeParquet", args="{} {} {}".\
+                           format(self.name, json_array, self.dtype)))
+    
+    @typechecked
     def register(self, user_defined_name: str) -> pdarray:
         """
         Register this pdarray with a user defined name in the arkouda server

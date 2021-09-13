@@ -1207,6 +1207,57 @@ module GenSymIO {
         }
     }
 
+    proc toparquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+        var (arrayName, jsonfile, dataType)= payload.splitMsgToTuple(3);
+        var filename: string;
+        var entry = st.lookup(arrayName);
+
+        try {
+            filename = jsonToPdArray(jsonfile, 1)[0];
+        } catch {
+            var errorMsg = "Could not decode json filenames via tempfile " +
+                                                    "(%i files: %s)".format(1, jsonfile);
+            gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+            return new MsgTuple(errorMsg, MsgType.ERROR);
+        }
+
+        var warnFlag: bool;
+
+        try {
+            select entry.dtype {
+                when DType.Int64 {
+                    var e = toSymEntry(entry, int);
+                    warnFlag = write1DDistArrayParquet(filename, e.a, DType.Int64);
+                }
+            }
+        } catch e: FileNotFoundError {
+              var errorMsg = "Unable to open %s for writing: %s".format(filename,e.message());
+              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+              return new MsgTuple(errorMsg, MsgType.ERROR);
+        } catch e: MismatchedAppendError {
+              var errorMsg = "Mismatched append %s".format(e.message());
+              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+              return new MsgTuple(errorMsg, MsgType.ERROR);
+        } catch e: WriteModeError {
+              var errorMsg = "Write mode error %s".format(e.message());
+              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+              return new MsgTuple(errorMsg, MsgType.ERROR);
+        } catch e: Error {
+              var errorMsg = "problem writing to file %s".format(e);
+              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+              return new MsgTuple(errorMsg, MsgType.ERROR);
+        }
+        if warnFlag {
+             var warnMsg = "Warning: possibly overwriting existing files matching filename pattern";
+             return new MsgTuple(warnMsg, MsgType.WARNING);
+        } else {
+            var repMsg = "wrote array to file";
+            gsLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+            return new MsgTuple(repMsg, MsgType.NORMAL);            
+        }
+    }
+
+    
     /*
      * Writes out the two pdarrays composing a Strings object to hdf5.
      */
@@ -1663,6 +1714,15 @@ module GenSymIO {
                                       dType, c_ptrTo(A.localSlice(locDom)));
         }
         return warnFlag;
+    }
+
+    proc write1DDistArrayParquet(filename: string, A,
+                                                                array_type: DType) throws {
+        var prefix = filename;
+        var extension = ".parquet";
+        //Generate a list of matching filenames to test against. 
+        writeDistArrayParquet(A, filename);
+        return false;
     }
     
     /*

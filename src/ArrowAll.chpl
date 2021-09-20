@@ -8973,6 +8973,26 @@ module ArrowAll {
     }
   }
 
+  proc readFilesStrAk(A, filenames: [] string, sizes: [] int) {
+    var (subdoms, length) = getSubdomains(sizes);
+
+    coforall loc in A.targetLocales() do on loc {
+        var locFiles = filenames;
+        var locFiledoms = subdoms;
+        for (filedom, filename) in zip(locFiledoms, locFiles) {
+          for locdom in A.localSubdomains() {
+            const intersection = domain_intersection(locdom, filedom);
+            if intersection.size > 0 {
+              var pqReader = new parquetFileReader(filename);
+              var col = pqReader.readColumnStrAk(0);
+              A[filedom] = col;
+            }
+          }
+        }
+    }
+  }
+
+  
   proc writeDistArrayParquet(A, filename) {
     var filenames: [0..#A.targetLocales().size] string;
     for i in 0..#A.targetLocales().size {
@@ -9049,6 +9069,21 @@ module ArrowAll {
       forall i in 0..#len {
         var gstr = garrow_string_array_get_string(loc, i);
         ret[i] = try! createStringWithNewBuffer(gstr:c_string, length=strlen(gstr));
+      }
+      return ret;
+    }
+
+    proc readColumnStrAk(col: int) {
+      var error: GErrorPtr;
+      extern proc strlen(str): int;
+      var chunk = gparquet_arrow_file_reader_read_column_data(pqFileReader, col: gint, c_ptrTo(error));
+      var len = garrow_chunked_array_get_n_rows(chunk);
+      var ret: [0..#len] uint(8);
+      
+      var loc = garrow_chunked_array_get_chunk(chunk, 0:guint):c_ptr(GArrowStringArray);
+      forall i in 0..#len {
+        var gstr = garrow_string_array_get_string(loc, i);
+        ret[i] = try! createStringWithNewBuffer(gstr:c_string, length=strlen(gstr)).buff.deref();
       }
       return ret;
     }

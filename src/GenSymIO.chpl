@@ -658,7 +658,7 @@ module GenSymIO {
           rnames.append(("", "pdarray", valName));
         } else {
           var entryVal = new shared SymEntry(len, uint(8));
-          //readFilesStr(entryVal.a, filenames, sizes);
+          readFilesStrAk(entryVal.a, filenames, sizes);
           var valName = st.nextName();
           st.addEntry(valName, entryVal);
           rnames.append(("", "pdarray", valName));

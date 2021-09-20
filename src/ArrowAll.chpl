@@ -8934,6 +8934,25 @@ module ArrowAll {
         }
     }
   }
+  
+  proc readFilesByName(A, filenames: [] string, sizes: [] int, dsetname: string) {
+    var (subdoms, length) = getSubdomains(sizes);
+
+    coforall loc in A.targetLocales() do on loc {
+        var locFiles = filenames;
+        var locFiledoms = subdoms;
+        for (filedom, filename) in zip(locFiledoms, locFiles) {
+          for locdom in A.localSubdomains() {
+            const intersection = domain_intersection(locdom, filedom);
+            if intersection.size > 0 {
+              var pqReader = new parquetFileReader(filename);
+              var col = pqReader.readColumnByName(dsetname);
+              A[filedom] = col;
+            }
+          }
+        }
+    }
+  }
 
   proc readFilesStr(A, filenames: [] string, sizes: [] int) {
     var (subdoms, length) = getSubdomains(sizes);
@@ -8986,6 +9005,7 @@ module ArrowAll {
         exit(EXIT_FAILURE);
       }
       schema = gparquet_arrow_file_reader_get_schema(pqFileReader, c_ptrTo(error));
+      gparquet_arrow_file_reader_set_use_threads(pqFileReader, true:gboolean);
     }
 
     proc useThreads() {
@@ -8993,6 +9013,20 @@ module ArrowAll {
     }
     
     proc readColumn(col: int) {
+      var error: GErrorPtr;
+      var chunk = gparquet_arrow_file_reader_read_column_data(pqFileReader, col: gint, c_ptrTo(error));
+      var len = garrow_chunked_array_get_n_rows(chunk);
+      var ret: [0..#len] int;
+      var loc = garrow_chunked_array_get_chunk(chunk, 0:guint):c_ptr(GArrowInt64Array);
+      forall i in 0..#len {
+        ret[i] = garrow_int64_array_get_value(loc, i);
+      }
+      return ret;
+    }
+
+    proc readColumnByName(colName: string) {
+      var col = garrow_schema_get_field_index(schema, colName.buff: c_ptr(gchar)):int;
+      if col == -1 then writeln("error: column not found");
       var error: GErrorPtr;
       var chunk = gparquet_arrow_file_reader_read_column_data(pqFileReader, col: gint, c_ptrTo(error));
       var len = garrow_chunked_array_get_n_rows(chunk);

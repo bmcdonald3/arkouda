@@ -111,13 +111,13 @@ def read_hdf(dsetName : str, filenames : Union[str,List[str]],
                 read_all(filenames, datasets=dsetName, strictTypes=strictTypes, allow_errors=allow_errors,
                          calc_string_offsets=calc_string_offsets))
 
-def read_parquet(filenames : Union[str, List[str]])\
+def read_parquet(dsetname: str, filenames : Union[str, List[str]])\
              -> Union[pdarray, Strings, Mapping[str,Union[pdarray,Strings]]]:
     if isinstance(filenames, str):
         filenames = [filenames]
 
     rep_msg = generic_msg(cmd="readAllParquet", args=
-                          f"{len(filenames)} {json.dumps(filenames)}"
+                          f"{len(filenames)} {json.dumps(dsetname)} | {json.dumps(filenames)}"
                           )
     rep = json.loads(rep_msg)  # See GenSymIO._buildReadAllHdfMsgJson for json structure
     items = rep["items"] if "items" in rep else []

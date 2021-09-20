@@ -582,10 +582,22 @@ module GenSymIO {
           return new MsgTuple(errMsg, MsgType.ERROR);
         }
 
-        var jsonfiles = arraysStr;
+        var (jsondsets, jsonfiles) = arraysStr.splitMsgToTuple(" | ",2);
         var nfiles = nfilesStr:int; // Error checked above
         var filelist: [0..#nfiles] string;
+        var dsetlist: [0..#1] string;
 
+        try {
+            //TODO: change to real size, not hardcode 1
+            dsetlist = jsonToPdArray(jsondsets, 1);
+        } catch {
+            var errorMsg = "Could not decode json dataset names via tempfile (%i files: %s)".format(
+                                               1, jsondsets);
+            gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+            return new MsgTuple(errorMsg, MsgType.ERROR);
+        }
+        var dsetname = dsetlist[0];
+        
         try {
             filelist = jsonToPdArray(jsonfiles, nfiles);
         } catch {
@@ -640,7 +652,7 @@ module GenSymIO {
         // Load the strings bytes/values first
         if ty == "int" {
           var entryVal = new shared SymEntry(len, int);
-          readFiles(entryVal.a, filenames, sizes);
+          readFilesByName(entryVal.a, filenames, sizes, dsetname);
           var valName = st.nextName();
           st.addEntry(valName, entryVal);
           rnames.append(("", "pdarray", valName));

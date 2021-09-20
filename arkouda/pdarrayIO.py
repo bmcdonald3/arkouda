@@ -111,10 +111,14 @@ def read_hdf(dsetName : str, filenames : Union[str,List[str]],
                 read_all(filenames, datasets=dsetName, strictTypes=strictTypes, allow_errors=allow_errors,
                          calc_string_offsets=calc_string_offsets))
 
-def read_parquet(dsetname: str, filenames : Union[str, List[str]])\
+def read_parquet(filenames : Union[str, List[str]], dsetname=None)\
              -> Union[pdarray, Strings, Mapping[str,Union[pdarray,Strings]]]:
     if isinstance(filenames, str):
         filenames = [filenames]
+    if isinstance(dsetname, str):
+        dsetname = [dsetname]
+    if dsetname is None:
+        dsetname=['asd']
 
     rep_msg = generic_msg(cmd="readAllParquet", args=
                           f"{len(filenames)} {json.dumps(dsetname)} | {json.dumps(filenames)}"

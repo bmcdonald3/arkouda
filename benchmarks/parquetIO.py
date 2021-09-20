@@ -20,7 +20,7 @@ def time_ak_write_read(N_per_locale, trials, dtype, path, seed):
         end = time.time()
         writetimes.append(end - start)
         start = time.time()
-        b = ak.read_parquet(['asd'], "/Users/ben.mcdonald/arkouda/ASDASD_LOCALE0.parquet")
+        b = ak.read_parquet("/Users/ben.mcdonald/arkouda/ASDASD_LOCALE0.parquet")
         end = time.time()
         readtimes.append(end - start)
         for f in glob(path+'_LOCALE*'):

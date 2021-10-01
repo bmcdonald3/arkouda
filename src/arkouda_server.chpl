@@ -318,7 +318,6 @@ proc main() {
                 when "lshdf"             {repTuple = lshdfMsg(cmd, args, st);}
                 when "readAllHdf"        {repTuple = readAllHdfMsg(cmd, args, st);}
                 when "readAllParquet"    {repTuple = readAllParquetMsg(cmd, args, st);}
-                when "writeParquet"      {repTuple = toparquetMsg(cmd, args, st);}
                 when "tohdf"             {repTuple = tohdfMsg(cmd, args, st);}
                 when "create"            {repTuple = createMsg(cmd, args, st);}
                 when "delete"            {repTuple = deleteMsg(cmd, args, st);}

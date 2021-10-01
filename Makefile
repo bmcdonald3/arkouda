@@ -23,7 +23,6 @@ CHPL_FLAGS += --fast
 endif
 CHPL_FLAGS += -smemTrack=true
 CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq
-CHPL_FLAGS += -I/usr/local/Cellar/apache-arrow/5.0.0_1/include -L/usr/local/Cellar/apache-arrow/5.0.0_1/lib -lparquet -larrow
 
 # We have seen segfaults with cache remote at some node counts
 CHPL_FLAGS += --no-cache-remote
@@ -53,7 +52,7 @@ CHPL_FLAGS += --interleave-memory
 endif
 
 .PHONY: install-deps
-install-deps: install-zmq install-hdf5
+install-deps: install-zmq install-hdf5 install-arrow
 
 DEP_DIR := dep
 DEP_INSTALL_DIR := $(ARKOUDA_PROJECT_DIR)/$(DEP_DIR)
@@ -88,6 +87,21 @@ install-hdf5:
 	rm -rf $(HDF5_BUILD_DIR)
 	echo '$$(eval $$(call add-path,$(HDF5_INSTALL_DIR)))' >> Makefile.paths
 
+ARROW_VER := 5.0.0
+ARROW_NAME_VER := apache-arrow-$(ARROW_VER)
+ARROW_FULL_NAME_VER := arrow-apache-arrow-$(ARROW_VER)
+ARROW_BUILD_DIR := $(DEP_BUILD_DIR)/$(ARROW_FULL_NAME_VER)
+ARROW_INSTALL_DIR := $(DEP_INSTALL_DIR)/arrow-install
+ARROW_LINK := https://github.com/apache/arrow/archive/refs/tags/$(ARROW_NAME_VER).tar.gz
+ARROW_OPTIONS := -DARROW_JEMALLOC=OFF -DARROW_COMPUTE=OFF -DARROW_IPC=OFF -DARROW_WITH_RE2=OFF
+install-arrow:
+	@echo "Installing Apache Arrow/Parquet"
+	rm -rf $(ARROW_BUILD_DIR) $(ARROW_INSTALL_DIR)
+	mkdir -p $(DEP_INSTALL_DIR) $(DEP_BUILD_DIR)
+	cd $(DEP_BUILD_DIR) && curl -sL $(ARROW_LINK) | tar xz
+	cd $(ARROW_BUILD_DIR)/cpp && cmake -DCMAKE_INSTALL_PREFIX=$(ARROW_INSTALL_DIR) -DCMAKE_BUILD_TYPE=Release -DARROW_PARQUET=ON $(ARROW_OPTIONS) && make && make install
+	rm -rf $(ARROW_BUILD_DIR)
+	echo '$$(eval $$(call add-path,$(ARROW_INSTALL_DIR)))' >> Makefile.paths
 
 # System Environment
 ifdef LD_RUN_PATH

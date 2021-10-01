@@ -16,11 +16,11 @@ def time_ak_write_read(N_per_locale, trials, dtype, path, seed):
     readtimes = []
     for i in range(trials):
         start = time.time()
-        a.save_parquet("ASDASD")
+        a.save_parquet(path)
         end = time.time()
         writetimes.append(end - start)
         start = time.time()
-        b = ak.read_parquet("/Users/ben.mcdonald/arkouda/ASDASD_LOCALE0.parquet")
+        b = ak.read_parquet(path+'_LOCALE*')
         end = time.time()
         readtimes.append(end - start)
         for f in glob(path+'_LOCALE*'):
@@ -43,7 +43,7 @@ def create_parser():
     parser.add_argument('-n', '--size', type=int, default=10**8, help='Problem size: length of array to write/read')
     parser.add_argument('-t', '--trials', type=int, default=1, help='Number of times to run the benchmark')
     parser.add_argument('-d', '--dtype', default='int64', help='Dtype of array ({})'.format(', '.join(TYPES)))
-    parser.add_argument('-p', '--path', default=os.getcwd()+'/benckmarks/test', help='Target path for measuring read/write rates')
+    parser.add_argument('-p', '--path', default=os.getcwd()+'/benckmarks/ak-pq-test', help='Target path for measuring read/write rates')
     parser.add_argument('--correctness-only', default=False, action='store_true', help='Only check correctness, not performance.')
     parser.add_argument('-s', '--seed', default=None, type=int, help='Value to initialize random number generator')
     return parser

@@ -22,7 +22,7 @@ else
 CHPL_FLAGS += --fast
 endif
 CHPL_FLAGS += -smemTrack=true
-CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq
+CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq -larrow -lparquet
 
 # We have seen segfaults with cache remote at some node counts
 CHPL_FLAGS += --no-cache-remote

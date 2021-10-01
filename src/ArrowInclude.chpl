@@ -4,7 +4,7 @@ module ArrowInclude {
   require "cpp-arrow.o";
 
   config const NUMELEMS = 100_000;
-  config const ROWGROUPS = 512*1024*128; // 512 mb
+  config const ROWGROUPS = 512*1024*128; // 512 mb of int64
   
   extern proc writeParquet(a, b);
   extern proc readParquet(a, b);
@@ -12,6 +12,7 @@ module ArrowInclude {
   extern proc c_readColumnByIndex(a,b,c,d);
   extern proc c_readColumnByName(a,b,c,d);
   extern proc c_getType(a,b): c_string;
+  extern proc c_writeColumnToParquet(a, b, c, d, e, f);
 
   proc getSubdomains(lengths: [?FD] int) {
     var subdoms: [FD] domain(1);
@@ -61,5 +62,21 @@ module ArrowInclude {
       sizes[i] = c_doSize(filenames[i].c_str());
     }
     return (sizes, ty);
+  }
+
+  proc writeDistArrayToParquet(A, filename, dsetname, rowGroupSize) {
+    var filenames: [0..#A.targetLocales().size] string;
+    for i in 0..#A.targetLocales().size {
+      var suffix = i: string;
+      filenames[i] = filename + "_LOCALE" + suffix + ".parquet";
+    }
+
+    coforall (loc, idx) in zip(A.targetLocales(), filenames.domain) do on loc {
+        const myFilename = filenames[idx];
+
+        var locDom = A.localSubdomain();
+        var locArr = A[locDom];
+        c_writeColumnToParquet(myFilename.c_str(), c_ptrTo(locArr), 0, dsetname.c_str(), locDom.size, rowGroupSize);
+      }
   }
 }

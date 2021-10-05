@@ -33,21 +33,18 @@ def run_test(verbose=True):
     '''
     tests = 1
     failures = 0
-    not_impl = 0
 
-    tests += 1
-    do_check = True
     write_random_file("correctness-test.parquet", SIZE)
-    py_col1 = pq.read_pandas("correctness-test.parquet", columns=['A']).to_pandas()['A']
-
-    ak_col1 = ak.read_parquet("correctness-test.parquet", 'A').to_ndarray()
-
-    failures += compare_values(ak_col1, py_col1)
+    
+    for colname in list('ABCD'):
+        py_col1 = pq.read_pandas("correctness-test.parquet", columns=[colname]).to_pandas()[colname]
+        ak_col1 = ak.read_parquet("correctness-test.parquet", colname).to_ndarray()
+        failures += compare_values(ak_col1, py_col1)
 
     return failures
 
 class ParquetTest(ArkoudaTest):
-    def test_parquet(self):
+    def test_correctness(self):
         '''
         Executes run_test and asserts whether there are any errors
         

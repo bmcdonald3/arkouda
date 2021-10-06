@@ -43,7 +43,7 @@ def create_parser():
     parser.add_argument('-n', '--size', type=int, default=10**8, help='Problem size: length of array to write/read')
     parser.add_argument('-t', '--trials', type=int, default=1, help='Number of times to run the benchmark')
     parser.add_argument('-d', '--dtype', default='int64', help='Dtype of array ({})'.format(', '.join(TYPES)))
-    parser.add_argument('-p', '--path', default=os.getcwd()+'/benckmarks/ak-pq-test', help='Target path for measuring read/write rates')
+    parser.add_argument('-p', '--path', default=os.getcwd()+'/ak-pq-test', help='Target path for measuring read/write rates')
     parser.add_argument('--correctness-only', default=False, action='store_true', help='Only check correctness, not performance.')
     parser.add_argument('-s', '--seed', default=None, type=int, help='Value to initialize random number generator')
     return parser

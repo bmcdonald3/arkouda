@@ -136,7 +136,8 @@ setup(
         'pyzmq>=20.0.0',
         'typeguard==2.10.0',
         'pyfiglet',
-        'versioneer'
+        'versioneer',
+        'pyarrow'
     ],
 
     # List additional groups of dependencies here (e.g. development

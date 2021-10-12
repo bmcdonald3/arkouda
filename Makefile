@@ -22,7 +22,7 @@ else
 CHPL_FLAGS += --fast
 endif
 CHPL_FLAGS += -smemTrack=true
-CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq -larrow -lparquet
+CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq -lparquet -larrow
 
 # We have seen segfaults with cache remote at some node counts
 CHPL_FLAGS += --no-cache-remote
@@ -30,7 +30,8 @@ CHPL_FLAGS += --no-cache-remote
 # add-path: Append custom paths for non-system software.
 # Note: Darwin `ld` only supports `-rpath <path>`, not `-rpath=<paths>`.
 define add-path
-CHPL_FLAGS += -I$(1)/include -L$(1)/lib --ldflags="-Wl,-rpath,$(1)/lib"
+CHPL_INCLUDES += -I$(1)/include -L$(1)/lib$(2) 
+CHPL_FLAGS += $(CHPL_INCLUDES) --ldflags="-Wl,-rpath,$(1)/lib$(2)"
 endef
 # Usage: $(eval $(call add-path,/home/user/anaconda3/envs/arkouda))
 #                               ^ no space after comma
@@ -70,7 +71,7 @@ install-zmq:
 	cd $(DEP_BUILD_DIR) && curl -sL $(ZMQ_LINK) | tar xz
 	cd $(ZMQ_BUILD_DIR) && ./configure --prefix=$(ZMQ_INSTALL_DIR) CFLAGS=-O3 CXXFLAGS=-O3 && make && make install
 	rm -r $(ZMQ_BUILD_DIR)
-	echo '$$(eval $$(call add-path,$(ZMQ_INSTALL_DIR)))' >> Makefile.paths
+	echo '$$(eval $$(call add-path,$(ZMQ_INSTALL_DIR),))' >> Makefile.paths
 
 HDF5_MAJ_MIN_VER := 1.10
 HDF5_VER := 1.10.5
@@ -85,7 +86,7 @@ install-hdf5:
 	cd $(DEP_BUILD_DIR) && curl -sL $(HDF5_LINK) | tar xz
 	cd $(HDF5_BUILD_DIR) && ./configure --prefix=$(HDF5_INSTALL_DIR) --enable-optimization=high --enable-hl && make && make install
 	rm -rf $(HDF5_BUILD_DIR)
-	echo '$$(eval $$(call add-path,$(HDF5_INSTALL_DIR)))' >> Makefile.paths
+	echo '$$(eval $$(call add-path,$(HDF5_INSTALL_DIR),))' >> Makefile.paths
 
 ARROW_VER := 5.0.0
 ARROW_NAME_VER := apache-arrow-$(ARROW_VER)
@@ -93,7 +94,7 @@ ARROW_FULL_NAME_VER := arrow-apache-arrow-$(ARROW_VER)
 ARROW_BUILD_DIR := $(DEP_BUILD_DIR)/$(ARROW_FULL_NAME_VER)
 ARROW_INSTALL_DIR := $(DEP_INSTALL_DIR)/arrow-install
 ARROW_LINK := https://github.com/apache/arrow/archive/refs/tags/$(ARROW_NAME_VER).tar.gz
-ARROW_OPTIONS := -DARROW_JEMALLOC=OFF -DARROW_COMPUTE=OFF -DARROW_IPC=OFF -DARROW_WITH_RE2=OFF
+ARROW_OPTIONS := -DARROW_JEMALLOC=OFF -DARROW_COMPUTE=OFF -DARROW_IPC=OFF -DARROW_WITH_RE2=OFF -DARROW_WITH_SNAPPY=ON
 install-arrow:
 	@echo "Installing Apache Arrow/Parquet"
 	rm -rf $(ARROW_BUILD_DIR) $(ARROW_INSTALL_DIR)
@@ -101,7 +102,7 @@ install-arrow:
 	cd $(DEP_BUILD_DIR) && curl -sL $(ARROW_LINK) | tar xz
 	cd $(ARROW_BUILD_DIR)/cpp && cmake -DCMAKE_INSTALL_PREFIX=$(ARROW_INSTALL_DIR) -DCMAKE_BUILD_TYPE=Release -DARROW_PARQUET=ON $(ARROW_OPTIONS) && make && make install
 	rm -rf $(ARROW_BUILD_DIR)
-	echo '$$(eval $$(call add-path,$(ARROW_INSTALL_DIR)))' >> Makefile.paths
+	echo '$$(eval $$(call add-path,$(ARROW_INSTALL_DIR),64))' >> Makefile.paths
 
 # System Environment
 ifdef LD_RUN_PATH
@@ -126,7 +127,7 @@ check-deps: $(CHECK_DEPS)
 ARROW_CPP=cpp-arrow
 .PHONY: compile-arrow-cpp
 compile-arrow-cpp: $(ARKOUDA_SOURCE_DIR)/cpp-arrow.cpp
-	g++ -O3 -std=c++11 -c $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp -o $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).o
+	g++ -O3 -std=c++11 -c $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp -o $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).o $(CHPL_INCLUDES) -lparquet -larrow
 
 CHPL_MINOR := $(shell $(CHPL) --version | sed -n "s/chpl version 1\.\([0-9]*\).*/\1/p")
 CHPL_VERSION_OK := $(shell test $(CHPL_MINOR) -ge 24 && echo yes)

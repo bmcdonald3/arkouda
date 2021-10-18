@@ -118,11 +118,13 @@ def read_parquet(filenames : Union[str, List[str]], dsetname=None)\
     if isinstance(dsetname, str):
         dsetname = [dsetname]
     if dsetname is None:
-        dsetname=['asd']
+        # Send empty name so C code doesn't cause error
+        # This results in reading the first column of the file
+        # which is the same behavior if someone enters the wrong column name
+        dsetname=[' ']
 
     rep_msg = generic_msg(cmd="readAllParquet", args=
-                          f"{len(filenames)} {json.dumps(dsetname)} | {json.dumps(filenames)}"
-                          )
+                          f"{len(filenames)} {json.dumps(dsetname)} | {json.dumps(filenames)}")
     rep = json.loads(rep_msg)  # See GenSymIO._buildReadAllHdfMsgJson for json structure
     items = rep["items"] if "items" in rep else []
     file_errors = rep["file_errors"] if "file_errors" in rep else []

@@ -90,4 +90,11 @@ module ArrowInclude {
         c_writeColumnToParquet(myFilename.c_str(), c_ptrTo(locArr), 0, dsetname.c_str(), locDom.size, rowGroupSize);
       }
   }
+
+  proc write1DDistArrayParquet(filename: string, dsetname, A) throws {
+    var prefix = filename;
+    var extension = ".parquet";
+    writeDistArrayToParquet(A, filename, dsetname, (1024*128*512));
+    return false;
+  }
 }

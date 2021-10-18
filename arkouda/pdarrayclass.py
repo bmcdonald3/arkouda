@@ -1006,7 +1006,7 @@ class pdarray:
                            format(self.name, dataset, m, json_array, self.dtype)))
 
     @typechecked
-    def save_parquet(self, prefix_path : str) -> str:
+    def save_parquet(self, prefix_path : str, dataset : str='array') -> str:
         """
         Save the pdarray to Parquet. The result is a collection of Parquet files,
         one file per locale of the arkouda server, where each filename starts
@@ -1017,6 +1017,9 @@ class pdarray:
         ----------
         prefix_path : str
             Directory and filename prefix that all output files share
+        dataset : str
+            Name of the dataset to create in Parquet files (must not already exist)
+        
 
         Returns
         -------
@@ -1066,8 +1069,8 @@ class pdarray:
             json_array = json.dumps([prefix_path])
         except Exception as e:
             raise ValueError(e)
-        return cast(str, generic_msg(cmd="writeParquet", args="{} {} {}".\
-                                     format(self.name, json_array, self.dtype)))
+        return cast(str, generic_msg(cmd="writeParquet", args="{} {} {} {}".\
+                                     format(self.name, dataset, json_array, self.dtype)))
     
     @typechecked
     def register(self, user_defined_name: str) -> pdarray:

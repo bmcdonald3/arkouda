@@ -1223,7 +1223,7 @@ module GenSymIO {
     }
 
     proc toparquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
-      var (arrayName, jsonfile, dataType)= payload.splitMsgToTuple(3);
+      var (arrayName, dsetname,  jsonfile, dataType)= payload.splitMsgToTuple(4);
       var filename: string;
       var entry = st.lookup(arrayName);
 
@@ -1242,11 +1242,11 @@ module GenSymIO {
         select entry.dtype {
             when DType.Int64 {
               var e = toSymEntry(entry, int);
-              warnFlag = write1DDistArrayParquet(filename, e.a);
+              warnFlag = write1DDistArrayParquet(filename, dsetname, e.a);
             }
             otherwise {
               var e = toSymEntry(entry, uint(8));
-              warnFlag = write1DDistArrayParquet(filename, e.a);
+              warnFlag = write1DDistArrayParquet(filename, dsetname, e.a);
             }
           }
       } catch e: FileNotFoundError {
@@ -1732,14 +1732,6 @@ module GenSymIO {
                                       dType, c_ptrTo(A.localSlice(locDom)));
         }
         return warnFlag;
-    }
-
-    proc write1DDistArrayParquet(filename: string, A) throws {
-        var prefix = filename;
-        var extension = ".parquet";
-        //Generate a list of matching filenames to test against. 
-        writeDistArrayToParquet(A, filename, "int-col", (1024*128*512));
-        return false;
     }
     
     /*

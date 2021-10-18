@@ -1,7 +1,7 @@
 module ArrowInclude {
   use SysCTypes, CPtr, Time;
-  require "cpp-arrow.h";
-  require "cpp-arrow.o";
+  require "ArrowFunctions.h";
+  require "ArrowFunctions.o";
 
   config const NUMELEMS = 100_000;
   config const ROWGROUPS = 512*1024*128; // 512 mb of int64

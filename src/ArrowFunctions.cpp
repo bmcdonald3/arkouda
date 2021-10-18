@@ -1,4 +1,4 @@
-#include "cpp-arrow.h"
+#include "ArrowFunctions.h"
 
 #include <iostream>
 #include <arrow/api.h>

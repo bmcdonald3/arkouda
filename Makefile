@@ -124,9 +124,9 @@ CHECK_DEPS = check-chpl check-zmq check-hdf5 check-arrow
 endif
 check-deps: $(CHECK_DEPS)
 
-ARROW_CPP=cpp-arrow
+ARROW_CPP=ArrowFunctions
 .PHONY: compile-arrow-cpp
-compile-arrow-cpp: $(ARKOUDA_SOURCE_DIR)/cpp-arrow.cpp
+compile-arrow-cpp: $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp
 	g++ -O3 -std=c++11 -c $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp -o $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).o $(CHPL_INCLUDES) -lparquet -larrow
 
 CHPL_MINOR := $(shell $(CHPL) --version | sed -n "s/chpl version 1\.\([0-9]*\).*/\1/p")

@@ -113,6 +113,45 @@ def read_hdf(dsetName : str, filenames : Union[str,List[str]],
 
 def read_parquet(filenames : Union[str, List[str]], dsetname=None)\
              -> Union[pdarray, Strings, Mapping[str,Union[pdarray,Strings]]]:
+    """
+    Read a single dataset from multiple Parquet files into an Arkouda
+    pdarray object.
+
+    Parameters
+    ----------
+    filenames : list or str
+        Either a list of filenames or shell expression
+    dsetName : str
+        The name of the dataset (must be the same across all files)
+
+    Returns
+    -------
+    pdarray
+        A pdarray instance pointing to the server-side data
+
+    Raises
+    ------
+    TypeError 
+        Raised if dsetName is not a str or if filenames is neither a string
+        nor a list of strings
+    ValueError 
+        Raised if all datasets are not present in all hdf5 files  
+    RuntimeError
+        Raised if one or more of the specified files cannot be opened  
+
+    See Also
+    --------
+    read_hdf, get_datasets, ls_hdf, read_all, load, save
+
+    Notes
+    -----
+    If filenames is a string, it is interpreted as a shell expression
+    (a single filename is a valid expression, so it will work) and is
+    expanded with glob to read all matching files. Use ``get_datasets`` to
+    show the names of datasets in HDF5 files.
+
+    If dsetName is not present in all files, a TypeError is raised.
+    """
     if isinstance(filenames, str):
         filenames = [filenames]
     if isinstance(dsetname, str):

@@ -46,7 +46,7 @@ module ArrowInclude {
     return {low..high by stride};
   }
   
-  proc readFilesByNameNew(A, filenames: [] string, sizes: [] int, dsetname: string) {
+  proc readFilesByName(A, filenames: [] string, sizes: [] int, dsetname: string) {
     var (subdoms, length) = getSubdomains(sizes);
 
     coforall loc in A.targetLocales() do on loc {

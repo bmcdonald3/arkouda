@@ -652,13 +652,7 @@ module GenSymIO {
         // Load the strings bytes/values first
         if ty == "int64" {
           var entryVal = new shared SymEntry(len, int);
-          readFilesByNameNew(entryVal.a, filenames, sizes, dsetname);
-          var valName = st.nextName();
-          st.addEntry(valName, entryVal);
-          rnames.append(("", "pdarray", valName));
-        } else {
-          var entryVal = new shared SymEntry(len, uint(8));
-          //readFilesStrAk(entryVal.a, filenames, sizes);
+          readFilesByName(entryVal.a, filenames, sizes, dsetname);
           var valName = st.nextName();
           st.addEntry(valName, entryVal);
           rnames.append(("", "pdarray", valName));

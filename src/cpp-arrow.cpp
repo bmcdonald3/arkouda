@@ -55,7 +55,7 @@ void doRead(void* chpl_arr, int numElems) {
   }
 }
 
-int cpp_getSize(char* filename) {
+int cpp_getSize(const char* filename) {
   std::shared_ptr<arrow::io::ReadableFile> infile;
   PARQUET_ASSIGN_OR_THROW(
       infile,
@@ -69,7 +69,7 @@ int cpp_getSize(char* filename) {
   return reader -> parquet_reader() -> metadata() -> num_rows();
 }
 
-const char* cpp_getType(char* filename, char* colname) {
+const char* cpp_getType(const char* filename, const char* colname) {
   std::shared_ptr<arrow::io::ReadableFile> infile;
   PARQUET_ASSIGN_OR_THROW(
       infile,
@@ -90,7 +90,7 @@ const char* cpp_getType(char* filename, char* colname) {
   
 }
 
-void cpp_readColumnByIndex(char* filename, void* chpl_arr, int colNum, int numElems) {
+void cpp_readColumnByIndex(const char* filename, void* chpl_arr, int colNum, int numElems) {
   auto chpl_ptr = (int64_t*)chpl_arr;
   
   std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -113,7 +113,7 @@ void cpp_readColumnByIndex(char* filename, void* chpl_arr, int colNum, int numEl
   }
 }
 
-void cpp_readColumnByName(char* filename, void* chpl_arr, char* colname, int numElems) {
+void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems) {
   auto chpl_ptr = (int64_t*)chpl_arr;
   
   std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -147,8 +147,8 @@ void cpp_readColumnByName(char* filename, void* chpl_arr, char* colname, int num
   }
 }
 
-void cpp_writeColumnToParquet(char* filename, void* chpl_arr,
-                              int colnum, char* dsetname, int numelems,
+void cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
+                              int colnum, const char* dsetname, int numelems,
                               int rowGroupSize) {
   auto chpl_ptr = (int64_t*)chpl_arr;
   arrow::Int64Builder i64builder;
@@ -186,26 +186,26 @@ extern "C" {
   // get size from metadata
   // don't see these calls documented anywhere, but I
   // stole them from the GLib implementation
-  int c_doSize(char* chpl_str) {
+  int c_doSize(const char* chpl_str) {
     return cpp_getSize(chpl_str);
   }
 
   // first attempt at something that could actually be used
-  void c_readColumnByIndex(char* filename, void* chpl_arr, int colNum, int numElems) {
+  void c_readColumnByIndex(const char* filename, void* chpl_arr, int colNum, int numElems) {
     cpp_readColumnByIndex(filename, chpl_arr, colNum, numElems);
   }
 
   // :) turn me up
-  void c_readColumnByName(char* filename, void* chpl_arr, char* colname, int numElems) {
+  void c_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems) {
     cpp_readColumnByName(filename, chpl_arr, colname, numElems);
   }
 
-  const char* c_getType(char* filename, char* colname) {
+  const char* c_getType(const char* filename, const char* colname) {
     return cpp_getType(filename, colname);
   }
 
-  void c_writeColumnToParquet(char* filename, void* chpl_arr,
-                              int colnum, char* dsetname, int numelems,
+  void c_writeColumnToParquet(const char* filename, void* chpl_arr,
+                              int colnum, const char* dsetname, int numelems,
                               int rowGroupSize) {
     cpp_writeColumnToParquet(filename, chpl_arr, colnum, dsetname,
                              numelems, rowGroupSize);

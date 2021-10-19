@@ -61,6 +61,11 @@ module ArrowInclude {
     }
   }
 
+  proc getArrSize(filename: string) {
+    var size = c_getSize(filename.c_str());
+    return size;
+  }
+  
   proc getArrSizeAndType(filenames: [?D] string) {
     extern proc strlen(str): c_int;
     var sizes: [D] int;

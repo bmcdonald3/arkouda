@@ -63,7 +63,7 @@ module ArrowInclude {
   }
 
   proc getArrSizeAndType(filenames: [?D] string) {
-    extern proc strlen(asd): c_int;
+    extern proc strlen(str): c_int;
     var sizes: [D] int;
     var ty: string = "int64";
     for i in D {

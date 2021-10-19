@@ -571,7 +571,6 @@ module GenSymIO {
     }
 
     proc readAllParquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
-      var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
         var repMsg: string;
         // May need a more robust delimiter then " | "
         var (strictFlag, ndsetsStr, nfilesStr, allowErrorsFlag, arraysStr) = payload.splitMsgToTuple(5);
@@ -653,54 +652,54 @@ module GenSymIO {
         var fileErrorCount:int = 0;
         var fileErrorMsg:string = "";
         var sizes: [filedom] int;
-        var ty: string;
+        var ty: string = "int64"; // Hardcoded for now until we add strings
+        var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
 
         for dsetName in dsetnames do {
-          for (i, fname) in zip(filedom, filenames) {
-            var hadError = false;
-            try {
-              // not using the type for now since it is only implemented for ints
-              // also, since Parquet files have a `numRows` that isn't specifc
-              // to dsetname like for HDF5, we only need to get this once per
-              // file, regardless of how many datasets we are reading
-              sizes[i] = getArrSize(fname);
-            } catch e: FileNotFoundError {
-              // TODO FIX THIS TO BE FILENAME[i] NOT FILENAMES[0]
-              fileErrorMsg = "File %s not found".format(filenames[0]);
-              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-              hadError = true;
-              if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-            } catch e: PermissionError {
-              fileErrorMsg = "Permission error %s opening %s".format(e.message(),fname);
-              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-              hadError = true;
-              if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-            } catch e: DatasetNotFoundError {
-              fileErrorMsg = "Dataset %s not found in file %s".format(dsetName,fname);
-              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-              hadError = true;
-              if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-            } catch e: SegArrayError {
-              fileErrorMsg = "SegmentedArray error: %s".format(e.message());
-              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-              hadError = true;
-              if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-            } catch e : Error {
-              fileErrorMsg = "Other error in accessing file %s: %s".format(fname,e.message());
-              gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-              hadError = true;
-              if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-            }
+            for (i, fname) in zip(filedom, filenames) {
+                var hadError = false;
+                try {
+                    // not using the type for now since it is only implemented for ints
+                    // also, since Parquet files have a `numRows` that isn't specifc
+                    // to dsetname like for HDF5, we only need to get this once per
+                    // file, regardless of how many datasets we are reading
+                    sizes[i] = getArrSize(fname);
+                } catch e: FileNotFoundError {
+                    fileErrorMsg = "File %s not found".format(fname);
+                    gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+                    hadError = true;
+                    if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+                } catch e: PermissionError {
+                    fileErrorMsg = "Permission error %s opening %s".format(e.message(),fname);
+                    gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+                    hadError = true;
+                    if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+                } catch e: DatasetNotFoundError {
+                    fileErrorMsg = "Dataset %s not found in file %s".format(dsetName,fname);
+                    gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+                    hadError = true;
+                    if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+                } catch e: SegArrayError {
+                    fileErrorMsg = "SegmentedArray error: %s".format(e.message());
+                    gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+                    hadError = true;
+                    if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+                } catch e : Error {
+                    fileErrorMsg = "Other error in accessing file %s: %s".format(fname,e.message());
+                    gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+                    hadError = true;
+                    if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+                }
 
-            // This may need to be adjusted for this all-in-one approach
-            if hadError {
-              // Keep running total, but we'll only report back the first 10
-              if fileErrorCount < 10 {
-                fileErrors.append(fileErrorMsg.replace("\n", " ").replace("\r", " ").replace("\t", " ").strip());
-              }
-              fileErrorCount += 1;
+                // This may need to be adjusted for this all-in-one approach
+                if hadError {
+                  // Keep running total, but we'll only report back the first 10
+                  if fileErrorCount < 10 {
+                    fileErrors.append(fileErrorMsg.replace("\n", " ").replace("\r", " ").replace("\t", " ").strip());
+                  }
+                  fileErrorCount += 1;
+                }
             }
-          }
         }
         // This is handled in the readFilesByName() function
         var subdoms: [filedom] domain(1);

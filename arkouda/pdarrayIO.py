@@ -111,7 +111,8 @@ def read_hdf(dsetName : str, filenames : Union[str,List[str]],
                 read_all(filenames, datasets=dsetName, strictTypes=strictTypes, allow_errors=allow_errors,
                          calc_string_offsets=calc_string_offsets))
 
-def read_parquet(filenames : Union[str, List[str]], dsetname=None)\
+def read_parquet(filenames : Union[str, List[str]], dsetname=None,
+                 strictTypes: bool=True, allow_errors:bool = False)\
              -> Union[pdarray, Strings, Mapping[str,Union[pdarray,Strings]]]:
     """
     Read a single dataset from multiple Parquet files into an Arkouda
@@ -163,7 +164,7 @@ def read_parquet(filenames : Union[str, List[str]], dsetname=None)\
         dsetname=[' ']
 
     rep_msg = generic_msg(cmd="readAllParquet", args=
-                          f"{len(filenames)} {json.dumps(dsetname)} | {json.dumps(filenames)}")
+                          f"{strictTypes} {len(dsetname)} {len(filenames)} {allow_errors} {json.dumps(dsetname)} | {json.dumps(filenames)}")
     rep = json.loads(rep_msg)  # See GenSymIO._buildReadAllHdfMsgJson for json structure
     items = rep["items"] if "items" in rep else []
     file_errors = rep["file_errors"] if "file_errors" in rep else []

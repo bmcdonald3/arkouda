@@ -38,7 +38,7 @@ def run_test(verbose=True):
     
     for colname in list('ABCD'):
         py_col1 = pq.read_pandas("correctness-test.parquet", columns=[colname]).to_pandas()[colname]
-        ak_col1 = ak.read_parquet("correctness-test.parquet", colname).to_ndarray()
+        ak_col1 = ak.read_parquet("correctness-test", colname).to_ndarray()
         failures += compare_values(ak_col1, py_col1)
 
     return failures
@@ -55,10 +55,12 @@ class ParquetTest(ArkoudaTest):
 
     def test_multiple_file_read(self):
         filenames = []
+        chpl_filenames = []
         totalSize = 0
         
         for i in range(NUMFILES):
             filenames.append('file'+str(i)+'.parquet')
+            chpl_filenames.append('file'+str(i))
             write_random_file(filenames[i], SIZE*(i+1))
             totalSize += SIZE*(i+1)
         ak_col = ak.read_parquet(filenames, 'A')

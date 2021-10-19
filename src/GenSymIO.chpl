@@ -574,8 +574,23 @@ module GenSymIO {
       var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
         var repMsg: string;
         // May need a more robust delimiter then " | "
-        var (nfilesStr, arraysStr) = payload.splitMsgToTuple(2);
+        var (strictFlag, ndsetsStr, nfilesStr, allowErrorsFlag, arraysStr) = payload.splitMsgToTuple(5);
+        var strictTypes: bool = true;
+        if (strictFlag.toLower().strip() == "false") {
+          strictTypes = false;
+        }
 
+        var allowErrors: bool = "true" == allowErrorsFlag.toLower(); // default is false
+        if allowErrors {
+            gsLogger.warn(getModuleName(), getRoutineName(), getLineNumber(), "Allowing file read errors");
+        }
+
+        // Test arg casting so we can send error message instead of failing
+        if (!checkCast(ndsetsStr, int)) {
+            var errMsg = "Number of datasets:`%s` could not be cast to an integer".format(ndsetsStr);
+            gsLogger.error(getModuleName(), getRoutineName(), getLineNumber(), errMsg);
+            return new MsgTuple(errMsg, MsgType.ERROR);
+        }
         if (!checkCast(nfilesStr, int)) {
           var errMsg = "Number of files:`%s` could not be cast to an integer".format(nfilesStr);
           gsLogger.error(getModuleName(), getRoutineName(), getLineNumber(), errMsg);
@@ -583,13 +598,13 @@ module GenSymIO {
         }
 
         var (jsondsets, jsonfiles) = arraysStr.splitMsgToTuple(" | ",2);
+        var ndsets = ndsetsStr:int; // Error checked above
         var nfiles = nfilesStr:int; // Error checked above
+        var dsetlist: [0..#ndsets] string;
         var filelist: [0..#nfiles] string;
-        var dsetlist: [0..#1] string;
 
         try {
-            //TODO: change to real size, not hardcode 1
-            dsetlist = jsonToPdArray(jsondsets, 1);
+            dsetlist = jsonToPdArray(jsondsets, ndsets);
         } catch {
             var errorMsg = "Could not decode json dataset names via tempfile (%i files: %s)".format(
                                                1, jsondsets);
@@ -605,9 +620,12 @@ module GenSymIO {
             gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
             return new MsgTuple(errorMsg, MsgType.ERROR);
         }
-        
+
+        var dsetdom = dsetlist.domain;
         var filedom = filelist.domain;
+        var dsetnames: [dsetdom] string;
         var filenames: [filedom] string;
+        dsetnames = dsetlist;
 
         if filelist.size == 1 {
             if filelist[0].strip().size == 0 {
@@ -634,22 +652,61 @@ module GenSymIO {
         var fileErrors: list(string);
         var fileErrorCount:int = 0;
         var fileErrorMsg:string = "";
+        var sizes: [filedom] int;
+        var ty: string;
 
-        for (i, fname) in zip(filedom, filenames) {
-          var hadError = false;
-          //(segArrayFlags[i], dclasses[i], bytesizes[i], signFlags[i]) = get_dtype(fname, dsetName, calcStringOffsets);
-
+        var hadError = false;
+        try {
+          // not using the type for now since it is only implemented for ints
+          // also, since Parquet files have a `numRows` that isn't specifc
+          // to dsetname like for HDF5, we only need to get this once per
+          // file, regardless of how many datasets we are reading
+          (sizes, ty) = getArrSizeAndType(filenames);
+        } catch e: FileNotFoundError {
+          // TODO FIX THIS TO BE FILENAME[i] NOT FILENAMES[0]
+          fileErrorMsg = "File %s not found".format(filenames[0]);
+          gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+          hadError = true;
+          if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+        } catch e: PermissionError {
+          //fileErrorMsg = "Permission error %s opening %s".format(e.message(),fname);
+          gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+          hadError = true;
+          if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+        } catch e: DatasetNotFoundError {
+          // TODO FIX THESE WITH THE LOOP
+          //fileErrorMsg = "Dataset %s not found in file %s".format(dsetName,fname);
+          gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+          hadError = true;
+          if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+        } catch e: SegArrayError {
+          fileErrorMsg = "SegmentedArray error: %s".format(e.message());
+          gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+          hadError = true;
+          if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+        } catch e : Error {
+          //fileErrorMsg = "Other error in accessing file %s: %s".format(fname,e.message());
+          gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+          hadError = true;
+          if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
         }
-        
+
+        // This may need to be adjusted for this all-in-one approach
+        if hadError {
+          // Keep running total, but we'll only report back the first 10
+          if fileErrorCount < 10 {
+            fileErrors.append(fileErrorMsg.replace("\n", " ").replace("\r", " ").replace("\t", " ").strip());
+          }
+          fileErrorCount += 1;
+        }
+        // This is handled in the readFilesByName() function
         var subdoms: [filedom] domain(1);
-        var segSubdoms: [filedom] domain(1);
         var len: int;
         var nSeg: int;
-        // TODO GET SUBDOMAINS
-        var (sizes, ty) = getArrSizeAndType(filenames);
         len = + reduce sizes;
 
-        // Load the strings bytes/values first
+        // Only integer is implemented for now, do nothing if the Parquet
+        // file has a different type
         if ty == "int64" {
           var entryVal = new shared SymEntry(len, int);
           readFilesByName(entryVal.a, filenames, sizes, dsetname);
@@ -657,10 +714,8 @@ module GenSymIO {
           st.addEntry(valName, entryVal);
           rnames.append(("", "pdarray", valName));
         }
-
-        var errors: list(string);
         
-        repMsg = _buildReadAllHdfMsgJson(rnames, false, 0, errors, st);
+        repMsg = _buildReadAllHdfMsgJson(rnames, false, 0, fileErrors, st);
         gsLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
         return new MsgTuple(repMsg,MsgType.NORMAL);
     }

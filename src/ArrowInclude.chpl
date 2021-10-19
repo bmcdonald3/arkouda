@@ -3,8 +3,7 @@ module ArrowInclude {
   require "ArrowFunctions.h";
   require "ArrowFunctions.o";
 
-  config const NUMELEMS = 100_000;
-  config const ROWGROUPS = 512*1024*128; // 512 mb of int64
+  const ROWGROUPS = 512*1024*128; // 512 mb of int64
   
   extern proc c_getSize(chpl_str): int;
   extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
@@ -91,7 +90,7 @@ module ArrowInclude {
   proc write1DDistArrayParquet(filename: string, dsetname, A) throws {
     var prefix = filename;
     var extension = ".parquet";
-    writeDistArrayToParquet(A, filename, dsetname, (1024*128*512));
+    writeDistArrayToParquet(A, filename, dsetname, ROWGROUPS);
     return false;
   }
 }

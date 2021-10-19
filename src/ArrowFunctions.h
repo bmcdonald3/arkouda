@@ -1,18 +1,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
-  void doWrite(int, int);
-  void writeParquet(int, int);
 
-  void doRead(void*, int);
-  void readParquet(void*, int);
-
-  int c_doSize(const char*);
+  int c_getSize(const char*);
   int cpp_getSize(const char*);
-
-  void c_readColumnByIndex(const char* filename, void* chpl_arr, int colNum, int numElems);
-  void cpp_readColumnByIndex(const char* filename, void* chpl_arr, int colNum, int numElems);
 
   void c_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);
   void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);

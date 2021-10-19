@@ -6,14 +6,11 @@ module ArrowInclude {
   config const NUMELEMS = 100_000;
   config const ROWGROUPS = 512*1024*128; // 512 mb of int64
   
-  extern proc writeParquet(a, b);
-  extern proc readParquet(a, b);
-  extern proc c_doSize(a): int;
-  extern proc c_readColumnByIndex(a,b,c,d);
-  extern proc c_readColumnByName(a,b,c,d);
-  extern proc c_getType(a,b): c_string;
-  extern proc c_writeColumnToParquet(a, b, c, d, e, f);
-  extern proc c_lowLevelRead(a, b, c);
+  extern proc c_getSize(chpl_str): int;
+  extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
+  extern proc c_getType(filename, colname): c_string;
+  extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
+                                     dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
 
   proc getVersionInfo() {
@@ -70,7 +67,7 @@ module ArrowInclude {
     var sizes: [D] int;
     var ty: string = "int64";
     for i in D {
-      sizes[i] = c_doSize(filenames[i].c_str());
+      sizes[i] = c_getSize(filenames[i].c_str());
     }
     return (sizes, ty);
   }

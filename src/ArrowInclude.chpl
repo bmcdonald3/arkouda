@@ -48,7 +48,7 @@ module ArrowInclude {
     coforall loc in A.targetLocales() do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
-      for (filedom, filename) in zip(locFiledoms, locFiles) {
+      forall (filedom, filename) in zip(locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
           if intersection.size > 0 {

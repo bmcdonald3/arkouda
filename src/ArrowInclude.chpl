@@ -11,6 +11,7 @@ module ArrowInclude {
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                      dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
+  extern proc c_batchReadColumnByName(filename, chpl_arr, colNum, numElems);
 
   proc getVersionInfo() {
     extern proc strlen(str): c_int;
@@ -53,7 +54,7 @@ module ArrowInclude {
           const intersection = domain_intersection(locdom, filedom);
           if intersection.size > 0 {
             var col: [filedom] int;
-            c_readColumnByName(filename.c_str(), c_ptrTo(col), dsetname.c_str(), filedom.size);
+            c_batchReadColumnByName(filename.c_str(), c_ptrTo(col), dsetname.c_str(), filedom.size);
             A[filedom] = col;
           }
         }

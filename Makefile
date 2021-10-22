@@ -164,6 +164,7 @@ check-hdf5: $(HDF5_CHECK)
 ARROW_CHECK = $(DEP_INSTALL_DIR)/checkArrow.chpl
 check-arrow: $(ARROW_CHECK)
 	@echo "Checking for Arrow"
+	g++ -O3 -std=c++11 -c $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp -o $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).o $(CHPL_INCLUDES) -lparquet -larrow
 	$(CHPL) $(CHPL_FLAGS) $< -o $(DEP_INSTALL_DIR)/$@
 	$(DEP_INSTALL_DIR)/$@ -nl 1
 	@rm -f $(DEP_INSTALL_DIR)/$@ $(DEP_INSTALL_DIR)/$@_real

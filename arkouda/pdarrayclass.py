@@ -1006,7 +1006,7 @@ class pdarray:
                            format(self.name, dataset, m, json_array, self.dtype)))
 
     @typechecked
-    def save_parquet(self, prefix_path : str, dataset : str='array') -> str:
+    def save_parquet(self, prefix_path : str, dataset : str='array', mode : str='truncate') -> str:
         """
         Save the pdarray to Parquet. The result is a collection of Parquet files,
         one file per locale of the arkouda server, where each filename starts
@@ -1019,7 +1019,9 @@ class pdarray:
             Directory and filename prefix that all output files share
         dataset : str
             Name of the dataset to create in Parquet files (must not already exist)
-        
+        mode : str {'truncate' | 'append'}
+            By default, truncate (overwrite) output files, if they exist.
+            If 'append', attempt to create new dataset in existing files.
 
         Returns
         -------
@@ -1065,6 +1067,13 @@ class pdarray:
         >>> (a == b).all()
         True
         """
+        if mode.lower() in 'append':
+            m = 1
+        elif mode.lower() in 'truncate':
+            m = 0
+        else:
+            raise ValueError("Allowed modes are 'truncate' and 'append'")
+        
         try:
             json_array = json.dumps([prefix_path])
         except Exception as e:

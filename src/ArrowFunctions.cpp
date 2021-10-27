@@ -101,8 +101,8 @@ int cpp_batchReadColumnByName(const char* filename, void* chpl_arr, const char* 
   if(idx == -1) idx = 0;
   
   try {
-    std::unique_ptr<parquet::ParquetFileReader> parquet_reader =
-        parquet::ParquetFileReader::OpenFile(filename, false);
+    auto parquet_reader =
+      reader -> parquet_reader();
 
     std::shared_ptr<parquet::FileMetaData> file_metadata = parquet_reader->metadata();
 

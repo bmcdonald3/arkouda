@@ -1,3 +1,4 @@
+import glob, os
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -34,11 +35,11 @@ def run_test(verbose=True):
     tests = 1
     failures = 0
 
-    write_random_file("correctness-test.parquet", SIZE)
+    write_random_file("pq_testcorrectness.parquet", SIZE)
     
     for colname in list('ABCD'):
-        py_col1 = pq.read_pandas("correctness-test.parquet", columns=[colname]).to_pandas()[colname]
-        ak_col1 = ak.read_parquet("correctness-test", colname).to_ndarray()
+        py_col1 = pq.read_pandas("pq_testcorrectness.parquet", columns=[colname]).to_pandas()[colname]
+        ak_col1 = ak.read_parquet("pq_testcorrectness", colname).to_ndarray()
         failures += compare_values(ak_col1, py_col1)
 
     return failures
@@ -52,6 +53,8 @@ class ParquetTest(ArkoudaTest):
         :raise: AssertionError if there are any errors encountered in run_test with nan values
         '''
         self.assertEqual(0, run_test())
+        for f in glob.glob('pq_test*'):
+            os.remove(f)
 
     def test_multiple_file_read(self):
         filenames = []
@@ -59,9 +62,12 @@ class ParquetTest(ArkoudaTest):
         totalSize = 0
         
         for i in range(NUMFILES):
-            filenames.append('file'+str(i)+'.parquet')
+            filenames.append('pq_testfile'+str(i)+'.parquet')
             chpl_filenames.append('file'+str(i))
             write_random_file(filenames[i], SIZE*(i+1))
             totalSize += SIZE*(i+1)
         ak_col = ak.read_parquet(filenames, 'A')
         self.assertEqual(len(ak_col), totalSize)
+        for f in glob.glob('pq_test*'):
+            os.remove(f)
+        

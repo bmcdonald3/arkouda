@@ -72,10 +72,6 @@ module ArrowInclude {
     var ret;
     try! ret = createStringWithNewBuffer(arrType,
                                          strlen(arrType));
-    var asd;
-    try! asd = createStringWithNewBuffer(arrType, 5);
-    writeln(asd);
-    
     return ret;
   }
   

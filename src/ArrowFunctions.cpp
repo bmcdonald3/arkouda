@@ -116,7 +116,12 @@ extern "C" {
   }
 
   const char* c_getType(const char* filename, const char* colname) {
-    return cpp_getType(filename, colname);   
+    auto res = cpp_getType(filename, colname);
+    if(!strcmp(res, "int64"))
+      return "int64";
+    else if(!strcmp(res, "int32"))
+      return "int32";
+    return "unsupported type";
   }
 
   void c_writeColumnToParquet(const char* filename, void* chpl_arr,

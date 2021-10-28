@@ -23,9 +23,6 @@ extern "C" {
     
   const char* c_getVersionInfo(void);
   const char* cpp_getVersionInfo(void);
-
-  int c_batchReadColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);
-  int cpp_batchReadColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);
   
 #ifdef __cplusplus
 }

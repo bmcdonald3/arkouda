@@ -11,7 +11,6 @@ module ArrowInclude {
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                      dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
-  extern proc c_batchReadColumnByName(filename, chpl_arr, colNum, numElems);
 
   proc getVersionInfo() {
     extern proc strlen(str): c_int;
@@ -65,6 +64,19 @@ module ArrowInclude {
   proc getArrSize(filename: string) {
     var size = c_getSize(filename.c_str());
     return size;
+  }
+
+  proc getArrType(filename: string, colname: string) {
+    extern proc strlen(str): c_int;
+    var arrType = c_getType(filename.c_str(), colname.c_str());
+    var ret;
+    try! ret = createStringWithNewBuffer(arrType,
+                                         strlen(arrType));
+    var asd;
+    try! asd = createStringWithNewBuffer(arrType, 5);
+    writeln(asd);
+    
+    return ret;
   }
   
   proc getArrSizeAndType(filenames: [?D] string) {

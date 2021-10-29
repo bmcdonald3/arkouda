@@ -124,6 +124,16 @@ def read_parquet(filenames : Union[str, List[str]], dsetname=None,
         Either a list of filenames or shell expression
     dsetName : str
         The name of the dataset (must be the same across all files)
+    strictTypes: bool
+        If True (default), require all dtypes in all files to have the
+        same precision and sign. If False, allow dtypes of different
+        precision and sign across different files. For example, if one 
+        file contains a uint32 dataset and another contains an int64
+        dataset, the contents of both will be read into an int64 pdarray.
+    allow_errors: bool
+        Default False, if True will allow files with read errors to be skipped
+        instead of failing.  A warning will be included in the return containing
+        the total number of files skipped due to failure and up to 10 filenames.
 
     Returns
     -------
@@ -136,7 +146,7 @@ def read_parquet(filenames : Union[str, List[str]], dsetname=None,
         Raised if dsetName is not a str or if filenames is neither a string
         nor a list of strings
     ValueError 
-        Raised if all datasets are not present in all hdf5 files  
+        Raised if all datasets are not present in all parquet files  
     RuntimeError
         Raised if one or more of the specified files cannot be opened  
 
@@ -149,7 +159,7 @@ def read_parquet(filenames : Union[str, List[str]], dsetname=None,
     If filenames is a string, it is interpreted as a shell expression
     (a single filename is a valid expression, so it will work) and is
     expanded with glob to read all matching files. Use ``get_datasets`` to
-    show the names of datasets in HDF5 files.
+    show the names of datasets in Parquet files.
 
     If dsetName is not present in all files, a TypeError is raised.
     """

@@ -25,14 +25,6 @@ def compare_values(ak_col, py_col):
     return 0
     
 def run_test(verbose=True):
-    '''
-    The run_test method enables execution of ak.GroupBy and ak.GroupBy.Reductions 
-    for mean, min, max, and sum
-    on a randomized set of arrays including nan values. 
-
-    :return: 
-    '''
-    tests = 1
     failures = 0
 
     write_random_file("pq_testcorrectness.parquet", SIZE)
@@ -41,6 +33,20 @@ def run_test(verbose=True):
         py_col1 = pq.read_pandas("pq_testcorrectness.parquet", columns=[colname]).to_pandas()[colname]
         ak_col1 = ak.read_parquet("pq_testcorrectness", colname).to_ndarray()
         failures += compare_values(ak_col1, py_col1)
+
+    return failures
+
+def run_multi_dset_test(verbose=True):
+    failures = 0
+
+    write_random_file("pq_testcorrectness.parquet", SIZE)
+
+    ak_cols = ak.read_parquet("pq_testcorrectness", ["A","B","C","D"]).to_ndarray()
+    
+    for colname in list('ABCD'):
+        py_col = pq.read_pandas("pq_testcorrectness.parquet", columns=[colname]).to_pandas()[colname]
+        ak_col = ak_cols[colname]
+        failures += compare_values(ak_col, py_col)
 
     return failures
 
@@ -66,7 +72,22 @@ class ParquetTest(ArkoudaTest):
             chpl_filenames.append('file'+str(i))
             write_random_file(filenames[i], SIZE*(i+1))
             totalSize += SIZE*(i+1)
-        ak_col = ak.read_parquet(filenames, 'A')
+        ak_col = ak.read_parquet(filenames, 'A')['A']
+        self.assertEqual(len(ak_col), totalSize)
+        for f in glob.glob('pq_test*'):
+            os.remove(f)
+
+    def test_dset_read(self):
+        filenames = []
+        chpl_filenames = []
+        totalSize = 0
+        
+        for i in range(NUMFILES):
+            filenames.append('pq_testfile'+str(i)+'.parquet')
+            chpl_filenames.append('file'+str(i))
+            write_random_file(filenames[i], SIZE*(i+1))
+            totalSize += SIZE*(i+1)
+        ak_col = ak.read_parquet(filenames, 'A')['A']
         self.assertEqual(len(ak_col), totalSize)
         for f in glob.glob('pq_test*'):
             os.remove(f)

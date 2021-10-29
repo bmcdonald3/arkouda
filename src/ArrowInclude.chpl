@@ -75,12 +75,15 @@ module ArrowInclude {
     return ret;
   }
   
-  proc getArrSizeAndType(filenames: [?D] string) {
+  proc getArrSizeAndType(filenames: [?D] string, colname: string) {
     extern proc strlen(str): c_int;
     var sizes: [D] int;
-    var ty: string = "int64";
+    var ty: string = getArrType(filenames[0], colname);
     for i in D {
       sizes[i] = c_getSize(filenames[i].c_str());
+      // do we want this to throw an error or something?
+      if getArrType(filenames[0], colname) != ty then
+        writeln("Types do not match acrossed columns");
     }
     return (sizes, ty);
   }
@@ -101,7 +104,7 @@ module ArrowInclude {
       }
   }
 
-  proc write1DDistArrayParquet(filename: string, dsetname, A) throws {
+  proc write1DDistArrayParquet(filename: string, dsetname, A) {
     var prefix = filename;
     var extension = ".parquet";
     writeDistArrayToParquet(A, filename, dsetname, ROWGROUPS);

@@ -705,22 +705,22 @@ module GenSymIO {
                   }
                   fileErrorCount += 1;
                 }
-            }
-        }
-        // This is handled in the readFilesByName() function
-        var subdoms: [filedom] domain(1);
-        var len: int;
-        var nSeg: int;
-        len = + reduce sizes;
+                // This is handled in the readFilesByName() function
+                var subdoms: [filedom] domain(1);
+                var len: int;
+                var nSeg: int;
+                len = + reduce sizes;
 
-        // Only integer is implemented for now, do nothing if the Parquet
-        // file has a different type
-        if ty == "int64" {
-          var entryVal = new shared SymEntry(len, int);
-          readFilesByName(entryVal.a, filenames, sizes, dsetname);
-          var valName = st.nextName();
-          st.addEntry(valName, entryVal);
-          rnames.append(("", "pdarray", valName));
+                // Only integer is implemented for now, do nothing if the Parquet
+                // file has a different type
+                if ty == "int64" {
+                  var entryVal = new shared SymEntry(len, int);
+                  readFilesByName(entryVal.a, filenames, sizes, dsetname);
+                  var valName = st.nextName();
+                  st.addEntry(valName, entryVal);
+                  rnames.append((dsetname, "pdarray", valName));
+                }
+            }
         }
         
         repMsg = _buildReadAllHdfMsgJson(rnames, false, 0, fileErrors, st);

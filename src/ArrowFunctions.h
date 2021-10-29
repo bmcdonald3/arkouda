@@ -16,10 +16,7 @@ extern "C" {
                                 int rowGroupSize);
   void c_writeColumnToParquet(const char* filename, void* chpl_arr,
                               int colnum, const char* dsetname, int numelems,
-                              int rowGroupSize);
-  
-  void c_lowLevelRead(const char* filename, void* chpl_arr, int numElems);
-  int cpp_lowLevelRead(const char* filename, void* chpl_arr, int numElems);
+                              int rowGroupSize);;
     
   const char* c_getVersionInfo(void);
   const char* cpp_getVersionInfo(void);

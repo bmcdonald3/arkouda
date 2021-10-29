@@ -71,10 +71,16 @@ void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* coln
   PARQUET_THROW_NOT_OK(reader->ReadColumn(idx, &array));
 
   std::shared_ptr<arrow::Array> regular = array->chunk(0);
-  auto int_arr = std::static_pointer_cast<arrow::Int64Array>(regular);
+  if(!strcmp(cpp_getType(filename, colname), "int64")) {
+    auto int_arr = std::static_pointer_cast<arrow::Int64Array>(regular);
 
-  for(int i = 0; i < numElems; i++) {
-    chpl_ptr[i] = int_arr->Value(i);
+    for(int i = 0; i < numElems; i++)
+      chpl_ptr[i] = int_arr->Value(i);
+  } else if(!strcmp(cpp_getType(filename, colname), "int32")) {
+    auto int_arr = std::static_pointer_cast<arrow::Int32Array>(regular);
+
+    for(int i = 0; i < numElems; i++)
+      chpl_ptr[i] = int_arr->Value(i);
   }
 }
 

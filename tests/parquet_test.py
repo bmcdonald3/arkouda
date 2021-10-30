@@ -41,11 +41,11 @@ def run_multi_dset_test(verbose=True):
 
     write_random_file("pq_testcorrectness.parquet", SIZE)
 
-    ak_cols = ak.read_parquet("pq_testcorrectness", ["A","B","C","D"]).to_ndarray()
+    ak_cols = ak.read_parquet("pq_testcorrectness", ["A","B","C","D"])
     
     for colname in list('ABCD'):
         py_col = pq.read_pandas("pq_testcorrectness.parquet", columns=[colname]).to_pandas()[colname]
-        ak_col = ak_cols[colname]
+        ak_col = ak_cols[colname].to_ndarray()
         failures += compare_values(ak_col, py_col)
 
     return failures
@@ -78,17 +78,6 @@ class ParquetTest(ArkoudaTest):
             os.remove(f)
 
     def test_dset_read(self):
-        filenames = []
-        chpl_filenames = []
-        totalSize = 0
-        
-        for i in range(NUMFILES):
-            filenames.append('pq_testfile'+str(i)+'.parquet')
-            chpl_filenames.append('file'+str(i))
-            write_random_file(filenames[i], SIZE*(i+1))
-            totalSize += SIZE*(i+1)
-        ak_col = ak.read_parquet(filenames, 'A')['A']
-        self.assertEqual(len(ak_col), totalSize)
+        self.assertEqual(run_multi_dset_test(), 0)
         for f in glob.glob('pq_test*'):
             os.remove(f)
-        

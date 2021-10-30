@@ -610,7 +610,6 @@ module GenSymIO {
             gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
             return new MsgTuple(errorMsg, MsgType.ERROR);
         }
-        var dsetname = dsetlist[0];
         
         try {
             filelist = jsonToPdArray(jsonfiles, nfiles);
@@ -655,7 +654,7 @@ module GenSymIO {
         var ty: string = "int64"; // Hardcoded for now until we add strings
         var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
 
-        for dsetName in dsetnames do {
+        for dsetname in dsetnames do {
             for (i, fname) in zip(filedom, filenames) {
                 var hadError = false;
                 try {
@@ -664,8 +663,8 @@ module GenSymIO {
                     // to dsetname like for HDF5, we only need to get this once per
                     // file, regardless of how many datasets we are reading
                     sizes[i] = getArrSize(fname);
-                    if getArrType(fname, dsetName) != ty {
-                      fileErrorMsg = "File %s with column %s must be of type int64".format(fname, dsetName);
+                    if getArrType(fname, dsetname) != ty {
+                      fileErrorMsg = "File %s with column %s must be of type int64".format(fname, dsetname);
                       gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
                       hadError = true;
                       if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
@@ -681,7 +680,7 @@ module GenSymIO {
                     hadError = true;
                     if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
                 } catch e: DatasetNotFoundError {
-                    fileErrorMsg = "Dataset %s not found in file %s".format(dsetName,fname);
+                    fileErrorMsg = "Dataset %s not found in file %s".format(dsetname,fname);
                     gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
                     hadError = true;
                     if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }

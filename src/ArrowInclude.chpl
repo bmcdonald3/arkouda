@@ -83,7 +83,7 @@ module ArrowInclude {
       sizes[i] = c_getSize(filenames[i].c_str());
       // do we want this to throw an error or something?
       if getArrType(filenames[0], colname) != ty then
-        writeln("Types do not match acrossed columns");
+        writeln("Types do not match across columns");
     }
     return (sizes, ty);
   }

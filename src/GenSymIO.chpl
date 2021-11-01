@@ -663,12 +663,6 @@ module GenSymIO {
                     // to dsetname like for HDF5, we only need to get this once per
                     // file, regardless of how many datasets we are reading
                     sizes[i] = getArrSize(fname);
-                    if getArrType(fname, dsetname) != ty {
-                      fileErrorMsg = "File %s with column %s must be of type int64".format(fname, dsetname);
-                      gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-                      hadError = true;
-                      if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-                    }
                 } catch e: FileNotFoundError {
                     fileErrorMsg = "File %s not found".format(fname);
                     gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);

@@ -70,7 +70,10 @@ void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* coln
   
   PARQUET_THROW_NOT_OK(reader->ReadColumn(idx, &array));
 
-  auto ty = c_getType(filename, colname);
+  // This line causes a segfault when run in the Arkouda server;
+  // hardcoded for now, but something that needs to be fixed
+  // auto ty = c_getType(filename, colname);
+  auto ty = "int64";
   std::shared_ptr<arrow::Array> regular = array->chunk(0);
   if(!strcmp(ty, "int64")) {
     auto int_arr = std::static_pointer_cast<arrow::Int64Array>(regular);

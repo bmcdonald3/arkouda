@@ -1063,7 +1063,7 @@ class pdarray:
 
         The array can be read back in as follows
 
-        >>> b = ak.read_parquet('arkouda_range_LOCALE0.parquet')
+        >>> b = ak.read_parquet('arkouda_range')
         >>> (a == b).all()
         True
         """

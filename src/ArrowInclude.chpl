@@ -11,6 +11,8 @@ module ArrowInclude {
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                      dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
+
+  enum ArrowTypes { int64, int32, notimplemented };
   
   proc getVersionInfo() {
     extern proc strlen(str): c_int;
@@ -69,21 +71,9 @@ module ArrowInclude {
   proc getArrType(filename: string, colname: string) {
     // TODO: throw error if type not 0 or 1
     var arrType = c_getType(filename.c_str(), colname.c_str());
-    if arrType == 0 then return "int64";
-    else if arrType == 1 then return "int32";
-  }
-  
-  proc getArrSizeAndType(filenames: [?D] string, colname: string) {
-    extern proc strlen(str): c_int;
-    var sizes: [D] int;
-    var arrowtype: int = getArrType(filenames[0], colname);
-    for i in D {
-      sizes[i] = c_getSize(filenames[i].c_str());
-      // do we want this to throw an error or something?
-      if getArrType(filenames[i], colname) != arrowtype then
-        writeln("Types do not match across columns");
-    }
-    return (sizes, arrowtype);
+    if arrType == 0 then return ArrowTypes.int64;
+    else if arrType == 1 then return ArrowTypes.int32;
+    return ArrowTypes.notimplemented;
   }
 
   proc writeDistArrayToParquet(A, filename, dsetname, rowGroupSize) {

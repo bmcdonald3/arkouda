@@ -651,7 +651,8 @@ module GenSymIO {
         var fileErrorCount:int = 0;
         var fileErrorMsg:string = "";
         var sizes: [filedom] int;
-        var ty: string = "int64"; // Hardcoded for now until we add strings
+        var ty = getArrType(filenames[filedom.low],
+                                    dsetnames[dsetdom.low]);
         var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
 
         for dsetname in dsetnames do {
@@ -663,6 +664,12 @@ module GenSymIO {
                     // to dsetname like for HDF5, we only need to get this once per
                     // file, regardless of how many datasets we are reading
                     sizes[i] = getArrSize(fname);
+                    if ty != getArrType(fname, dsetname) {
+                      fileErrorMsg = "Type of file %s does not match first file".format(fname);
+                      gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
+                      hadError=true;
+                      if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+                    }
                 } catch e: FileNotFoundError {
                     fileErrorMsg = "File %s not found".format(fname);
                     gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
@@ -706,7 +713,7 @@ module GenSymIO {
 
                 // Only integer is implemented for now, do nothing if the Parquet
                 // file has a different type
-                if ty == "int64" {
+                if ty == ArrowTypes.int64 || ty == ArrowTypes.int32 {
                   var entryVal = new shared SymEntry(len, int);
                   readFilesByName(entryVal.a, filenames, sizes, dsetname);
                   var valName = st.nextName();

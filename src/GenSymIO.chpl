@@ -651,8 +651,7 @@ module GenSymIO {
         var fileErrorCount:int = 0;
         var fileErrorMsg:string = "";
         var sizes: [filedom] int;
-        var ty = getArrType(filenames[filedom.low],
-                                    dsetnames[dsetdom.low]);
+        var ty = ArrowTypes.int64;
         var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
 
         for dsetname in dsetnames do {
@@ -664,12 +663,6 @@ module GenSymIO {
                     // to dsetname like for HDF5, we only need to get this once per
                     // file, regardless of how many datasets we are reading
                     sizes[i] = getArrSize(fname);
-                    if ty != getArrType(fname, dsetname) {
-                      fileErrorMsg = "Type of file %s does not match first file".format(fname);
-                      gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-                      hadError=true;
-                      if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-                    }
                 } catch e: FileNotFoundError {
                     fileErrorMsg = "File %s not found".format(fname);
                     gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);

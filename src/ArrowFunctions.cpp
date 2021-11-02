@@ -20,7 +20,9 @@ int cpp_getNumRows(const char* filename) {
   return reader -> parquet_reader() -> metadata() -> num_rows();
 }
 
-int cpp_getType(const char* filename, const char* colname) {
+void cpp_getType(const char* filename, const char* colname, void* chpl_int) {
+  auto chpl_ptr = (int64_t*)chpl_int;
+  
   std::shared_ptr<arrow::io::ReadableFile> infile;
   PARQUET_ASSIGN_OR_THROW(
       infile,
@@ -35,16 +37,14 @@ int cpp_getType(const char* filename, const char* colname) {
   std::shared_ptr<arrow::Schema>* out = &sc;
   PARQUET_THROW_NOT_OK(reader->GetSchema(out));
 
-  auto ty = sc -> GetFieldByName(colname) -> type() -> name();
   auto myType = sc -> GetFieldByName(colname) -> type();
 
   if(myType == arrow::int64())
-    return 0;
+    *chpl_ptr = 0;
   else if(myType == arrow::int32())
-    return 1;
-
-  // type not supported
-  return -1;
+    *chpl_ptr = 1;
+  else // type not supported
+    *chpl_ptr = -1;
 }
 
 void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems) {
@@ -126,8 +126,8 @@ extern "C" {
     cpp_readColumnByName(filename, chpl_arr, colname, numElems);
   }
 
-  int c_getType(const char* filename, const char* colname) {
-    return cpp_getType(filename, colname);
+  void c_getType(const char* filename, const char* colname, void* chpl_int) {
+    cpp_getType(filename, colname, chpl_int);
   }
 
   void c_writeColumnToParquet(const char* filename, void* chpl_arr,

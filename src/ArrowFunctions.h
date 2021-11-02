@@ -8,8 +8,8 @@ extern "C" {
   void c_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);
   void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);
 
-  int c_getType(const char* filename, const char* colname);
-  int cpp_getType(const char* filename, const char* colname);
+  void c_getType(const char* filename, const char* colname, void* chpl_int);
+  void cpp_getType(const char* filename, const char* colname, void* chpl_int);
 
   void cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
                                 int colnum, const char* dsetname, int numelems,

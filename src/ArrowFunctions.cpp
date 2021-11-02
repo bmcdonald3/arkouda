@@ -24,7 +24,7 @@ int cpp_getSize(const char* filename) {
   return reader -> parquet_reader() -> metadata() -> num_rows();
 }
 
-const char* cpp_getType(const char* filename, const char* colname) {
+int cpp_getType(const char* filename, const char* colname) {
   std::shared_ptr<arrow::io::ReadableFile> infile;
   PARQUET_ASSIGN_OR_THROW(
       infile,
@@ -40,8 +40,15 @@ const char* cpp_getType(const char* filename, const char* colname) {
   PARQUET_THROW_NOT_OK(reader->GetSchema(out));
 
   auto ty = sc -> GetFieldByName(colname) -> type() -> name();
-  const char* ret = ty.c_str();
-  return ret;
+  auto myType = sc -> GetFieldByName(colname) -> type();
+
+  if(myType == arrow::int64())
+    return 0;
+  else if(myType == arrow::int32())
+    return 1;
+
+  // type not supported
+  return -1;
 }
 
 void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems) {
@@ -70,17 +77,15 @@ void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* coln
   
   PARQUET_THROW_NOT_OK(reader->ReadColumn(idx, &array));
 
-  // This line causes a segfault when run in the Arkouda server;
-  // hardcoded for now, but something that needs to be fixed
-  // auto ty = c_getType(filename, colname);
-  auto ty = "int64";
+  int ty = cpp_getType(filename, colname);
   std::shared_ptr<arrow::Array> regular = array->chunk(0);
-  if(!strcmp(ty, "int64")) {
+  // 0 is int64, 1 is int32
+  if(ty == 0) {
     auto int_arr = std::static_pointer_cast<arrow::Int64Array>(regular);
 
     for(int i = 0; i < numElems; i++)
       chpl_ptr[i] = int_arr->Value(i);
-  } else if(!strcmp(ty, "int32")) {
+  } else if(ty == 1) {
     auto int_arr = std::static_pointer_cast<arrow::Int32Array>(regular);
 
     for(int i = 0; i < numElems; i++)
@@ -125,13 +130,8 @@ extern "C" {
     cpp_readColumnByName(filename, chpl_arr, colname, numElems);
   }
 
-  const char* c_getType(const char* filename, const char* colname) {
-    auto res = cpp_getType(filename, colname);
-    if(!strcmp(res, "int64"))
-      return "int64";
-    else if(!strcmp(res, "int32"))
-      return "int32";
-    return "unsupported type";
+  int c_getType(const char* filename, const char* colname) {
+    return cpp_getType(filename, colname);
   }
 
   void c_writeColumnToParquet(const char* filename, void* chpl_arr,

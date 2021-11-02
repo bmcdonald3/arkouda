@@ -7,11 +7,11 @@ module ArrowInclude {
   
   extern proc c_getSize(chpl_str): int;
   extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
-  extern proc c_getType(filename, colname): c_string;
+  extern proc c_getType(filename, colname): c_int;
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                      dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
-
+  
   proc getVersionInfo() {
     extern proc strlen(str): c_int;
     var cVersionString = c_getVersionInfo();
@@ -67,25 +67,23 @@ module ArrowInclude {
   }
 
   proc getArrType(filename: string, colname: string) {
-    extern proc strlen(str): c_int;
+    // TODO: throw error if type not 0 or 1
     var arrType = c_getType(filename.c_str(), colname.c_str());
-    var ret;
-    try! ret = createStringWithNewBuffer(arrType,
-                                         strlen(arrType));
-    return ret;
+    if arrType == 0 then return "int64";
+    else if arrType == 1 then return "int32";
   }
   
   proc getArrSizeAndType(filenames: [?D] string, colname: string) {
     extern proc strlen(str): c_int;
     var sizes: [D] int;
-    var ty: string = getArrType(filenames[0], colname);
+    var arrowtype: int = getArrType(filenames[0], colname);
     for i in D {
       sizes[i] = c_getSize(filenames[i].c_str());
       // do we want this to throw an error or something?
-      if getArrType(filenames[0], colname) != ty then
+      if getArrType(filenames[i], colname) != arrowtype then
         writeln("Types do not match across columns");
     }
-    return (sizes, ty);
+    return (sizes, arrowtype);
   }
 
   proc writeDistArrayToParquet(A, filename, dsetname, rowGroupSize) {

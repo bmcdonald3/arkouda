@@ -20,9 +20,7 @@ int cpp_getNumRows(const char* filename) {
   return reader -> parquet_reader() -> metadata() -> num_rows();
 }
 
-void cpp_getType(const char* filename, const char* colname, void* chpl_int) {
-  auto chpl_ptr = (int64_t*)chpl_int;
-  
+int cpp_getType(const char* filename, const char* colname) {  
   std::shared_ptr<arrow::io::ReadableFile> infile;
   PARQUET_ASSIGN_OR_THROW(
       infile,
@@ -39,12 +37,15 @@ void cpp_getType(const char* filename, const char* colname, void* chpl_int) {
 
   auto myType = sc -> GetFieldByName(colname) -> type();
 
-  if(myType == arrow::int64())
-    *chpl_ptr = 0;
+  // TODO throw error (return -2 or something then chapel error)
+  if(myType == NULL)
+    return -2;
+  else if(myType == arrow::int64())
+    return 0;
   else if(myType == arrow::int32())
-    *chpl_ptr = 1;
+    return 1;
   else // type not supported
-    *chpl_ptr = -1;
+    return -1;
 }
 
 void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems) {
@@ -73,20 +74,21 @@ void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* coln
   
   PARQUET_THROW_NOT_OK(reader->ReadColumn(idx, &array));
 
-  // int ty = cpp_getType(filename, colname);
+  int ty = cpp_getType(filename, colname);
+  if(ty == -2) ty = 0;
   std::shared_ptr<arrow::Array> regular = array->chunk(0);
   // 0 is int64, 1 is int32
-  // if(ty == 0) {
-  auto int_arr = std::static_pointer_cast<arrow::Int64Array>(regular);
-
-  for(int i = 0; i < numElems; i++)
-    chpl_ptr[i] = int_arr->Value(i);
-    /*} else if(ty == 1) {
-    auto int_arr = std::static_pointer_cast<arrow::Int32Array>(regular);
+  if(ty == 0) {
+    auto int_arr = std::static_pointer_cast<arrow::Int64Array>(regular);
 
     for(int i = 0; i < numElems; i++)
       chpl_ptr[i] = int_arr->Value(i);
-      }*/
+  } else if(ty == 1) {
+      auto int_arr = std::static_pointer_cast<arrow::Int32Array>(regular);
+      
+      for(int i = 0; i < numElems; i++)
+        chpl_ptr[i] = int_arr->Value(i);
+    }
 }
 
 void cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
@@ -126,8 +128,8 @@ extern "C" {
     cpp_readColumnByName(filename, chpl_arr, colname, numElems);
   }
 
-  void c_getType(const char* filename, const char* colname, void* chpl_int) {
-    cpp_getType(filename, colname, chpl_int);
+  int c_getType(const char* filename, const char* colname) {
+    return cpp_getType(filename, colname);
   }
 
   void c_writeColumnToParquet(const char* filename, void* chpl_arr,

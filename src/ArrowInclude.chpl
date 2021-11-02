@@ -7,7 +7,7 @@ module ArrowInclude {
   
   extern proc c_getNumRows(chpl_str): int;
   extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
-  extern proc c_getType(filename, colname, chpl_int);
+  extern proc c_getType(filename, colname): c_int;
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                      dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
@@ -70,8 +70,8 @@ module ArrowInclude {
 
   proc getArrType(filename: string, colname: string) {
     // TODO: throw error if type not 0 or 1
-    var arrType: int;
-    c_getType(filename.localize().c_str(), colname.localize().c_str(), c_ptrTo(arrType));
+    var arrType = c_getType(filename.localize().c_str(),
+                            colname.localize().c_str());
     if arrType == 0 then return ArrowTypes.int64;
     else if arrType == 1 then return ArrowTypes.int32;
     return ArrowTypes.notimplemented;

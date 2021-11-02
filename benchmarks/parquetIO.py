@@ -40,7 +40,7 @@ def check_correctness(dtype, path, seed):
     a = ak.randint(0, 2**32, N, seed=seed)
 
     a.save_parquet(path)
-    b = ak.read_parquet(path)
+    b = ak.read_parquet(path, 'array')
     for f in glob(path+"_LOCALE*"):
         os.remove(f)
     assert (a == b).all()

@@ -136,8 +136,7 @@ setup(
         'pyzmq>=20.0.0',
         'typeguard==2.10.0',
         'pyfiglet',
-        'versioneer',
-        'pyarrow'
+        'versioneer'
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -151,7 +150,7 @@ setup(
     extras_require={  # Optional
         'dev': ['h5py','pexpect', 'pytest', 
                 'pytest-env','Sphinx', 'sphinx-argparse', 
-                'sphinx-autoapi', 'mypy'],
+                'sphinx-autoapi', 'mypy', 'pyarrow'],
     },
     # replace original install command with version that also builds
     # chapel and the arkouda server.

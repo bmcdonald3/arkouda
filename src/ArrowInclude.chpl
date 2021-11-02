@@ -3,9 +3,9 @@ module ArrowInclude {
   require "ArrowFunctions.h";
   require "ArrowFunctions.o";
 
-  const ROWGROUPS = 512*1024*128; // 512 mb of int64
+  private config const ROWGROUPS = 512*1024*1024 / numBytes(int); // 512 mb of int64
   
-  extern proc c_getSize(chpl_str): int;
+  extern proc c_getNumRows(chpl_str): int;
   extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
   extern proc c_getType(filename, colname): c_int;
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
@@ -50,12 +50,12 @@ module ArrowInclude {
     coforall loc in A.targetLocales() do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
-      forall (filedom, filename) in zip(locFiledoms, locFiles) {
+      for (filedom, filename) in zip(locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
           if intersection.size > 0 {
             var col: [filedom] int;
-            c_readColumnByName(filename.c_str(), c_ptrTo(col), dsetname.c_str(), filedom.size);
+            c_readColumnByName(filename.localize().c_str(), c_ptrTo(col), dsetname.localize().c_str(), filedom.size);
             A[filedom] = col;
           }
         }
@@ -64,13 +64,13 @@ module ArrowInclude {
   }
 
   proc getArrSize(filename: string) {
-    var size = c_getSize(filename.c_str());
+    var size = c_getNumRow(filename.c_str());
     return size;
   }
 
   proc getArrType(filename: string, colname: string) {
     // TODO: throw error if type not 0 or 1
-    var arrType = c_getType(filename.c_str(), colname.c_str());
+    var arrType = c_getType(filename.localize().c_str(), colname.localize().c_str());
     if arrType == 0 then return ArrowTypes.int64;
     else if arrType == 1 then return ArrowTypes.int32;
     return ArrowTypes.notimplemented;
@@ -88,13 +88,11 @@ module ArrowInclude {
 
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
-        c_writeColumnToParquet(myFilename.c_str(), c_ptrTo(locArr), 0, dsetname.c_str(), locDom.size, rowGroupSize);
+        c_writeColumnToParquet(myFilename.c_str(), c_ptrTo(locArr), 0, dsetname.localize().c_str(), locDom.size, rowGroupSize);
       }
   }
 
   proc write1DDistArrayParquet(filename: string, dsetname, A) {
-    var prefix = filename;
-    var extension = ".parquet";
     writeDistArrayToParquet(A, filename, dsetname, ROWGROUPS);
     return false;
   }

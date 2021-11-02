@@ -5,12 +5,8 @@
 #include <arrow/io/api.h>
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
-#include <parquet/exception.h>
-#include <parquet/api/reader.h>
 
-using namespace std;
-
-int cpp_getSize(const char* filename) {
+int cpp_getNumRows(const char* filename) {
   std::shared_ptr<arrow::io::ReadableFile> infile;
   PARQUET_ASSIGN_OR_THROW(
       infile,
@@ -122,8 +118,8 @@ const char* cpp_getVersionInfo(void) {
 }
 
 extern "C" {
-  int c_getSize(const char* chpl_str) {
-    return cpp_getSize(chpl_str);
+  int c_getNumRows(const char* chpl_str) {
+    return cpp_getNumRows(chpl_str);
   }
 
   void c_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems) {

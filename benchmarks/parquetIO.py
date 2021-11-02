@@ -35,6 +35,15 @@ def time_ak_write_read(N_per_locale, trials, dtype, path, seed):
     print("write Average rate = {:.2f} GiB/sec".format(nb/2**30/avgwrite))
     print("read Average rate = {:.2f} GiB/sec".format(nb/2**30/avgread))
 
+def check_correctness(dtype, path, seed):
+    N = 10**4
+    a = ak.randint(0, 2**32, N, seed=seed)
+
+    a.save_parquet(path)
+    b = ak.read_parquet(path)
+    for f in glob(path+"_LOCALE*"):
+        os.remove(f)
+    assert (a == b).all()
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Measure performance of writing and reading a random array from disk.")
@@ -56,6 +65,11 @@ if __name__ == "__main__":
         raise ValueError("Dtype must be {}, not {}".format('/'.join(TYPES), args.dtype))
     ak.verbose = False
     ak.connect(args.hostname, args.port)
+
+    if args.correctness_only:
+        for dtype in TYPES:
+            check_correctness(dtype, args.path, args.seed)
+        sys.exit(0)
     
     print("array size = {:,}".format(args.size))
     print("number of trials = ", args.trials)

@@ -2,8 +2,8 @@
 extern "C" {
 #endif
 
-  int c_getSize(const char*);
-  int cpp_getSize(const char*);
+  int c_getNumRows(const char*);
+  int cpp_getNumRows(const char*);
 
   void c_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);
   void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems);

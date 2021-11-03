@@ -577,6 +577,7 @@ module GenSymIO {
     }
 
     proc readAllParquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+        use ArrowInclude as Arrow;
         var repMsg: string;
         // May need a more robust delimiter then " | "
         var (strictFlag, ndsetsStr, nfilesStr, allowErrorsFlag, arraysStr) = payload.splitMsgToTuple(5);
@@ -670,12 +671,6 @@ module GenSymIO {
                     // to dsetname like for HDF5, we only need to get this once per
                     // file, regardless of how many datasets we are reading
                     sizes[i] = getArrSize(fname);
-                    if getArrType(fname, dsetname) != ty {
-                      fileErrorMsg = "Type from %s does not match".format(fname);
-                      gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
-                      hadError = true;
-                      if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
-                    }
                 } catch e: FileNotFoundError {
                     fileErrorMsg = "File %s not found".format(fname);
                     gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);

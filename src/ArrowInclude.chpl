@@ -1,15 +1,16 @@
 module ArrowInclude {
-  use SysCTypes, CPtr, Time;
+  use SysCTypes, CPtr, Time, IO, Reflection;
+  use ServerErrors;
   require "ArrowFunctions.h";
   require "ArrowFunctions.o";
 
   private config const ROWGROUPS = 512*1024*1024 / numBytes(int); // 512 mb of int64
   
   extern proc c_getNumRows(chpl_str): int;
-  extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems): c_int;
+  extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
   extern proc c_getType(filename, colname): c_int;
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
-                                     dsetname, numelems, rowGroupSize): c_int;
+                                     dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
 
   enum ArrowTypes { int64, int32, notimplemented };
@@ -55,6 +56,7 @@ module ArrowInclude {
           const intersection = domain_intersection(locdom, filedom);
           if intersection.size > 0 {
             var col: [filedom] int;
+            // TODO: errors
             c_readColumnByName(filename.localize().c_str(), c_ptrTo(col), dsetname.localize().c_str(), filedom.size);
             A[filedom] = col;
           }
@@ -69,7 +71,6 @@ module ArrowInclude {
   }
 
   proc getArrType(filename: string, colname: string) {
-    // TODO: throw error if type not 0 or 1
     var arrType = c_getType(filename.localize().c_str(),
                             colname.localize().c_str());
     if arrType == 0 then return ArrowTypes.int64;

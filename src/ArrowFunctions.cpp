@@ -35,16 +35,16 @@ int cpp_getType(const char* filename, const char* colname) {
   PARQUET_THROW_NOT_OK(reader->GetSchema(out));
 
   int idx = sc -> GetFieldIndex(colname);
-  if(idx == -1) // colname not in schema
+  if(idx == -1) // TODO: error colname not in schema
     idx = 0;
   auto myType = sc -> field(idx) -> type();
 
   if(myType == arrow::int64())
-    return 0;
+    return ARROWINT64;
   else if(myType == arrow::int32())
-    return 1;
-  else // type not supported
-    return -1;
+    return ARROWINT32;
+  else // TODO: error type not supported
+    return ARROWUNDEFINED;
 }
 
 void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int numElems) {
@@ -74,15 +74,14 @@ void cpp_readColumnByName(const char* filename, void* chpl_arr, const char* coln
   PARQUET_THROW_NOT_OK(reader->ReadColumn(idx, &array));
 
   int ty = cpp_getType(filename, colname);
-  if(ty == -2) ty = 0;
   std::shared_ptr<arrow::Array> regular = array->chunk(0);
-  // 0 is int64, 1 is int32
-  if(ty == 0) {
+
+  if(ty == ARROWINT64) {
     auto int_arr = std::static_pointer_cast<arrow::Int64Array>(regular);
 
     for(int i = 0; i < numElems; i++)
       chpl_ptr[i] = int_arr->Value(i);
-  } else if(ty == 1) {
+  } else if(ty == ARROWINT32) {
       auto int_arr = std::static_pointer_cast<arrow::Int32Array>(regular);
 
       for(int i = 0; i < numElems; i++)

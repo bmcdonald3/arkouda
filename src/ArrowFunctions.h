@@ -2,6 +2,10 @@
 extern "C" {
 #endif
 
+  #define ARROWINT64 0
+  #define ARROWINT32 1
+  #define ARROWUNDEFINED -1
+  
   int c_getNumRows(const char*);
   int cpp_getNumRows(const char*);
 

@@ -13,6 +13,11 @@ module ArrowInclude {
                                      dsetname, numelems, rowGroupSize);
   extern proc c_getVersionInfo(): c_string;
 
+  extern var ARROWINT64: c_int;
+  extern var ARROWINT32: c_int;
+  extern var ARROWUNDEFINED: c_int;
+  
+
   enum ArrowTypes { int64, int32, notimplemented };
   
   proc getVersionInfo() {
@@ -73,8 +78,8 @@ module ArrowInclude {
   proc getArrType(filename: string, colname: string) {
     var arrType = c_getType(filename.localize().c_str(),
                             colname.localize().c_str());
-    if arrType == 0 then return ArrowTypes.int64;
-    else if arrType == 1 then return ArrowTypes.int32;
+    if arrType == ARROWINT64 then return ArrowTypes.int64;
+    else if arrType == ARROWINT32 then return ArrowTypes.int32;
     return ArrowTypes.notimplemented;
   }
 

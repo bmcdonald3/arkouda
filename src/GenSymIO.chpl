@@ -1,5 +1,4 @@
 module GenSymIO {
-    require 'src/ArrowInclude.chpl';
     use ArrowInclude as Arrow;
     use HDF5;
     use Time only;

@@ -6,10 +6,10 @@ module ArrowInclude {
   private config const ROWGROUPS = 512*1024*1024 / numBytes(int); // 512 mb of int64
   
   extern proc c_getNumRows(chpl_str): int;
-  extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
+  extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems): c_int;
   extern proc c_getType(filename, colname): c_int;
   extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
-                                     dsetname, numelems, rowGroupSize);
+                                     dsetname, numelems, rowGroupSize): c_int;
   extern proc c_getVersionInfo(): c_string;
 
   enum ArrowTypes { int64, int32, notimplemented };
@@ -64,7 +64,7 @@ module ArrowInclude {
   }
 
   proc getArrSize(filename: string) {
-    var size = c_getNumRows(filename.c_str());
+    var size = c_getNumRows(filename.localize().c_str());
     return size;
   }
 
@@ -89,7 +89,7 @@ module ArrowInclude {
 
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
-        c_writeColumnToParquet(myFilename.c_str(), c_ptrTo(locArr), 0, dsetname.localize().c_str(), locDom.size, rowGroupSize);
+        c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0, dsetname.localize().c_str(), locDom.size, rowGroupSize);
       }
   }
 

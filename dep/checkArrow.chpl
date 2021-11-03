@@ -1,5 +1,3 @@
-require 'src/ArrowInclude.chpl';
-
 use ArrowInclude;
 
 proc main() {

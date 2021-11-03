@@ -180,9 +180,9 @@ def read_parquet(filenames : Union[str, List[str]], dsetname=None,
     file_errors = rep["file_errors"] if "file_errors" in rep else []
 
     # We have a couple possible return conditions
-    # 1. We have multiple items returned i.e. multi pdarrays, multi strings, multi pdarrays & strings
+    # 1. We have multiple items returned i.e. multi pdarrays
     # 2. We have a single pdarray
-    # 3. We have a single strings object
+    # TODO: add support for a string objects in Parquet
     if len(items) > 1: #  DataSets condition
         d: Dict[str, Union[pdarray, Strings]] = {}
         for item in items:

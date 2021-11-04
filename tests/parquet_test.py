@@ -1,9 +1,8 @@
 import glob, os
 from context import arkouda as ak
 from base_test import ArkoudaTest
-import unittest
 
-SIZE = 1000
+SIZE = 50
 NUMFILES = 5
 verbose = True
 

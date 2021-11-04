@@ -388,6 +388,7 @@ test: test-python
 
 .PHONY: test-chapel
 test-chapel: $(TEST_TARGETS)
+	compile-arrow-cpp
 
 .PHONY: test-all
 test-all: test-python test-chapel
@@ -400,6 +401,7 @@ $(TEST_BINARY_DIR):
 
 .PHONY: $(TEST_TARGETS) # Force tests to always rebuild.
 $(TEST_TARGETS): $(TEST_BINARY_DIR)/$(TEST_BINARY_SIGIL)%: $(TEST_SOURCE_DIR)/%.chpl | $(TEST_BINARY_DIR)
+	make compile-arrow-cpp
 	$(CHPL) $(TEST_CHPL_FLAGS) -M $(ARKOUDA_SOURCE_DIR) $(ARKOUDA_COMPAT_MODULES) $< -o $@
 
 print-%:

@@ -31,7 +31,7 @@ CHPL_FLAGS += --no-cache-remote
 # Note: Darwin `ld` only supports `-rpath <path>`, not `-rpath=<paths>`.
 define add-path
 CHPL_INCLUDES += -I$(1)/include -L$(1)/lib$(2) 
-CHPL_FLAGS += $(CHPL_INCLUDES) --ldflags="-Wl,-rpath,$(1)/lib$(2)"
+CHPL_FLAGS += -I$(1)/include -L$(1)/lib$(2) --ldflags="-Wl,-rpath,$(1)/lib$(2)"
 endef
 # Usage: $(eval $(call add-path,/home/user/anaconda3/envs/arkouda))
 #                               ^ no space after comma

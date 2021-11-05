@@ -14,12 +14,14 @@ module Parquet {
   
   proc getVersionInfo() {
     extern proc c_getVersionInfo(): c_string;
+    extern proc strlen(str): c_int;
     extern proc c_free_string(ptr);
     var cVersionString = c_getVersionInfo();
     defer {
       c_free_string(cVersionString: c_void_ptr);
     }
-    var ret = try! createStringWithNewBuffer(cVersionString);
+    var ret = try! createStringWithNewBuffer(cVersionString,
+                                             strlen(cVersionString));
     return ret;
   }
   

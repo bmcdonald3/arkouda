@@ -4,11 +4,13 @@ module GenSymIO {
     use Time only;
     use IO;
     use CPtr;
+    use SysCTypes;
     use Path;
     use MultiTypeSymbolTable;
     use MultiTypeSymEntry;
     use ServerErrorStrings;
     use FileSystem;
+    use FileIO;
     use Sort;
     use CommAggregation;
     use NumPyDType;
@@ -24,6 +26,8 @@ module GenSymIO {
     use Search;
     use IndexingMsg;
 
+    require "c_helpers/help_h5ls.h", "c_helpers/help_h5ls.c";
+
     private config const logLevel = ServerConfig.logLevel;
     const gsLogger = new Logger(logLevel);
 
@@ -33,6 +37,15 @@ module GenSymIO {
     config const NULL_STRINGS_VALUE = 0:uint(8);
     config const TRUNCATE: int = 0;
     config const APPEND: int = 1;
+
+    // Constants etc. related to intenral HDF5 file metadata
+    const ARKOUDA_HDF5_FILE_METADATA_GROUP = "/_arkouda_metadata";
+    const ARKOUDA_HDF5_ARKOUDA_VERSION_KEY = "arkouda_version"; // see ServerConfig.arkoudaVersion
+    type ARKOUDA_HDF5_ARKOUDA_VERSION_TYPE = c_string;
+    const ARKOUDA_HDF5_FILE_VERSION_KEY = "file_version";
+    const ARKOUDA_HDF5_FILE_VERSION_VAL = 1.0:real(32);
+    type ARKOUDA_HDF5_FILE_VERSION_TYPE = real(32);
+
 
     /*
      * Creates a pdarray server-side and returns the SymTab name used to
@@ -200,14 +213,12 @@ module GenSymIO {
     }
 
     /*
-     * Spawns a separate Chapel process that executes and returns the 
-     * result of the h5ls command
+     * Simulates the output of h5ls for top level datasets or groups
+     * :returns: string formatted as json list
+     * i.e. ["_arkouda_metadata", "pda1", "s1"]
      */
-    proc lshdfMsg(cmd: string, payload: string,
-                                st: borrowed SymTab): MsgTuple throws {
+    proc lshdfMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
         // reqMsg: "lshdf [<json_filename>]"
-        use Spawn;
-        const tmpfile = "/tmp/arkouda.lshdf.output";
         var repMsg: string;
         var (jsonfile) = payload.splitMsgToTuple(1);
 
@@ -248,48 +259,105 @@ module GenSymIO {
             gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
             return new MsgTuple(errorMsg,MsgType.ERROR);
         } 
+
+        if !isHdf5File(filename) {
+            var errorMsg = "File %s is not an HDF5 file".format(filename);
+            gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+            return new MsgTuple(errorMsg,MsgType.ERROR);
+        }
         
-        var exitCode: int;
-
         try {
-            if exists(tmpfile) {
-                remove(tmpfile);
+
+            var file_id = C_HDF5.H5Fopen(filename.c_str(), C_HDF5.H5F_ACC_RDONLY, C_HDF5.H5P_DEFAULT);
+            defer { C_HDF5.H5Fclose(file_id); } // ensure file is closed
+            repMsg = simulate_h5ls(file_id);
+            var items = new list(repMsg.split(",")); // convert to json
+
+            // TODO: There is a bug with json formatting of lists in Chapel 1.24.x fixed in 1.25
+            //       See: https://github.com/chapel-lang/chapel/issues/18156
+            //       Below works in 1.25, but until we are fully off of 1.24 we should format json manually for lists
+            // repMsg = "%jt".format(items); // Chapel >= 1.25.0
+            repMsg = "[";  // Manual json building Chapel <= 1.24.1
+            var first = true;
+            for i in items {
+                if first {
+                    first = false;
+                } else {
+                    repMsg += ",";
+                }
+                repMsg += '"' + i + '"';
             }
-
-            var cmd = try! "h5ls \"%s\" > \"%s\"".format(filename, tmpfile);
-            var sub = spawnshell(cmd);
-
-            sub.wait();
-
-            // Use new-style exitCode if available --
-            // https://github.com/chapel-lang/chapel/pull/18352
-            if hasField(sub.type, "exitCode") {
-                exitCode = sub.exitCode;
-            } else {
-                exitCode = sub.exit_status;
-            }
-
-            var f = open(tmpfile, iomode.r);
-            defer {  // This will ensure we try to close f when we exit the proc scope.
-                ensureClose(f);
-                try { remove(tmpfile); } catch {}
-            }
-            var r = f.reader(start=0);
-            r.readstring(repMsg);
-            r.close();
+            repMsg += "]";
         } catch e : Error {
-            var errorMsg = "failed to spawn process and execute ls: %t".format(e.message());
+            var errorMsg = "Failed to process HDF5 file %t".format(e.message());
             gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
             return new MsgTuple(errorMsg, MsgType.ERROR);
         }
 
-        if exitCode != 0 {
-            var errorMsg = "could not execute ls on %s, check file permissions or format".format(filename);
-            gsLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
-            return new MsgTuple(errorMsg, MsgType.ERROR);
-        } else {
-            return new MsgTuple(repMsg, MsgType.NORMAL);
+        return new MsgTuple(repMsg, MsgType.NORMAL);
+    }
+
+    private extern proc c_get_HDF5_obj_type(loc_id:C_HDF5.hid_t, name:c_string, obj_type:c_ptr(C_HDF5.H5O_type_t)):C_HDF5.herr_t;
+    private extern proc c_strlen(s:c_ptr(c_char)):size_t;
+    private extern proc c_incrementCounter(data:c_void_ptr);
+    private extern proc c_append_HDF5_fieldname(data:c_void_ptr, name:c_string);
+
+    /**
+     * Simulate h5ls call by using HDF5 API (top level datasets and groups only, not recursive)
+     * This uses both internal call back functions as well as exter c functions defined above to
+     * work with the HDF5 API and handle the the data objects it passes between calls as opaque void*
+     * which can't be used directly in chapel code.
+     */
+    proc simulate_h5ls(fid:C_HDF5.hid_t):string throws {
+        /** Note: I tried accessing a list inside my inner procs but it leads to segfaults.
+         * It only works if the thing you are trying to access is a global.  This is some type
+         * of strange interplay between C & chapel as straight chapel didn't cause problems.
+         * var items = new list(string);  
+         */
+
+        /**
+         * This is an H5Literate call-back function, c_helper funcs are used to process data in void*
+         * this proc counts the number of of HDF5 groups/datasets under the root, non-recursive
+         */
+        proc _get_item_count(loc_id:C_HDF5.hid_t, name:c_void_ptr, info:c_void_ptr, data:c_void_ptr) {
+            var obj_name = name:c_string;
+            var obj_type:C_HDF5.H5O_type_t;
+            var status:C_HDF5.H5O_type_t = c_get_HDF5_obj_type(loc_id, obj_name, c_ptrTo(obj_type));
+            if (obj_type == C_HDF5.H5O_TYPE_GROUP || obj_type == C_HDF5.H5O_TYPE_DATASET) {
+                c_incrementCounter(data);
+            }
+            return 0; // to continue iteration
         }
+
+        /**
+         * This is an H5Literate call-back function, c_helper funcs are used to process data in void*
+         * this proc builds string of HDF5 group/dataset objects names under the root, non-recursive
+         */
+        proc _simulate_h5ls(loc_id:C_HDF5.hid_t, name:c_void_ptr, info:c_void_ptr, data:c_void_ptr) {
+            var obj_name = name:c_string;
+            var obj_type:C_HDF5.H5O_type_t;
+            var status:C_HDF5.H5O_type_t = c_get_HDF5_obj_type(loc_id, obj_name, c_ptrTo(obj_type));
+            if (obj_type == C_HDF5.H5O_TYPE_GROUP || obj_type == C_HDF5.H5O_TYPE_DATASET) {
+                // items.append(obj_name:string); This doesn't work unless items is global
+                c_append_HDF5_fieldname(data, obj_name);
+            }
+            return 0; // to continue iteration
+        }
+        
+        var idx_p:C_HDF5.hsize_t; // This is the H5Literate index counter
+        
+        // First iteration to get the item count so we can ballpark the char* allocation
+        var nfields:c_int = 0:c_int;
+        C_HDF5.H5Literate(fid, C_HDF5.H5_INDEX_NAME, C_HDF5.H5_INDEX_NAME, idx_p, c_ptrTo(_get_item_count), c_ptrTo(nfields));
+        
+        // Allocate space for array of strings
+        var c_field_names = c_calloc(c_char, 255 * nfields);
+        idx_p = 0:C_HDF5.hsize_t; // reset our iteration counter
+        C_HDF5.H5Literate(fid, C_HDF5.H5_INDEX_NAME, C_HDF5.H5_INDEX_NAME, idx_p, c_ptrTo(_simulate_h5ls), c_field_names);
+        var pos = c_strlen(c_field_names):int;
+        var items = createStringWithNewBuffer(c_field_names, pos, pos+1);
+        c_free(c_field_names);
+        return items;
     }
 
     /*
@@ -369,11 +437,8 @@ module GenSymIO {
             return new MsgTuple(errorMsg, MsgType.ERROR);
         }
 
-        var dsetdom = dsetlist.domain;
         var filedom = filelist.domain;
-        var dsetnames: [dsetdom] string;
         var filenames: [filedom] string;
-        dsetnames = dsetlist;
 
         if filelist.size == 1 {
             if filelist[0].strip().size == 0 {
@@ -404,7 +469,11 @@ module GenSymIO {
         var fileErrors: list(string);
         var fileErrorCount:int = 0;
         var fileErrorMsg:string = "";
-        for dsetName in dsetnames do {
+        const AK_META_GROUP = ARKOUDA_HDF5_FILE_METADATA_GROUP(1..ARKOUDA_HDF5_FILE_METADATA_GROUP.size-1); // strip leading slash
+        for dsetName in dsetlist do {
+            if dsetName == AK_META_GROUP { // Always skip internal metadata group if present
+                continue;
+            }
             for (i, fname) in zip(filedom, filenames) {
                 var hadError = false;
                 try {
@@ -2020,6 +2089,9 @@ module GenSymIO {
                   C_HDF5.H5Fclose(file_id);
               }
 
+              // Prepare file versioning metadata
+              addArkoudaHdf5VersioningMetadata(file_id);
+
               if (!group.isEmpty()) {
                   prepareGroup(file_id, group);
               }
@@ -2302,9 +2374,84 @@ module GenSymIO {
      * attempting the group create.
      */
     private proc prepareGroup(fileId: int, group: string) throws {
-        var groupId = C_HDF5.H5Gcreate2(fileId, "/%s".format(group).c_str(),
+        var groupId:C_HDF5.hid_t = C_HDF5.H5Gcreate2(fileId, "/%s".format(group).c_str(),
               C_HDF5.H5P_DEFAULT, C_HDF5.H5P_DEFAULT, C_HDF5.H5P_DEFAULT);
         C_HDF5.H5Gclose(groupId);
+    }
+
+    /**
+     * Add internal metadata to HDF5 file
+     * Group - /_arkouda_metadata (see ARKOUDA_HDF5_FILE_METADATA_GROUP)
+     * Attrs - See constants for attribute names and associated values
+
+     * :arg fileId: HDF5 H5Fopen identifer (hid_t)
+     * :type int:
+     *
+     * This adds both the arkoudaVersion from ServerConfig as well as an internal file_version
+     * In the future we may remove the file_version if the server version string proves sufficient.
+     * Internal metadata related to the HDF5 API / capabilities / etc. can be added to this group.
+     * Data specific metadata should be attached directly to the dataset / group itself.
+     */
+    proc addArkoudaHdf5VersioningMetadata(fileId:int) throws {
+        // Note: can't write attributes to a closed group, easier to encapsulate here than call prepareGroup
+        var metaGroupId:C_HDF5.hid_t = C_HDF5.H5Gcreate2(fileId,
+                                                         ARKOUDA_HDF5_FILE_METADATA_GROUP.c_str(),
+                                                         C_HDF5.H5P_DEFAULT,
+                                                         C_HDF5.H5P_DEFAULT,
+                                                         C_HDF5.H5P_DEFAULT);
+        // Build the "file_version" attribute
+        var attrSpaceId = C_HDF5.H5Screate(C_HDF5.H5S_SCALAR);
+        var attrFileVersionType = getHDF5Type(ARKOUDA_HDF5_FILE_VERSION_TYPE);
+        var attrId = C_HDF5.H5Acreate2(metaGroupId,
+                          ARKOUDA_HDF5_FILE_VERSION_KEY.c_str(),
+                          attrFileVersionType,
+                          attrSpaceId,
+                          C_HDF5.H5P_DEFAULT,
+                          C_HDF5.H5P_DEFAULT);
+        
+        // H5Awrite requires a pointer and we have a const, so we need a variable ref we can turn into a pointer
+        var fileVersion = ARKOUDA_HDF5_FILE_VERSION_VAL;
+        C_HDF5.H5Awrite(attrId, attrFileVersionType, c_ptrTo(fileVersion));
+        
+        // release "file_version" HDF5 resources
+        C_HDF5.H5Aclose(attrId);
+        C_HDF5.H5Sclose(attrSpaceId);
+        // getHDF5Type returns an immutable type so we don't / can't actually close this one.
+        // C_HDF5.H5Tclose(attrFileVersionType);
+
+        // Repeat for "ArkoudaVersion" which is a string
+        // Need to allocate fixed size string type, docs say to copy from pre-defined type & modify
+        // Chapel getHDF5Type only returns a variable length version for string/c_string
+        var attrStringType = C_HDF5.H5Tcopy(C_HDF5.H5T_C_S1): C_HDF5.hid_t;
+        C_HDF5.H5Tset_size(attrStringType, arkoudaVersion.size:uint(64) + 1); // ensure space for NULL terminator
+        C_HDF5.H5Tset_strpad(attrStringType, C_HDF5.H5T_STR_NULLTERM);
+        
+        attrSpaceId = C_HDF5.H5Screate(C_HDF5.H5S_SCALAR);
+        
+        attrId = C_HDF5.H5Acreate2(metaGroupId,
+                            ARKOUDA_HDF5_ARKOUDA_VERSION_KEY.c_str(),
+                            attrStringType,
+                            attrSpaceId,
+                            C_HDF5.H5P_DEFAULT,
+                            C_HDF5.H5P_DEFAULT);
+
+        // For the value, we need to build a ptr to a char[]; c_string doesn't work because it is a const char*        
+        var akVersion = c_calloc(c_char, arkoudaVersion.size);
+        for (c, i) in zip(arkoudaVersion.codepoints(), 0..<arkoudaVersion.size) {
+            akVersion[i] = c:c_char;
+        }
+        akVersion[arkoudaVersion.size] = 0:c_char; // ensure NULL termination
+
+        C_HDF5.H5Awrite(attrId, attrStringType, akVersion);
+
+        // release ArkoudaVersion HDF5 resources
+        C_HDF5.H5Aclose(attrId);
+        c_free(akVersion);
+        C_HDF5.H5Sclose(attrSpaceId);
+        C_HDF5.H5Tclose(attrStringType);
+
+        // Release the group resource
+        C_HDF5.H5Gclose(metaGroupId);
     }
     
     /*

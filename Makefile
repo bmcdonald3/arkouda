@@ -137,10 +137,9 @@ check-chpl:
 ifneq ($(CHPL_VERSION_OK),yes)
 	$(error Chapel 1.24.0 or newer is required)
 endif
-# Re-enable when support more than just one version again
-#ifeq ($(CHPL_VERSION_WARN),yes)
-#	$(warning Chapel 1.24.1 or newer is recommended)
-#endif
+ifeq ($(CHPL_VERSION_WARN),yes)
+	$(warning Chapel 1.25.0 or newer is recommended)
+endif
 
 CHPL_VERSION_122 := $(shell test $(CHPL_MINOR) -eq 22 && echo yes)
 ifeq ($(CHPL_VERSION_122),yes)
@@ -221,6 +220,10 @@ ifdef ARKOUDA_PRINT_PASSES_FILE
 	PRINT_PASSES_FLAGS := --print-passes-file $(ARKOUDA_PRINT_PASSES_FILE)
 endif
 
+ifdef REGEX_MAX_CAPTURES
+	REGEX_MAX_CAPTURES_FLAG = -sregexMaxCaptures=$(REGEX_MAX_CAPTURES)
+endif
+
 ARKOUDA_SOURCES = $(shell find $(ARKOUDA_SOURCE_DIR)/ -type f -name '*.chpl')
 ARKOUDA_MAIN_SOURCE := $(ARKOUDA_SOURCE_DIR)/$(ARKOUDA_MAIN_MODULE).chpl
 
@@ -242,7 +245,7 @@ else
 endif
 
 $(ARKOUDA_MAIN_MODULE): check-deps compile-arrow-cpp $(ARKOUDA_SOURCES) $(ARKOUDA_MAKEFILES)
-	$(CHPL) $(CHPL_DEBUG_FLAGS) $(PRINT_PASSES_FLAGS) $(CHPL_FLAGS_WITH_VERSION) $(ARKOUDA_MAIN_SOURCE) $(ARKOUDA_COMPAT_MODULES) -o $@
+	$(CHPL) $(CHPL_DEBUG_FLAGS) $(PRINT_PASSES_FLAGS) $(REGEX_MAX_CAPTURES_FLAG) $(CHPL_FLAGS_WITH_VERSION) $(ARKOUDA_MAIN_SOURCE) $(ARKOUDA_COMPAT_MODULES) -o $@
 
 CLEAN_TARGETS += arkouda-clean
 .PHONY: arkouda-clean

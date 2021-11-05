@@ -1,5 +1,7 @@
 require '../src/ArrowInclude.chpl';
 use ArrowInclude, SysCTypes, CPtr, FileSystem;
+use UnitTest;
+use TestBase;
 
 proc testReadWrite(filename: c_string, dsetname: c_string, size: int) {
   var a: [0..#size] int;
@@ -10,8 +12,6 @@ proc testReadWrite(filename: c_string, dsetname: c_string, size: int) {
   
   c_readColumnByName(filename, c_ptrTo(b), dsetname, size);
   if a.equals(b) {
-    writeln("Finished writing");
-    writeln("Finished reading");
     return 0;
   } else {
     writeln("FAILED: read/write");
@@ -22,7 +22,6 @@ proc testReadWrite(filename: c_string, dsetname: c_string, size: int) {
 proc testGetNumRows(filename: c_string, expectedSize: int) {
   var size = c_getNumRows(filename);
   if size == expectedSize {
-    writeln("Finished getting number of rows");
     return 0;
   } else {
     writeln("FAILED: c_getNumRows");
@@ -36,7 +35,6 @@ proc testGetType(filename: c_string, dsetname: c_string) {
   // a positive value corresponds to an arrow type
   // -1 corresponds to unsupported type
   if arrowType >= 0 {
-    writeln("Finished getting type");
     return 0;
   } else {
     writeln("FAILED: c_getType with ", arrowType);
@@ -51,10 +49,8 @@ proc testVersionInfo() {
   try! ret = createStringWithNewBuffer(cVersionString,
                                        strlen(cVersionString));
   if ret[0]: int >= 5 {
-    writeln("Finished getting version info");
     return 0;
   } else {
-    writeln("FAILED: c_getVersionInfo");
     return 1;
   }
 }
@@ -70,9 +66,7 @@ proc main() {
   errors += testGetType(filename, dsetname);
   errors += testVersionInfo();
 
-  if errors == 0 then
-    writeln("All C/C++ Parquet tests passed");
-  else 
+  if errors != 0 then
     writeln(errors, " Parquet tests failed");
 
   remove("myFile.parquet");

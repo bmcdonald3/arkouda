@@ -5,27 +5,17 @@ module Parquet {
   require "ArrowFunctions.o";
 
   private config const ROWGROUPS = 512*1024*1024 / numBytes(int); // 512 mb of int64
-  
-  extern proc c_getNumRows(chpl_str): int;
-  extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
-  extern proc c_getType(filename, colname): c_int;
-  extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
-                                     dsetname, numelems, rowGroupSize);
-  extern proc c_getVersionInfo(): c_string;
 
   extern var ARROWINT64: c_int;
   extern var ARROWINT32: c_int;
   extern var ARROWUNDEFINED: c_int;
-  
 
   enum ArrowTypes { int64, int32, notimplemented };
   
   proc getVersionInfo() {
-    extern proc strlen(str): c_int;
+    extern proc c_getVersionInfo(): c_string;
     var cVersionString = c_getVersionInfo();
-    var ret;
-    try! ret = createStringWithNewBuffer(cVersionString,
-                                         strlen(cVersionString));
+    var ret = try! createStringWithNewBuffer(cVersionString);
     return ret;
   }
   
@@ -51,6 +41,7 @@ module Parquet {
   }
   
   proc readFilesByName(A, filenames: [] string, sizes: [] int, dsetname: string) {
+    extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
     var (subdoms, length) = getSubdomains(sizes);
 
     coforall loc in A.targetLocales() do on loc {
@@ -71,11 +62,13 @@ module Parquet {
   }
 
   proc getArrSize(filename: string) {
+    extern proc c_getNumRows(chpl_str): int;
     var size = c_getNumRows(filename.localize().c_str());
     return size;
   }
 
   proc getArrType(filename: string, colname: string) {
+    extern proc c_getType(filename, colname): c_int;
     var arrType = c_getType(filename.localize().c_str(),
                             colname.localize().c_str());
     if arrType == ARROWINT64 then return ArrowTypes.int64;
@@ -84,6 +77,8 @@ module Parquet {
   }
 
   proc writeDistArrayToParquet(A, filename, dsetname, rowGroupSize) {
+    extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
+                                     dsetname, numelems, rowGroupSize);
     var filenames: [0..#A.targetLocales().size] string;
     for i in 0..#A.targetLocales().size {
       var suffix = i: string;

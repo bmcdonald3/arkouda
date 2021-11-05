@@ -3,6 +3,9 @@ use UnitTest;
 use TestBase;
 
 proc testReadWrite(filename: c_string, dsetname: c_string, size: int) {
+  extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems);
+  extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
+                                     dsetname, numelems, rowGroupSize);
   var a: [0..#size] int;
   for i in 0..#size do a[i] = i;
   c_writeColumnToParquet(filename, c_ptrTo(a), 0, dsetname, size, 10000);
@@ -19,6 +22,7 @@ proc testReadWrite(filename: c_string, dsetname: c_string, size: int) {
 }
 
 proc testGetNumRows(filename: c_string, expectedSize: int) {
+  extern proc c_getNumRows(chpl_str): int;
   var size = c_getNumRows(filename);
   if size == expectedSize {
     return 0;
@@ -29,6 +33,7 @@ proc testGetNumRows(filename: c_string, expectedSize: int) {
 }
 
 proc testGetType(filename: c_string, dsetname: c_string) {
+  extern proc c_getType(filename, colname): c_int;
   var arrowType = c_getType(filename, dsetname);
 
   // a positive value corresponds to an arrow type
@@ -42,6 +47,7 @@ proc testGetType(filename: c_string, dsetname: c_string) {
 }
 
 proc testVersionInfo() {
+  extern proc c_getVersionInfo(): c_string;
   extern proc strlen(str): c_int;
   var cVersionString = c_getVersionInfo();
   var ret;

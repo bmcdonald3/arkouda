@@ -18,8 +18,6 @@ def run_parquet_test(verbose=True):
     ak_arr.save_parquet("pq_testcorrect", "my-dset")
     pq_arr = ak.read_parquet("pq_testcorrect", "my-dset")
     # get the dset from the dictionary in multi-locale cases
-    if(len(pq_arr) < SIZE):
-        pq_arr = pq_arr['my-dset']
     for f in glob.glob('pq_test*'):
         os.remove(f)
     return compare_values(ak_arr, pq_arr)
@@ -32,7 +30,7 @@ def run_parquet_multi_file_test(verbose=True):
         test_arrs.append(ak.randint(0, 2**32, int(adjusted_size/NUMFILES)))
         test_arrs[i].save_parquet("pq_test" + str(i), "test-dset")
 
-    pq_arr = ak.read_parquet("pq_test", "test-dset")['test-dset']
+    pq_arr = ak.read_parquet("pq_test", "test-dset")
     if len(pq_arr) != adjusted_size:
         print('Size of array read in was', str(len(pq_arr)), 'but should be', adjusted_size)
         failures += 1

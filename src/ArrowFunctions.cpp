@@ -117,7 +117,7 @@ const char* cpp_getVersionInfo(void) {
   return strdup(arrow::GetBuildInfo().version_string.c_str());
 }
 
-void cpp_free(void* ptr) {
+void cpp_free_string(void* ptr) {
   free(ptr);
 }
 
@@ -145,7 +145,7 @@ extern "C" {
     return cpp_getVersionInfo();
   }
 
-  void c_free(void* ptr) {
-    cpp_free(ptr);
+  void c_free_string(void* ptr) {
+    cpp_free_string(ptr);
   }
 }

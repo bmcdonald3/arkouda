@@ -48,10 +48,10 @@ proc testGetType(filename: c_string, dsetname: c_string) {
 
 proc testVersionInfo() {
   extern proc c_getVersionInfo(): c_string;
-  extern proc c_free(ptr);
+  extern proc c_free_string(ptr);
   var cVersionString = c_getVersionInfo();
   defer {
-    c_free(cVersionString);
+    c_free_string(cVersionString);
   }
   var ret;
   try! ret = createStringWithNewBuffer(cVersionString);

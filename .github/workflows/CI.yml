@@ -135,5 +135,5 @@ jobs:
         echo "\$(eval \$(call add-path,/usr/lib/x86_64-linux-gnu/hdf5/serial/))" > Makefile.paths
     - name: Run unit tests
       run: |
-        make compile-arrow-cpp
+        ./compile-arrow
         start_test test

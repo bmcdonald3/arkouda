@@ -113,7 +113,8 @@ def read_hdf(dsetName : str, filenames : Union[str,List[str]],
                 read_all(filenames, datasets=dsetName, strictTypes=strictTypes, allow_errors=allow_errors,
                          calc_string_offsets=calc_string_offsets))
 
-def read_parquet(filenames : Union[str, List[str]], dsetname : str = 'array',
+def read_parquet(filenames : Union[str, List[str]],
+                 dsetname : Union[str, List[str]]  = 'array',
                  strictTypes: bool=True, allow_errors:bool = False)\
              -> Union[pdarray, Strings, Mapping[str,Union[pdarray,Strings]]]:
     """
@@ -170,11 +171,6 @@ def read_parquet(filenames : Union[str, List[str]], dsetname : str = 'array',
         filenames = [filenames]
     if isinstance(dsetname, str):
         dsetname = [dsetname]
-    if dsetname is None:
-        # Send empty name so C code doesn't cause error
-        # This results in reading the first column of the file
-        # which is the same behavior if someone enters the wrong column name
-        dsetname=[' ']
 
     rep_msg = generic_msg(cmd="readAllParquet", args=
                           f"{strictTypes} {len(dsetname)} {len(filenames)} {allow_errors} {json.dumps(dsetname)} | {json.dumps(filenames)}")

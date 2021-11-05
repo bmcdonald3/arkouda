@@ -1056,9 +1056,9 @@ class pdarray:
             Directory and filename prefix that all output files share
         dataset : str
             Name of the dataset to create in Parquet files (must not already exist)
-        mode : str {'truncate' | 'append'}
+        mode : str {'truncate'}
             By default, truncate (overwrite) output files, if they exist.
-            If 'append', attempt to create new dataset in existing files.
+            Append is currently not supported.
 
         Returns
         -------
@@ -1104,12 +1104,10 @@ class pdarray:
         >>> (a == b).all()
         True
         """
-        if mode.lower() in 'append':
-            m = 1
-        elif mode.lower() in 'truncate':
+        if mode.lower() in 'truncate':
             m = 0
-        else:
-            raise ValueError("Allowed modes are 'truncate' and 'append'")
+        else: # TODO: add support for the append mode
+            raise ValueError("Currently only the 'truncate' mode is supported")
         
         try:
             json_array = json.dumps([prefix_path])

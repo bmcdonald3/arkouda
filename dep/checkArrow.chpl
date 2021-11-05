@@ -1,4 +1,4 @@
-use ArrowInclude;
+use Parquet;
 
 proc main() {
   var ArrowVersion = getVersionInfo();

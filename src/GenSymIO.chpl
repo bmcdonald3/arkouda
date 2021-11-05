@@ -1,5 +1,4 @@
 module GenSymIO {
-    use ArrowInclude as Arrow;
     use HDF5;
     use Time only;
     use IO;
@@ -646,7 +645,7 @@ module GenSymIO {
     }
 
     proc readAllParquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
-        use ArrowInclude as Arrow;
+        use Parquet;
         var repMsg: string;
         // May need a more robust delimiter then " | "
         var (strictFlag, ndsetsStr, nfilesStr, allowErrorsFlag, arraysStr) = payload.splitMsgToTuple(5);
@@ -1390,6 +1389,7 @@ module GenSymIO {
     }
 
     proc toparquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+      use Parquet;
       var (arrayName, dsetname,  jsonfile, dataType)= payload.splitMsgToTuple(4);
       var filename: string;
       var entry = st.lookup(arrayName);

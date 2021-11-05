@@ -1,5 +1,4 @@
-require '../src/ArrowInclude.chpl';
-use ArrowInclude, SysCTypes, CPtr, FileSystem;
+use Parquet, SysCTypes, CPtr, FileSystem;
 use UnitTest;
 use TestBase;
 

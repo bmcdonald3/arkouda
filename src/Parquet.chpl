@@ -1,5 +1,5 @@
-module ArrowInclude {
-  use SysCTypes, CPtr, Time, IO, Reflection;
+module Parquet {
+  use SysCTypes, CPtr, IO;
   use ServerErrors;
   require "ArrowFunctions.h";
   require "ArrowFunctions.o";

@@ -41,6 +41,8 @@ def check_correctness(dtype, path, seed):
 
     a.save_parquet(path)
     b = ak.read_parquet(path, 'array')
+    if(len(b) < 10**4):
+        b = b['array']
     for f in glob(path+"_LOCALE*"):
         os.remove(f)
     assert (a == b).all()

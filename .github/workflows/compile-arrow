@@ -1,3 +1,0 @@
-if ! make compile-arrow-cpp; then
-   echo "true"
-fi

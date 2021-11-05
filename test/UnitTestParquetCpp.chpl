@@ -48,11 +48,13 @@ proc testGetType(filename: c_string, dsetname: c_string) {
 
 proc testVersionInfo() {
   extern proc c_getVersionInfo(): c_string;
-  extern proc strlen(str): c_int;
+  extern proc c_free(ptr);
   var cVersionString = c_getVersionInfo();
+  defer {
+    c_free(cVersionString);
+  }
   var ret;
-  try! ret = createStringWithNewBuffer(cVersionString,
-                                       strlen(cVersionString));
+  try! ret = createStringWithNewBuffer(cVersionString);
   if ret[0]: int >= 5 {
     return 0;
   } else {

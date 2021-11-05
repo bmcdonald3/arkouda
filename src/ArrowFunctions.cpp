@@ -114,7 +114,11 @@ void cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
 }
 
 const char* cpp_getVersionInfo(void) {
-  return arrow::GetBuildInfo().version_string.c_str();
+  return strdup(arrow::GetBuildInfo().version_string.c_str());
+}
+
+void cpp_free(void* ptr) {
+  free(ptr);
 }
 
 extern "C" {
@@ -139,5 +143,9 @@ extern "C" {
 
   const char* c_getVersionInfo(void) {
     return cpp_getVersionInfo();
+  }
+
+  void c_free(void* ptr) {
+    cpp_free(ptr);
   }
 }

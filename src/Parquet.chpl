@@ -14,7 +14,11 @@ module Parquet {
   
   proc getVersionInfo() {
     extern proc c_getVersionInfo(): c_string;
+    extern proc c_free(ptr);
     var cVersionString = c_getVersionInfo();
+    defer {
+      c_free(cVersionString: c_void_ptr);
+    }
     var ret = try! createStringWithNewBuffer(cVersionString);
     return ret;
   }

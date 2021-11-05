@@ -26,6 +26,9 @@ extern "C" {
     
   const char* c_getVersionInfo(void);
   const char* cpp_getVersionInfo(void);
+
+  void c_free(void* ptr);
+  void cpp_free(void* ptr);
   
 #ifdef __cplusplus
 }

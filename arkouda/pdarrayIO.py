@@ -111,7 +111,7 @@ def read_hdf(dsetName : str, filenames : Union[str,List[str]],
                 read_all(filenames, datasets=dsetName, strictTypes=strictTypes, allow_errors=allow_errors,
                          calc_string_offsets=calc_string_offsets))
 
-def read_parquet(filenames : Union[str, List[str]], dsetname=None,
+def read_parquet(filenames : Union[str, List[str]], dsetname : str = 'array',
                  strictTypes: bool=True, allow_errors:bool = False)\
              -> Union[pdarray, Strings, Mapping[str,Union[pdarray,Strings]]]:
     """
@@ -123,7 +123,8 @@ def read_parquet(filenames : Union[str, List[str]], dsetname=None,
     filenames : list or str
         Either a list of filenames or shell expression
     dsetName : str
-        The name of the dataset (must be the same across all files)
+        The name of the dataset (must be the same across all files).
+        Defaults to 'array'.
     strictTypes: bool
         If True (default), require all dtypes in all files to have the
         same precision and sign. If False, allow dtypes of different

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+if make -C ../ compile-arrow-cpp; then
+   echo False
+else
+   echo True
+fi

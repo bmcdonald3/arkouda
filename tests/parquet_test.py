@@ -1,6 +1,7 @@
 import glob, os
 from context import arkouda as ak
 from base_test import ArkoudaTest
+import pytest
 
 SIZE = 50
 NUMFILES = 5
@@ -43,6 +44,8 @@ def run_parquet_multi_file_test(verbose=True):
     return failures
 
 
+
+@pytest.mark.skipif(not os.getenv('ARKOUDA_SERVER_PARQUET_SUPPORT'), reason="No parquet support")
 class ParquetTest(ArkoudaTest):
     def test_parquet(self):
         self.assertEqual(run_parquet_test(), 0)

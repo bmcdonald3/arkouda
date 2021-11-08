@@ -1,8 +1,10 @@
 module Parquet {
   use SysCTypes, CPtr, IO;
-  use ServerErrors;
-  require "ArrowFunctions.h";
-  require "ArrowFunctions.o";
+  use ServerErrors, ServerConfig;
+  if hasParquetSupport {
+    require "ArrowFunctions.h";
+    require "ArrowFunctions.o";
+  }
 
   private config const ROWGROUPS = 512*1024*1024 / numBytes(int); // 512 mb of int64
 

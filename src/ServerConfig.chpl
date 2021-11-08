@@ -62,6 +62,9 @@ module ServerConfig
     */
     config param regexMaxCaptures = 20;
 
+    /* Whether the server was built with parquet support */
+    config param hasParquetSupport = false;
+
     private config const lLevel = ServerConfig.logLevel;
     const scLogger = new Logger(lLevel);
    
@@ -143,7 +146,7 @@ module ServerConfig
     Get the physical memory available on this locale
     */ 
     proc getPhysicalMemHere() {
-        use MemDiagnostics;
+        use Memory.Diagnostics;
         return here.physicalMemory();
     }
 
@@ -163,7 +166,7 @@ module ServerConfig
     Get the memory used on this locale
     */
     proc getMemUsed() {
-        use MemDiagnostics;
+        use Memory.Diagnostics;
         return memoryUsed();
     }
 

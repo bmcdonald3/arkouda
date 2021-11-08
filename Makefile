@@ -22,16 +22,27 @@ else
 CHPL_FLAGS += --fast
 endif
 CHPL_FLAGS += -smemTrack=true -smemThreshold=1048576
-CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq -lparquet -larrow
 
 # We have seen segfaults with cache remote at some node counts
 CHPL_FLAGS += --no-cache-remote
 
+# For configs that use a fixed heap, but still have first-touch semantics
+# (gasnet-ibv-large) interleave large allocations to reduce the performance hit
+# from getting progressively worse NUMA affinity due to memory reuse.
+CHPL_HELP := $(shell $(CHPL) --devel --help)
+ifneq (,$(findstring interleave-memory,$(CHPL_HELP)))
+CHPL_FLAGS += --interleave-memory
+endif
+
 # add-path: Append custom paths for non-system software.
 # Note: Darwin `ld` only supports `-rpath <path>`, not `-rpath=<paths>`.
 define add-path
-CHPL_INCLUDES += -I$(1)/include -L$(1)/lib$(2) 
-CHPL_FLAGS += -I$(1)/include -L$(1)/lib$(2) --ldflags="-Wl,-rpath,$(1)/lib$(2)"
+ifneq ("$(wildcard $(1)/lib64)","")
+  INCLUDE_FLAGS += -I$(1)/include -L$(1)/lib64
+  CHPL_FLAGS    += -I$(1)/include -L$(1)/lib64 --ldflags="-Wl,-rpath,$(1)/lib64"
+endif
+INCLUDE_FLAGS += -I$(1)/include -L$(1)/lib
+CHPL_FLAGS    += -I$(1)/include -L$(1)/lib --ldflags="-Wl,-rpath,$(1)/lib"
 endef
 # Usage: $(eval $(call add-path,/home/user/anaconda3/envs/arkouda))
 #                               ^ no space after comma
@@ -44,13 +55,14 @@ ifdef ARKOUDA_HDF5_PATH
 $(eval $(call add-path,$(ARKOUDA_HDF5_PATH)))
 endif
 
-# For configs that use a fixed heap, but still have first-touch semantics
-# (gasnet-ibv-large) interleave large allocations to reduce the performance hit
-# from getting progressively worse NUMA affinity due to memory reuse.
-CHPL_HELP := $(shell $(CHPL) --devel --help)
-ifneq (,$(findstring interleave-memory,$(CHPL_HELP)))
-CHPL_FLAGS += --interleave-memory
+CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq
+
+ifdef ARKOUDA_SERVER_PARQUET_SUPPORT
+  CHPL_FLAGS += -lparquet -larrow
+  OPTIONAL_CHECKS += check-arrow
+  OPTIONAL_SERVER_FLAGS += -shasParquetSupport
 endif
+
 
 .PHONY: install-deps
 install-deps: install-zmq install-hdf5 install-arrow
@@ -71,7 +83,7 @@ install-zmq:
 	cd $(DEP_BUILD_DIR) && curl -sL $(ZMQ_LINK) | tar xz
 	cd $(ZMQ_BUILD_DIR) && ./configure --prefix=$(ZMQ_INSTALL_DIR) CFLAGS=-O3 CXXFLAGS=-O3 && make && make install
 	rm -r $(ZMQ_BUILD_DIR)
-	echo '$$(eval $$(call add-path,$(ZMQ_INSTALL_DIR),))' >> Makefile.paths
+	echo '$$(eval $$(call add-path,$(ZMQ_INSTALL_DIR)))' >> Makefile.paths
 
 HDF5_MAJ_MIN_VER := 1.10
 HDF5_VER := 1.10.5
@@ -86,9 +98,9 @@ install-hdf5:
 	cd $(DEP_BUILD_DIR) && curl -sL $(HDF5_LINK) | tar xz
 	cd $(HDF5_BUILD_DIR) && ./configure --prefix=$(HDF5_INSTALL_DIR) --enable-optimization=high --enable-hl && make && make install
 	rm -rf $(HDF5_BUILD_DIR)
-	echo '$$(eval $$(call add-path,$(HDF5_INSTALL_DIR),))' >> Makefile.paths
+	echo '$$(eval $$(call add-path,$(HDF5_INSTALL_DIR)))' >> Makefile.paths
 
-ARROW_VER := 5.0.0
+ARROW_VER := 6.0.0
 ARROW_NAME_VER := apache-arrow-$(ARROW_VER)
 ARROW_FULL_NAME_VER := arrow-apache-arrow-$(ARROW_VER)
 ARROW_BUILD_DIR := $(DEP_BUILD_DIR)/$(ARROW_FULL_NAME_VER)
@@ -100,9 +112,9 @@ install-arrow:
 	rm -rf $(ARROW_BUILD_DIR) $(ARROW_INSTALL_DIR)
 	mkdir -p $(DEP_INSTALL_DIR) $(DEP_BUILD_DIR)
 	cd $(DEP_BUILD_DIR) && curl -sL $(ARROW_LINK) | tar xz
-	cd $(ARROW_BUILD_DIR)/cpp && cmake -DCMAKE_INSTALL_PREFIX=$(ARROW_INSTALL_DIR) -DCMAKE_BUILD_TYPE=Release -DARROW_PARQUET=ON $(ARROW_OPTIONS) && make && make install
+	cd $(ARROW_BUILD_DIR)/cpp && cmake -DCMAKE_INSTALL_PREFIX=$(ARROW_INSTALL_DIR) -DCMAKE_BUILD_TYPE=Release -DARROW_PARQUET=ON $(ARROW_OPTIONS) . && make && make install
 	rm -rf $(ARROW_BUILD_DIR)
-	echo '$$(eval $$(call add-path,$(ARROW_INSTALL_DIR),64))' >> Makefile.paths
+	echo '$$(eval $$(call add-path,$(ARROW_INSTALL_DIR)))' >> Makefile.paths
 
 # System Environment
 ifdef LD_RUN_PATH
@@ -120,14 +132,14 @@ endif
 
 .PHONY: check-deps
 ifndef ARKOUDA_SKIP_CHECK_DEPS
-CHECK_DEPS = check-chpl check-zmq check-hdf5 check-arrow
+CHECK_DEPS = check-chpl check-zmq check-hdf5 $(OPTIONAL_CHECKS)
 endif
 check-deps: $(CHECK_DEPS)
 
 ARROW_CPP=ArrowFunctions
 .PHONY: compile-arrow-cpp
 compile-arrow-cpp: $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp
-	g++ -O3 -std=c++11 -c $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp -o $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).o $(CHPL_INCLUDES) -lparquet -larrow
+	$(CXX) -O3 -std=c++11 -c $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp -o $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).o $(INCLUDE_FLAGS)
 
 CHPL_MINOR := $(shell $(CHPL) --version | sed -n "s/chpl version 1\.\([0-9]*\).*/\1/p")
 CHPL_VERSION_OK := $(shell test $(CHPL_MINOR) -ge 24 && echo yes)
@@ -139,11 +151,6 @@ ifneq ($(CHPL_VERSION_OK),yes)
 endif
 ifeq ($(CHPL_VERSION_WARN),yes)
 	$(warning Chapel 1.25.0 or newer is recommended)
-endif
-
-CHPL_VERSION_122 := $(shell test $(CHPL_MINOR) -eq 22 && echo yes)
-ifeq ($(CHPL_VERSION_122),yes)
-CHPL_FLAGS += --instantiate-max 512
 endif
 
 ZMQ_CHECK = $(DEP_INSTALL_DIR)/checkZMQ.chpl
@@ -163,7 +170,7 @@ check-hdf5: $(HDF5_CHECK)
 ARROW_CHECK = $(DEP_INSTALL_DIR)/checkArrow.chpl
 check-arrow: $(ARROW_CHECK) compile-arrow-cpp
 	@echo "Checking for Arrow"
-	$(CHPL) $(CHPL_FLAGS) $< $(ARROW_M) -M $(ARKOUDA_SOURCE_DIR) -o $(DEP_INSTALL_DIR)/$@
+	$(CHPL) $(CHPL_FLAGS) $< $(ARROW_M) -M $(ARKOUDA_SOURCE_DIR) -o $(DEP_INSTALL_DIR)/$@ -shasParquetSupport
 	$(DEP_INSTALL_DIR)/$@ -nl 1
 	@rm -f $(DEP_INSTALL_DIR)/$@ $(DEP_INSTALL_DIR)/$@_real
 
@@ -226,16 +233,6 @@ endif
 ARKOUDA_SOURCES = $(shell find $(ARKOUDA_SOURCE_DIR)/ -type f -name '*.chpl')
 ARKOUDA_MAIN_SOURCE := $(ARKOUDA_SOURCE_DIR)/$(ARKOUDA_MAIN_MODULE).chpl
 
-# The Memory module was moved to Memory.Diagnostics in 1.24. Due to how
-# resolution of use and import statements works, we have to conditionally
-# use one of two definitions of a wrapper module as a workaround.
-# Resolving Chapel issue #17438 or making 1.24 the minimum required version
-# would fix this.
-ifeq ($(shell expr $(CHPL_MINOR) \>= 24),1)
-	ARKOUDA_COMPAT_MODULES := -M $(ARKOUDA_SOURCE_DIR)/compat/ge-124
-else
-	ARKOUDA_COMPAT_MODULES := -M $(ARKOUDA_SOURCE_DIR)/compat/lt-124
-endif
 
 ifeq ($(shell expr $(CHPL_MINOR) \>= 25),1)
 	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/ge-125
@@ -244,7 +241,7 @@ else
 endif
 
 $(ARKOUDA_MAIN_MODULE): check-deps compile-arrow-cpp $(ARKOUDA_SOURCES) $(ARKOUDA_MAKEFILES)
-	$(CHPL) $(CHPL_DEBUG_FLAGS) $(PRINT_PASSES_FLAGS) $(REGEX_MAX_CAPTURES_FLAG) $(CHPL_FLAGS_WITH_VERSION) $(ARKOUDA_MAIN_SOURCE) $(ARKOUDA_COMPAT_MODULES) -o $@
+	$(CHPL) $(CHPL_DEBUG_FLAGS) $(PRINT_PASSES_FLAGS) $(REGEX_MAX_CAPTURES_FLAG) $(OPTIONAL_SERVER_FLAGS) $(CHPL_FLAGS_WITH_VERSION) $(ARKOUDA_MAIN_SOURCE) $(ARKOUDA_COMPAT_MODULES) -o $@
 
 CLEAN_TARGETS += arkouda-clean
 .PHONY: arkouda-clean

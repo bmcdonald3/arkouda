@@ -27,7 +27,6 @@ module GenSymIO {
 
     require "c_helpers/help_h5ls.h", "c_helpers/help_h5ls.c";
 
-    private config param hasParquetSupport = true;
     private config const logLevel = ServerConfig.logLevel;
     const gsLogger = new Logger(logLevel);
 

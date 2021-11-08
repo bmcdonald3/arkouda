@@ -61,6 +61,10 @@ ifdef ARKOUDA_SERVER_PARQUET_SUPPORT
   CHPL_FLAGS += -lparquet -larrow
   OPTIONAL_CHECKS += check-arrow
   OPTIONAL_SERVER_FLAGS += -shasParquetSupport
+  ARROW_FILE_NAME += $(ARKOUDA_SOURCE_DIR)/ArrowFunctions
+  ARROW_CPP += $(ARROW_FILE_NAME).cpp
+  ARROW_O += $(ARROW_FILE_NAME).o
+  ARROW_H += $(ARROW_FILE_NAME).h
 endif
 
 
@@ -136,10 +140,12 @@ CHECK_DEPS = check-chpl check-zmq check-hdf5 $(OPTIONAL_CHECKS)
 endif
 check-deps: $(CHECK_DEPS)
 
-ARROW_CPP=ArrowFunctions
 .PHONY: compile-arrow-cpp
-compile-arrow-cpp: $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp
-	$(CXX) -O3 -std=c++11 -c $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).cpp -o $(ARKOUDA_SOURCE_DIR)/$(ARROW_CPP).o $(INCLUDE_FLAGS)
+compile-arrow-cpp: $(ARROW_CPP) $(ARROW_H)
+	$(CXX) -O3 -std=c++11 -c $(ARROW_CPP) -o $(ARROW_O) $(INCLUDE_FLAGS)
+
+$(ARROW_O): $(ARROW_CPP) $(ARROW_H)
+	make compile-arrow-cpp
 
 CHPL_MINOR := $(shell $(CHPL) --version | sed -n "s/chpl version 1\.\([0-9]*\).*/\1/p")
 CHPL_VERSION_OK := $(shell test $(CHPL_MINOR) -ge 24 && echo yes)
@@ -240,7 +246,7 @@ else
 	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/lt-125
 endif
 
-$(ARKOUDA_MAIN_MODULE): check-deps compile-arrow-cpp $(ARKOUDA_SOURCES) $(ARKOUDA_MAKEFILES)
+$(ARKOUDA_MAIN_MODULE): check-deps $(ARROW_O) $(ARKOUDA_SOURCES) $(ARKOUDA_MAKEFILES)
 	$(CHPL) $(CHPL_DEBUG_FLAGS) $(PRINT_PASSES_FLAGS) $(REGEX_MAX_CAPTURES_FLAG) $(OPTIONAL_SERVER_FLAGS) $(CHPL_FLAGS_WITH_VERSION) $(ARKOUDA_MAIN_SOURCE) $(ARKOUDA_COMPAT_MODULES) -o $@
 
 CLEAN_TARGETS += arkouda-clean

@@ -54,6 +54,9 @@ endif
 ifdef ARKOUDA_HDF5_PATH
 $(eval $(call add-path,$(ARKOUDA_HDF5_PATH)))
 endif
+ifdef ARKOUDA_ARROW_PATH
+$(eval $(call add-path,$(ARKOUDA_ARROW_PATH)))
+endif
 
 CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq
 
@@ -110,7 +113,6 @@ ARROW_FULL_NAME_VER := arrow-apache-arrow-$(ARROW_VER)
 ARROW_BUILD_DIR := $(DEP_BUILD_DIR)/$(ARROW_FULL_NAME_VER)
 ARROW_INSTALL_DIR := $(DEP_INSTALL_DIR)/arrow-install
 ARROW_LINK := https://github.com/apache/arrow/archive/refs/tags/$(ARROW_NAME_VER).tar.gz
-ARROW_OPTIONS := -DARROW_JEMALLOC=OFF -DARROW_COMPUTE=OFF -DARROW_IPC=OFF -DARROW_WITH_RE2=OFF -DARROW_WITH_SNAPPY=ON -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
 install-arrow:
 	@echo "Installing Apache Arrow/Parquet"
 	rm -rf $(ARROW_BUILD_DIR) $(ARROW_INSTALL_DIR)

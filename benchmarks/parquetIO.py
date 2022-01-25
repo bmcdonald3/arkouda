@@ -5,6 +5,9 @@ from glob import glob
 
 TYPES = ('int64')
 
+NUMFILES = 100
+MULTISIZE=10**4
+
 def time_ak_write_read(N_per_locale, trials, dtype, path, seed):
     print(">>> arkouda {} write/read".format(dtype))
     cfg = ak.get_config()
@@ -45,6 +48,27 @@ def check_correctness(dtype, path, seed):
         os.remove(f)
     assert (a == b).all()
 
+def gen_parquet_files(dtype, path, seed):
+    N = MULTISIZE
+    a = ak.randint(0, 2**32, N, seed=seed)
+
+    for i in range(NUMFILES):
+        a.save_parquet(path + str(i))
+
+def test_multi_read(path):
+    if len(glob(path+'*')) > 0:
+        start = time.time()
+        a = ak.read_parquet(path+'*')
+        stop = time.time()
+        nb = MULTISIZE*NUMFILES * a.itemsize
+        
+        print("multi file read rate = {:.2f} GiB/sec".format(nb/2**30/(stop-start)))
+    
+        for f in glob(path + '*'):
+            os.remove(f)
+    else:
+        print('files not written for testing multiple file reads')
+    
 def create_parser():
     parser = argparse.ArgumentParser(description="Measure performance of writing and reading a random array from disk.")
     parser.add_argument('hostname', help='Hostname of arkouda server')
@@ -55,6 +79,7 @@ def create_parser():
     parser.add_argument('-p', '--path', default=os.getcwd()+'/ak-pq-test', help='Target path for measuring read/write rates')
     parser.add_argument('--correctness-only', default=False, action='store_true', help='Only check correctness, not performance.')
     parser.add_argument('-s', '--seed', default=None, type=int, help='Value to initialize random number generator')
+    parser.add_argument('--gen-files', default=False, action='store_true', help='Whether to generate or delete files')
     return parser
 
 if __name__ == "__main__":
@@ -65,13 +90,18 @@ if __name__ == "__main__":
         raise ValueError("Dtype must be {}, not {}".format('/'.join(TYPES), args.dtype))
     ak.verbose = False
     ak.connect(args.hostname, args.port)
+    multi_path = os.getcwd() + '/multi-pq-test'
 
-    if args.correctness_only:
-        for dtype in TYPES:
-            check_correctness(dtype, args.path, args.seed)
-        sys.exit(0)
-    
-    print("array size = {:,}".format(args.size))
-    print("number of trials = ", args.trials)
-    time_ak_write_read(args.size, args.trials, args.dtype, args.path, args.seed)
+    if args.gen_files:
+        gen_parquet_files('int64', multi_path, args.seed)
+    else:   
+        if args.correctness_only:
+            for dtype in TYPES:
+                check_correctness(dtype, args.path, args.seed)
+                sys.exit(0)
+                
+        print("array size = {:,}".format(args.size))
+        print("number of trials = ", args.trials)
+        time_ak_write_read(args.size, args.trials, args.dtype, args.path, args.seed)
+        test_multi_read(multi_path)
     sys.exit(0)

@@ -116,9 +116,20 @@ def main():
     if args.gen_graphs:
         os.makedirs(config_dat_dir, exist_ok=True)
 
+    args.benchmarks = args.benchmarks or BENCHMARKS
+
+    pqRun = "parquetIO" in args.benchmarks
+    hdfRun = "IO" in args.benchmarks
+    if pqRun or hdfRun:
+        start_arkouda_server(args.num_locales, port=args.server_port, server_args=args.server_args)
+        if pqRun:
+            benchmark_py = os.path.join(benchmark_dir, 'parquetIO.py')
+            out = run_client(benchmark_py, client_args + ['--gen-files'])
+            print(out)
+        stop_arkouda_server()
+        
     start_arkouda_server(args.num_locales, port=args.server_port, server_args=args.server_args)
 
-    args.benchmarks = args.benchmarks or BENCHMARKS
     for benchmark in args.benchmarks:
         for trial in range(args.numtrials):
             benchmark_py = os.path.join(benchmark_dir, '{}.py'.format(benchmark))

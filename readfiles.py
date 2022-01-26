@@ -1,9 +1,14 @@
+import time, sys
 import arkouda as ak
-import time
-ak.connect()
+
+ak.connect(server=sys.argv[1], port=sys.argv[2])
 
 start = time.time()
-#ak.read_parquet("test-file*")
-ak.read_all("hdf-test-file*")
+if 'parquet' in sys.argv:
+    filename = "/lus/scratch/flash/mcdonald/parquet/test-file*"
+    ak.read_parquet(filename)
+else:
+    filename = "/lus/scratch/flash/mcdonald/hdf5/test-file*"
+    ak.read_all(filename)
 stop = time.time()
-print("took {:.4f}".format(stop-start))
+print("took {:.1f}".format(stop-start))

@@ -79,6 +79,7 @@ def create_parser():
     parser.add_argument('-s', '--seed', default=None, type=int, help='Value to initialize random number generator')
     parser.add_argument('-w', '--only-write', default=False, action='store_true', help="Only write the files; files will not be removed")
     parser.add_argument('-r', '--only-read', default=False, action='store_true', help="Only read the files; files will not be removed")
+    parser.add_argument('-f', '--only-delete', default=False, action='store_true', help="Only delete files created from writing with this benchmark")
     return parser
 
 if __name__ == "__main__":

@@ -1189,6 +1189,7 @@ module HDF5Msg {
      */
     proc write1DDistArray(filename: string, mode: int, dsetName: string, A,
                                                                 array_type: DType) throws {
+      extern proc fsync(a): int;
         /* Output is 1 file per locale named <filename>_<loc>, and a dataset
         named <dsetName> is created in each one. If mode==1 (append) and the
         correct number of files already exists, then a new dataset named
@@ -1242,6 +1243,7 @@ module HDF5Msg {
             }
             
             var myDsetName = getWriteDsetName(dType=dType, dsetName=dsetName);
+          writeln(fsync(myFileID));
 
             /*
              * Depending upon the datatype, write the local slice out to the top-level
@@ -1252,6 +1254,7 @@ module HDF5Msg {
             } else {
                 H5LTmake_dataset_WAR(myFileID, myDsetName.c_str(), 1, c_ptrTo(dims), dType, c_ptrTo(A.localSlice(locDom)));
             }
+          writeln(fsync(myFileID));
         }
         return warnFlag;
     }

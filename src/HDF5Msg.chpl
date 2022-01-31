@@ -337,7 +337,7 @@ module HDF5Msg {
                 moduleName=getModuleName(),
                 errorClass='Error');
         }
-        return (isSegArray, dataclass, bytesize, isSigned);
+        return (isSegArray, dataclass, bytesize, isSigned, file_id);
     }
 
 
@@ -1939,7 +1939,11 @@ module HDF5Msg {
             for (i, fname) in zip(filedom, filenames) {
                 var hadError = false;
                 try {
-                    (segArrayFlags[i], dclasses[i], bytesizes[i], signFlags[i]) = get_dtype(fname, dsetName, calcStringOffsets);
+                  var file_id: int;
+                    (segArrayFlags[i], dclasses[i], bytesizes[i], signFlags[i], file_id) = get_dtype(fname, dsetName, calcStringOffsets);
+                    extern proc fsync(a): int;
+                    writeln(fsync(file_id));
+                    writeln(file_id);
                 } catch e: FileNotFoundError {
                     fileErrorMsg = "File %s not found".format(fname);
                     h5Logger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);

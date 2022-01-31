@@ -1833,11 +1833,17 @@ module HDF5Msg {
     private proc isLastLocale(idx: int) : bool {
         return idx == numLocales-1;
     }
-
+    
         /* 
      * Reads all datasets from 1..n HDF5 files into an Arkouda symbol table. 
      */
     proc readAllHdfMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+      var t = new Time.Timer(); t.start();
+      proc writeTime(s, prev) {
+        writeln(s, " took ", t.elapsed()-prev);
+        return t.elapsed();
+      }
+
         var repMsg: string;
         // May need a more robust delimiter then " | "
         var (strictFlag, ndsetsStr, nfilesStr, allowErrorsFlag, calcStringOffsetsFlag, arraysStr) = payload.splitMsgToTuple(6);
@@ -1925,6 +1931,7 @@ module HDF5Msg {
         var fileErrorCount:int = 0;
         var fileErrorMsg:string = "";
         const AK_META_GROUP = ARKOUDA_HDF5_FILE_METADATA_GROUP(1..ARKOUDA_HDF5_FILE_METADATA_GROUP.size-1); // strip leading slash
+      var prev = writeTime("before loop", 0);
         for dsetName in dsetlist do {
             if dsetName == AK_META_GROUP { // Always skip internal metadata group if present
                 continue;
@@ -1973,6 +1980,7 @@ module HDF5Msg {
                     fileErrorCount += 1;
                 }
             }
+            prev = writeTime("after for loop", prev);
             const isSegArray = segArrayFlags[filedom.first];
             const dataclass = dclasses[filedom.first];
             const bytesize = bytesizes[filedom.first];
@@ -2014,6 +2022,7 @@ module HDF5Msg {
                 h5Logger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
                 return new MsgTuple(errorMsg, MsgType.ERROR);
             }
+            prev = writeTime("after subdoms", prev);
 
             h5Logger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                            "Got subdomains and total length for dataset %s".format(dsetName));
@@ -2051,11 +2060,14 @@ module HDF5Msg {
                     rnames.append((dsetName, "seg_string", "%s+%t".format(stringsEntry.name, stringsEntry.nBytes)));
                 }
                 when (false, C_HDF5.H5T_INTEGER) {
+                  prev = writeTime("in select", prev);
                     var entryInt = new shared SymEntry(len, int);
+                  prev = writeTime("create entry", prev);
                     h5Logger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                                   "Initialized int entry for dataset %s".format(dsetName));
-
+                    prev = writeTime("before read files", prev);
                     read_files_into_distributed_array(entryInt.a, subdoms, filenames, dsetName, skips);
+                    prev = writeTime("read files", prev);
                     var rname = st.nextName();
                     
                     /*
@@ -2099,6 +2111,7 @@ module HDF5Msg {
         }
         repMsg = _buildReadAllMsgJson(rnames, allowErrors, fileErrorCount, fileErrors, st);
         h5Logger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+      writeTime("total", 0);
         return new MsgTuple(repMsg,MsgType.NORMAL);
     }
 

@@ -241,6 +241,7 @@ module HDF5Msg {
      * Retrieves the datatype of the dataset read from HDF5 
      */
     proc get_dtype(filename: string, dsetName: string, skipSegStringOffsets: bool = false) throws {
+      extern proc fsync(a): int;
         const READABLE = (S_IRUSR | S_IRGRP | S_IROTH);
 
         if !exists(filename) {
@@ -268,6 +269,7 @@ module HDF5Msg {
         
         var file_id = C_HDF5.H5Fopen(filename.c_str(), 
                                          C_HDF5.H5F_ACC_RDONLY, C_HDF5.H5P_DEFAULT);
+        writeln(fsync(file_id));
                                          
         if file_id < 0 { // HF5open returns negative value on failure
             C_HDF5.H5Fclose(file_id);
@@ -280,6 +282,7 @@ module HDF5Msg {
         }
 
         var dName = getReadDsetName(file_id, dsetName);
+        writeln(fsync(file_id));
 
         if !C_HDF5.H5Lexists(file_id, dName.c_str(), C_HDF5.H5P_DEFAULT) {
             C_HDF5.H5Fclose(file_id);
@@ -306,6 +309,7 @@ module HDF5Msg {
                     var offsetDset = dsetName + "/" + SEGARRAY_OFFSET_NAME;
                     var (offsetClass, offsetByteSize, offsetSign) = 
                                             try get_dataset_info(file_id, offsetDset);
+                    writeln(fsync(file_id));
                     if (offsetClass != C_HDF5.H5T_INTEGER) {
                         throw getErrorWithContext(
                         msg="dataset %s has incorrect one or more sub-datasets" +
@@ -319,6 +323,7 @@ module HDF5Msg {
                 var valueDset = dsetName + "/" + SEGARRAY_VALUE_NAME;
                 try (dataclass, bytesize, isSigned) = 
                                            try get_dataset_info(file_id, valueDset);
+                writeln(fsync(file_id));
                 isSegArray = true;
             } else if isBooleanDataset(file_id, dsetName) {
                 var booleanDset = dsetName + "/" + "booleans";
@@ -326,6 +331,7 @@ module HDF5Msg {
                 isSegArray = false;            
             } else {
                 (dataclass, bytesize, isSigned) = get_dataset_info(file_id, dsetName);
+                writeln(fsync(file_id));
                 isSegArray = false;
             }
         } catch e : Error {
@@ -1941,9 +1947,6 @@ module HDF5Msg {
                 try {
                   var file_id: int;
                     (segArrayFlags[i], dclasses[i], bytesizes[i], signFlags[i], file_id) = get_dtype(fname, dsetName, calcStringOffsets);
-                    extern proc fsync(a): int;
-                    writeln(fsync(file_id));
-                    writeln(file_id);
                 } catch e: FileNotFoundError {
                     fileErrorMsg = "File %s not found".format(fname);
                     h5Logger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);

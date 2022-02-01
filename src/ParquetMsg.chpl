@@ -11,6 +11,7 @@ module ParquetMsg {
   use MultiTypeSymEntry;
   use NumPyDType;
   use Sort;
+  use Time only;
 
 
   // Use reflection for error information
@@ -184,6 +185,11 @@ module ParquetMsg {
   }
 
   proc readAllParquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+    var t = new Time.Timer(); t.start();
+    proc writeTime(s, prev) {
+      writeln(s, " took ", t.elapsed()-prev);
+      return t.elapsed();
+    }
     var repMsg: string;
     // May need a more robust delimiter then " | "
     var (strictFlag, ndsetsStr, nfilesStr, allowErrorsFlag, arraysStr) = payload.splitMsgToTuple(5);
@@ -267,7 +273,7 @@ module ParquetMsg {
     var ty = getArrType(filenames[filedom.low],
                         dsetlist[dsetdom.low]);
     var rnames: list((string, string, string)); // tuple (dsetName, item type, id)
-
+    var prev = writeTime("before loop", 0);
     for dsetname in dsetnames do {
         for (i, fname) in zip(filedom, filenames) {
             var hadError = false;
@@ -313,6 +319,7 @@ module ParquetMsg {
               fileErrorCount += 1;
             }
         }
+        prev = writeTime("after for loop", prev);
         // This is handled in the readFilesByName() function
         var subdoms: [filedom] domain(1);
         var len: int;
@@ -328,6 +335,7 @@ module ParquetMsg {
           st.addEntry(valName, entryVal);
           rnames.append((dsetname, "pdarray", valName));
         }
+        prev = writeTime("after read", prev);
     }
 
     repMsg = _buildReadAllMsgJson(rnames, false, 0, fileErrors, st);

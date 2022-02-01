@@ -64,7 +64,7 @@ def check_correctness(dtype, path, seed, parquet):
 
     for i in range(2):
         a.save(f"{path}{i:04}") if not parquet else a.save_parquet(f"{path}{i:04}")
-    b = ak.load(path) if not parquet else ak.read_parquet(path+'*')
+    b = ak.load(path+'*') if not parquet else ak.read_parquet(path+'*')
     for f in glob(path+"*"):
         os.remove(f)
     assert (a == b[0:a.size]).all()

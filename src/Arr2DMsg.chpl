@@ -12,7 +12,7 @@ module Arr2DMsg {
   use Logging;
   use ServerErrorStrings;
 
-  use OperatorMsg;
+  use BinOp;
 
   private config const logLevel = ServerConfig.logLevel;
   const randLogger = new Logger(logLevel);
@@ -147,73 +147,73 @@ module Arr2DMsg {
         var r = right: SymEntry2D(int);
         if boolOps.contains(op) {
           var e = st.addEntry2D(rname, l.m, l.n, bool);
-          return doBinOp(l, r, e, op, rname, pn, st);
+          return doBinOpvv(l, r, e, op, rname, pn, st);
         } else if op == "/" {
           var e = st.addEntry2D(rname, l.m, l.n, real);
-          return doBinOp(l, r, e, op, rname, pn, st);
+          return doBinOpvv(l, r, e, op, rname, pn, st);
         }
         var e = st.addEntry2D(rname, l.m, l.n, int);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Int64, DType.Float64) {
         var l = left: SymEntry2D(int);
         var r = right: SymEntry2D(real);
         if boolOps.contains(op) {
           var e = st.addEntry2D(rname, l.m, l.n, bool);
-          return doBinOp(l, r, e, op, rname, pn, st);
+          return doBinOpvv(l, r, e, op, rname, pn, st);
         }
         var e = st.addEntry2D(rname, l.m, l.n, real);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Float64, DType.Int64) {
         var l = left: SymEntry2D(real);
         var r = right: SymEntry2D(int);
         if boolOps.contains(op) {
           var e = st.addEntry2D(rname, l.m, l.n, bool);
-          return doBinOp(l, r, e, op, rname, pn, st);
+          return doBinOpvv(l, r, e, op, rname, pn, st);
         }
         var e = st.addEntry2D(rname, l.m, l.n, real);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Float64, DType.Float64) {
         var l = left: SymEntry2D(real);
         var r = right: SymEntry2D(real);
         if boolOps.contains(op) {
           var e = st.addEntry2D(rname, l.m, l.n, bool);
-          return doBinOp(l, r, e, op, rname, pn, st);
+          return doBinOpvv(l, r, e, op, rname, pn, st);
         }
         var e = st.addEntry2D(rname, l.m, l.n, real);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Bool, DType.Bool) {
         var l = left: SymEntry2D(bool);
         var r = right: SymEntry2D(bool);
         var e = st.addEntry2D(rname, l.m, l.n, bool);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Bool, DType.Int64) {
         var l = left: SymEntry2D(bool);
         var r = right: SymEntry2D(int);
         var e = st.addEntry2D(rname, l.m, l.n, int);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Int64, DType.Bool) {
         var l = left: SymEntry2D(int);
         var r = right: SymEntry2D(bool);
         var e = st.addEntry2D(rname, l.m, l.n, int);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Bool, DType.Float64) {
         var l = left: SymEntry2D(bool);
         var r = right: SymEntry2D(real);
         var e = st.addEntry2D(rname, l.m, l.n, real);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
       when (DType.Float64, DType.Bool) {
         var l = left: SymEntry2D(real);
         var r = right: SymEntry2D(bool);
         var e = st.addEntry2D(rname, l.m, l.n, real);
-        return doBinOp(l, r, e, op, rname, pn, st);
+        return doBinOpvv(l, r, e, op, rname, pn, st);
       }
     }
     return new MsgTuple("Bin op not supported", MsgType.NORMAL);

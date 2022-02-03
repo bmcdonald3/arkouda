@@ -205,6 +205,8 @@ class pdarray:
             if self.size != other.size:
                 raise ValueError("size mismatch {} {}".format(self.size,other.size))
             cmd = "binopvv"
+            if self.ndim != 1:
+                cmd += '2d'
             args= "{} {} {}".format(op, self.name, other.name)
             repMsg = generic_msg(cmd=cmd,args=args)
             return create_pdarray(repMsg)
@@ -455,6 +457,9 @@ class pdarray:
                 # Interpret negative key as offset from end of array
                 key += self.size
             if (key >= 0 and key < self.size):
+                if self.ndim == 2:
+                    repMsg = generic_msg(cmd="[int2d]", args=f"{self.name} {key}")
+                    return create_pdarray(repMsg)
                 repMsg = generic_msg(cmd="[int]", args="{} {}".format(self.name, key))
                 fields = repMsg.split()
                 # value = fields[2]

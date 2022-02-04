@@ -88,6 +88,8 @@ int cpp_getType(const char* filename, const char* colname, char** errMsg) {
     return ARROWINT64;
   else if(myType->id() == arrow::Type::INT32)
     return ARROWINT32;
+    else if(myType->id() == arrow::Type::UINT64)
+    return ARROWUINT64;
   else if(myType->id() == arrow::Type::TIMESTAMP)
     return ARROWTIMESTAMP;
   else // TODO: error type not supported
@@ -95,11 +97,10 @@ int cpp_getType(const char* filename, const char* colname, char** errMsg) {
 }
 
 int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t batchSize, char** errMsg) {
-  auto chpl_ptr = (int64_t*)chpl_arr;
   int64_t ty = cpp_getType(filename, colname, errMsg);
   
   // Currently only supports int64 and int32 Arrow types
-  if(ty == ARROWINT64 || ty == ARROWINT32) {
+  if(ty == ARROWINT64 || ty == ARROWINT32 || ty == ARROWUINT64) {
     std::unique_ptr<parquet::ParquetFileReader> parquet_reader =
       parquet::ParquetFileReader::OpenFile(filename, false);
 
@@ -128,6 +129,16 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
       column_reader = row_group_reader->Column(idx);
 
       if(ty == ARROWINT64) {
+        auto chpl_ptr = (int64_t*)chpl_arr;
+        parquet::Int64Reader* reader =
+          static_cast<parquet::Int64Reader*>(column_reader.get());
+
+        while (reader->HasNext()) {
+          (void)reader->ReadBatch(batchSize, nullptr, nullptr, &chpl_ptr[i], &values_read);
+          i+=values_read;
+        }
+      } else if(ty == ARROWUINT64) {
+        auto chpl_ptr = (int64_t*)chpl_arr;
         parquet::Int64Reader* reader =
           static_cast<parquet::Int64Reader*>(column_reader.get());
 
@@ -136,6 +147,7 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
           i+=values_read;
         }
       } else {
+        auto chpl_ptr = (int64_t*)chpl_arr;
         parquet::Int32Reader* reader =
           static_cast<parquet::Int32Reader*>(column_reader.get());
 

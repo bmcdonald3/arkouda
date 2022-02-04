@@ -27,10 +27,11 @@ module ParquetMsg {
 
   extern var ARROWINT64: c_int;
   extern var ARROWINT32: c_int;
+  extern var ARROWUINT64: c_int;
   extern var ARROWUNDEFINED: c_int;
   extern var ARROWERROR: c_int;
 
-  enum ArrowTypes { int64, int32, notimplemented };
+  enum ArrowTypes { int64, int32, uint64, notimplemented };
 
   record parquetErrorMsg {
     var errMsg: c_ptr(uint(8));
@@ -88,10 +89,10 @@ module ParquetMsg {
     return (subdoms, (+ reduce lengths));
   }
 
-  proc readFilesByName(A, filenames: [] string, sizes: [] int, dsetname: string) throws {
+  proc readFilesByName(A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
     extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, batchSize, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
-
+    
     coforall loc in A.targetLocales() do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
@@ -100,7 +101,7 @@ module ParquetMsg {
           const intersection = domain_intersection(locdom, filedom);
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
-            var col: [filedom] int;
+            var col: [filedom] t;
             if c_readColumnByName(filename.localize().c_str(), c_ptrTo(col),
                                   dsetname.localize().c_str(), filedom.size, batchSize,
                                   c_ptrTo(pqErr.errMsg)) == ARROWERROR {
@@ -137,6 +138,7 @@ module ParquetMsg {
     
     if arrType == ARROWINT64 then return ArrowTypes.int64;
     else if arrType == ARROWINT32 then return ArrowTypes.int32;
+    else if arrType == ARROWUINT64 then return ArrowTypes.uint64;
     return ArrowTypes.notimplemented;
   }
 
@@ -324,7 +326,13 @@ module ParquetMsg {
         // file has a different type
         if ty == ArrowTypes.int64 || ty == ArrowTypes.int32 {
           var entryVal = new shared SymEntry(len, int);
-          readFilesByName(entryVal.a, filenames, sizes, dsetname);
+          readFilesByName(entryVal.a, filenames, sizes, dsetname, ty);
+          var valName = st.nextName();
+          st.addEntry(valName, entryVal);
+          rnames.append((dsetname, "pdarray", valName));
+        } else if ty == ArrowTypes.uint64 {
+          var entryVal = new shared SymEntry(len, uint(64));
+          readFilesByName(entryVal.a, filenames, sizes, dsetname, ty);
           var valName = st.nextName();
           st.addEntry(valName, entryVal);
           rnames.append((dsetname, "pdarray", valName));

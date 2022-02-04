@@ -100,7 +100,7 @@ def check_int_uint_float(N, algo):
     assert ak.is_sorted(f[perm])
 
     perm = ak.coargsort([u, i, f], algo)
-    assert ak.is_sorted(i[perm])
+    assert ak.is_sorted(u[perm])
 
     perm = ak.coargsort([i, f, u], algo)
     assert ak.is_sorted(i[perm])

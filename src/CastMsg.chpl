@@ -116,7 +116,6 @@ module CastMsg {
                 return new MsgTuple(castGenSymEntryToString(gse, st, bool), MsgType.NORMAL);
             }
             otherwise {
-              writeln("YOU FAILED", gse.dtype, targetDtype);
                 var errorMsg = notImplementedError(pn,gse.dtype:string,":",targetDtype);
                 castLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);                    
                 return new MsgTuple(errorMsg, MsgType.ERROR);

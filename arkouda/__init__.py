@@ -18,3 +18,4 @@ from arkouda.logger import *
 from arkouda.timeclass import *
 from arkouda.infoclass import *
 
+from arkouda.pdarray2dclass import *

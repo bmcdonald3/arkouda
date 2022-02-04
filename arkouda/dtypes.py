@@ -31,7 +31,7 @@ npstr = np.dtype(str)
 # Union aliases used for static and runtime type checking
 bool_scalars = Union[builtins.bool, np.bool_]
 float_scalars = Union[float,np.float64]
-int_scalars = Union[int,np.int64]
+int_scalars = Union[int,np.int64,np.uint64]
 numeric_scalars = Union[float,np.float64,int,np.int64,np.uint8,np.uint64]
 numeric_and_bool_scalars = Union[bool_scalars, numeric_scalars]
 numpy_scalars = Union[np.float64,np.int64,np.bool_,np.uint8,np.str_,np.uint64]
@@ -67,7 +67,7 @@ class DType(Enum):
         """
         return self.value
 
-ARKOUDA_SUPPORTED_INTS = (int,np.int64)
+ARKOUDA_SUPPORTED_INTS = (int,np.int64,np.uint64)
 ARKOUDA_SUPPORTED_FLOATS = (float,np.float64)
 ARKOUDA_SUPPORTED_NUMBERS = (int,np.int64,float,np.float64,np.uint64)
 ARKOUDA_SUPPORTED_DTYPES = frozenset([member.value for _, 
@@ -150,7 +150,10 @@ def resolve_scalar_dtype(val : object) -> str: # type: ignore
     # Python int or np.int* or np.uint*
     elif isinstance(val, int) or (hasattr(val, 'dtype') and \
                                   cast(np.uint,val).dtype.kind in 'ui'):
-        return 'int64'
+        if isinstance(val, np.uint64):
+            return 'uint64'
+        else:
+            return 'int64'
     # Python float or np.float*
     elif isinstance(val, float) or (hasattr(val, 'dtype') and \
                                     cast(np.float_, val).dtype.kind == 'f'):

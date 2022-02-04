@@ -36,7 +36,7 @@ module IndexingMsg
                  return new MsgTuple(repMsg, MsgType.NORMAL);  
              }
              when (DType.UInt64) {
-               var e = toSymEntry(gEnt, uint(64));
+               var e = toSymEntry(gEnt, uint);
                  repMsg = "item %s %t".format(dtype2str(e.dtype),e.a[idx]);
 
                  imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);

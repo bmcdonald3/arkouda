@@ -38,7 +38,7 @@ module BinOp
   :throws: `UndefinedSymbolError(name)`
   */
   proc doBinOpvv(l, r, e, op: string, rname, pn, st) throws {
-    if e.etype == uint(64) {
+    if e.etype == uint {
       select op {
         when "+" {
           e.a = l.a + r.a;
@@ -261,7 +261,6 @@ module BinOp
       var repMsg = "created %s".format(st.attrib(rname));
       return new MsgTuple(repMsg, MsgType.NORMAL);
     }
-    writeln(l.dtype, r.dtype);
     return new MsgTuple("Bin op not supported", MsgType.NORMAL);
   }
 }

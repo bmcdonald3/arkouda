@@ -14,7 +14,7 @@ module NumPyDType
     */
     proc whichDtype(type etype) param : DType {
       if (etype == int) {return DType.Int64;}
-      if (etype == uint(64)) {return DType.UInt64;}
+      if (etype == uint) {return DType.UInt64;}
       if (etype == real) {return DType.Float64;}
       if (etype == bool) {return DType.Bool;}
       if (etype == uint(8)) {return DType.UInt8;}

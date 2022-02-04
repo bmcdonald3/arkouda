@@ -35,6 +35,13 @@ module IndexingMsg
                  imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
                  return new MsgTuple(repMsg, MsgType.NORMAL);  
              }
+             when (DType.UInt64) {
+               var e = toSymEntry(gEnt, uint(64));
+                 repMsg = "item %s %t".format(dtype2str(e.dtype),e.a[idx]);
+
+                 imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+                 return new MsgTuple(repMsg, MsgType.NORMAL);  
+             }
              when (DType.Float64) {
                  var e = toSymEntry(gEnt,real);
                  repMsg = "item %s %.17r".format(dtype2str(e.dtype),e.a[idx]);

@@ -37,10 +37,10 @@ extern "C" {
 
   int cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
                                int64_t colnum, const char* dsetname, int64_t numelems,
-                               int64_t rowGroupSize, char** errMsg);
+                               int64_t rowGroupSize, int64_t dtype, char** errMsg);
   int c_writeColumnToParquet(const char* filename, void* chpl_arr,
                              int64_t colnum, const char* dsetname, int64_t numelems,
-                             int64_t rowGroupSize, char** errMsg);
+                             int64_t rowGroupSize, int64_t dtype, char** errMsg);
     
   const char* c_getVersionInfo(void);
   const char* cpp_getVersionInfo(void);

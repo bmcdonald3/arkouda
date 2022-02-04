@@ -157,7 +157,7 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
 
 int cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
                              int64_t colnum, const char* dsetname, int64_t numelems,
-                             int64_t rowGroupSize, char** errMsg) {
+                             int64_t rowGroupSize, int64_t dtype, char** errMsg) {
   auto chpl_ptr = (int64_t*)chpl_arr;
   using FileClass = ::arrow::io::FileOutputStream;
   std::shared_ptr<FileClass> out_file;
@@ -165,7 +165,10 @@ int cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
 
   // Setup schema of a single int64 column
   parquet::schema::NodeVector fields;
-  fields.push_back(parquet::schema::PrimitiveNode::Make(dsetname, parquet::Repetition::REQUIRED, parquet::Type::INT64, parquet::ConvertedType::NONE));
+  if(dtype == 1)
+    fields.push_back(parquet::schema::PrimitiveNode::Make(dsetname, parquet::Repetition::REQUIRED, parquet::Type::INT64, parquet::ConvertedType::NONE));
+  else
+    fields.push_back(parquet::schema::PrimitiveNode::Make(dsetname, parquet::Repetition::REQUIRED, parquet::Type::INT64, parquet::ConvertedType::UINT_64));
   std::shared_ptr<parquet::schema::GroupNode> schema = std::static_pointer_cast<parquet::schema::GroupNode>
     (parquet::schema::GroupNode::Make("schema", parquet::Repetition::REQUIRED, fields));
 
@@ -231,9 +234,9 @@ extern "C" {
 
   int c_writeColumnToParquet(const char* filename, void* chpl_arr,
                              int64_t colnum, const char* dsetname, int64_t numelems,
-                             int64_t rowGroupSize, char** errMsg) {
+                             int64_t rowGroupSize, int64_t dtype, char** errMsg) {
     return cpp_writeColumnToParquet(filename, chpl_arr, colnum, dsetname,
-                                    numelems, rowGroupSize, errMsg);
+                                    numelems, rowGroupSize, dtype, errMsg);
   }
 
   const char* c_getVersionInfo(void) {

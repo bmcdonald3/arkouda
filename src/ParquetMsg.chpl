@@ -140,11 +140,12 @@ module ParquetMsg {
     return ArrowTypes.notimplemented;
   }
 
-  proc writeDistArrayToParquet(A, filename, dsetname, rowGroupSize) throws {
+  proc writeDistArrayToParquet(A, filename, dsetname, dtype, rowGroupSize) throws {
     extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                        dsetname, numelems, rowGroupSize,
-                                       errMsg): int;
+                                       dtype, errMsg): int;
     var filenames: [0..#A.targetLocales().size] string;
+    var dtypeRep = if dtype == "int64" then 1 else 2;
     for i in 0..#A.targetLocales().size {
       var suffix = '%04i'.format(i): string;
       filenames[i] = filename + "_LOCALE" + suffix + ".parquet";
@@ -161,7 +162,7 @@ module ParquetMsg {
         var locArr = A[locDom];
         if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0,
                                   dsetname.localize().c_str(), locDom.size, rowGroupSize,
-                                  c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+                                  dtypeRep, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
           pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
         }
       }
@@ -179,8 +180,8 @@ module ParquetMsg {
     return warnFlag;
   }
 
-  proc write1DDistArrayParquet(filename: string, dsetname, A) throws {
-    return writeDistArrayToParquet(A, filename, dsetname, ROWGROUPS);
+  proc write1DDistArrayParquet(filename: string, dsetname, dtype, A) throws {
+    return writeDistArrayToParquet(A, filename, dsetname, dtype, ROWGROUPS);
   }
 
   proc readAllParquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
@@ -355,7 +356,11 @@ module ParquetMsg {
       select entry.dtype {
           when DType.Int64 {
             var e = toSymEntry(entry, int);
-            warnFlag = write1DDistArrayParquet(filename, dsetname, e.a);
+            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, e.a);
+          }
+          when DType.UInt64 {
+            var e = toSymEntry(entry, uint(64));
+            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, e.a);
           }
           otherwise {
             var errorMsg = "Writing Parquet files is only supported for int arrays";

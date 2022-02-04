@@ -35,10 +35,10 @@ module RandArray {
         var seed = (seedStr:int) + here.id;
         fillRandom(a, seed);
       }
-      if (aMax > aMin) {
+      /*if (aMax > aMin) {
         const modulus = aMax - aMin;
         [x in a] x = ((x % modulus) + aMin):t;
-      }
+        }*/
   }
 
   proc fillReal(a:[] real, const aMin:numeric=0.0, const aMax:numeric=1.0, const seedStr:string="None") throws {

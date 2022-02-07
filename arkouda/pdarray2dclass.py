@@ -231,3 +231,10 @@ def randint2D(low : numeric_scalars, high : numeric_scalars,
                          format(dtype.name, lowstr, highstr, m, n, seed))
     return create_pdarray2D(repMsg)
 
+def to2D(obj, m, n):
+    initial_size = obj.size
+    if m*n != initial_size:
+        raise ValueError("size mismatch, 2D dimensions must result in array of equivalent size: {} != {}".format(obj.size,m*n))
+    rep_msg = generic_msg(cmd='to2D', args=f"{obj.name} {m} {n}")
+    return create_pdarray2D(rep_msg)
+setattr(pdarray, "to2D", to2D)

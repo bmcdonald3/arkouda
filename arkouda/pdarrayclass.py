@@ -2164,7 +2164,6 @@ def unregister_pdarray_by_name(user_defined_name:str) -> None:
     """
     repMsg = generic_msg(cmd="unregister", args=user_defined_name)
 
-
 # TODO In the future move this to a specific errors file
 class RegistrationError(Exception):
     """Error/Exception used when the Arkouda Server cannot register an object"""

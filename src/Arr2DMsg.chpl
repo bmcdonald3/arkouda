@@ -286,6 +286,25 @@ module Arr2DMsg {
     return new MsgTuple(repMsg, MsgType.NORMAL);
   }
 
+  proc to2DArrayMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+    param pn = Reflection.getRoutineName();
+    var repMsg: string; // response message
+    var (name, mStr, nStr) = payload.splitMsgToTuple(3); // split request into fields
+
+    var m = mStr:int;
+    var n = nStr:int;
+    
+    var rname = st.nextName();
+    var gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(name, st);
+    var inputArr = toSymEntry(gEnt, int);
+
+    var e = st.addEntry2D(rname, m, n, int);
+    e.a = reshape(inputArr.a, {0..#m, 0..#n});
+    
+    repMsg = "created %s".format(st.attrib(rname));
+    return new MsgTuple(repMsg, MsgType.NORMAL);
+  }
+
   proc registerMe() {
     use CommandMap;
     registerFunction("array2d", array2DMsg);
@@ -293,5 +312,6 @@ module Arr2DMsg {
     registerFunction("binopvv2d", binopvv2DMsg);
     registerFunction("[int2d]", rowIndex2DMsg);
     registerFunction("to1D", to1DArrayMsg);
+    registerFunction("to2D", to2DArrayMsg);
   }
 }

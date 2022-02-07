@@ -36,7 +36,24 @@ class pdarray2D(pdarray):
     objtype = 'pdarray2D'
     def __add__(self, other):
         return self._binop(other, "+")
-        
+
+    def to1D(self):
+        rep_msg = generic_msg(cmd='to1D', args=self.name)
+        return create_pdarray(rep_msg)
+
+    def __getitem__(self, key):
+        if np.isscalar(key) and resolve_scalar_dtype(key) == 'int64':
+            orig_key = key
+            if key < 0:
+                # Interpret negative key as offset from end of array
+                key += self.size
+            if (key >= 0 and key < self.size):
+                repMsg = generic_msg(cmd="[int2d]", args="{} {}".format(self.name, key))
+                return create_pdarray(repMsg)
+            else:
+                raise IndexError("[int] {} is out of bounds with size {}".format(orig_key,self.size))
+        raise TypeError("Unhandled key type: {} ({})".format(key, type(key)))
+    
     def _binop(self, other, op : str) -> pdarray:
         """
         Executes binary operation specified by the op string

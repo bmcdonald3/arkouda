@@ -30,16 +30,12 @@ from arkouda.infoclass import list_registry, information, pretty_print_informati
 
 logger = getArkoudaLogger(name='pdarrayclass')
 
-__all__ = ['array2D', 'randint2D']
+__all__ = ['array2D', 'randint2D', 'reshape']
 
 class pdarray2D(pdarray):
     objtype = 'pdarray2D'
     def __add__(self, other):
         return self._binop(other, "+")
-
-    def to1D(self):
-        rep_msg = generic_msg(cmd='to1D', args=self.name)
-        return create_pdarray(rep_msg)
 
     def __getitem__(self, key):
         if np.isscalar(key) and resolve_scalar_dtype(key) == 'int64':
@@ -231,10 +227,27 @@ def randint2D(low : numeric_scalars, high : numeric_scalars,
                          format(dtype.name, lowstr, highstr, m, n, seed))
     return create_pdarray2D(repMsg)
 
-def to2D(obj, m, n):
+def reshape(obj, newshape):
     initial_size = obj.size
-    if m*n != initial_size:
-        raise ValueError("size mismatch, 2D dimensions must result in array of equivalent size: {} != {}".format(obj.size,m*n))
-    rep_msg = generic_msg(cmd='to2D', args=f"{obj.name} {m} {n}")
-    return create_pdarray2D(rep_msg)
-setattr(pdarray, "to2D", to2D)
+    m = 0
+    n = 0
+
+    if isinstance(newshape, tuple):
+        if len(newshape) != 2:            
+            raise ValueError("more than 2 dimensions provided for newshape: {}".format(len(newshape)))
+        m = newshape[0]
+        n = newshape[1]
+        if m == -1:
+            m = int(initial_size/n)
+        if n == -1:
+            n = int(initial_size/m)
+        if m*n != initial_size:
+            raise ValueError("size mismatch, 2D dimensions must result in array of equivalent size: {} != {}".format(obj.size,m*n))
+        rep_msg = generic_msg(cmd='reshape2D', args=f"{obj.name} {m} {n}")
+        return create_pdarray2D(rep_msg)
+    else:
+        if newshape == -1 or newshape == initial_size:
+            rep_msg = generic_msg(cmd='reshape1D', args=f"{obj.name}")
+            return create_pdarray2D(rep_msg)
+        else:
+            raise ValueError("size mismatch, resizing to 1D must either be -1 or array size: provided: {} array size: {}".format(newshape, obj.size))

@@ -270,23 +270,29 @@ module Arr2DMsg {
     }
   }
 
-  proc to1DArrayMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+  proc reshape1DMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
     param pn = Reflection.getRoutineName();
     var repMsg: string; // response message
     var (name) = payload.splitMsgToTuple(1); // split request into fields
     
     var rname = st.nextName();
     var gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(name, st);
-    var inputArr = toSymEntry2D(gEnt, int);
-
-    var e = st.addEntry(rname, inputArr.size, int);
-    e.a = reshape(inputArr.a, {0..#(inputArr.m*inputArr.n)});
     
+    if gEnt.ndim == 1 {
+      var inputArr = toSymEntry(gEnt, int);
+      var e = st.addEntry(rname, inputArr.size, int);
+      e.a = inputArr.a;
+    } else {
+      var inputArr = toSymEntry2D(gEnt, int);
+
+      var e = st.addEntry(rname, inputArr.size, int);
+      e.a = reshape(inputArr.a, {0..#(inputArr.m*inputArr.n)});
+    }
     repMsg = "created %s".format(st.attrib(rname));
     return new MsgTuple(repMsg, MsgType.NORMAL);
   }
 
-  proc to2DArrayMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+  proc reshape2DMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
     param pn = Reflection.getRoutineName();
     var repMsg: string; // response message
     var (name, mStr, nStr) = payload.splitMsgToTuple(3); // split request into fields
@@ -296,10 +302,17 @@ module Arr2DMsg {
     
     var rname = st.nextName();
     var gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(name, st);
-    var inputArr = toSymEntry(gEnt, int);
+    if gEnt.ndim == 1 {
+      var inputArr = toSymEntry(gEnt, int);
 
-    var e = st.addEntry2D(rname, m, n, int);
-    e.a = reshape(inputArr.a, {0..#m, 0..#n});
+      var e = st.addEntry2D(rname, m, n, int);
+      e.a = reshape(inputArr.a, {0..#m, 0..#n});
+    } else {
+      var inputArr = toSymEntry2D(gEnt, int);
+
+      var e = st.addEntry2D(rname, m, n, int);
+      e.a = reshape(inputArr.a, {0..#m, 0..#n});
+    }
     
     repMsg = "created %s".format(st.attrib(rname));
     return new MsgTuple(repMsg, MsgType.NORMAL);
@@ -311,7 +324,7 @@ module Arr2DMsg {
     registerFunction("randint2d", randint2DMsg);
     registerFunction("binopvv2d", binopvv2DMsg);
     registerFunction("[int2d]", rowIndex2DMsg);
-    registerFunction("to1D", to1DArrayMsg);
-    registerFunction("to2D", to2DArrayMsg);
+    registerFunction("reshape1D", reshape1DMsg);
+    registerFunction("reshape2D", reshape2DMsg);
   }
 }

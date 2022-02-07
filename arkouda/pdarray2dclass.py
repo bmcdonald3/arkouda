@@ -34,8 +34,6 @@ __all__ = ['array2D', 'randint2D', 'reshape']
 
 class pdarray2D(pdarray):
     objtype = 'pdarray2D'
-    def __add__(self, other):
-        return self._binop(other, "+")
 
     def __getitem__(self, key):
         if np.isscalar(key) and resolve_scalar_dtype(key) == 'int64':
@@ -64,7 +62,7 @@ class pdarray2D(pdarray):
         Returns
         -------
         pdarray
-        A pdarray encapsulating the binop result
+        A pdarray2D encapsulating the binop result
 
         Raises
         ------
@@ -114,6 +112,7 @@ def array2D(val, m, n) -> Union[pdarray, Strings]:
     """
     Generate a 2D pdarray that is of size `m x n` and initialized to the
     value `val`.
+
     Parameters
     ----------
     val : numeric_and_bool_scalars
@@ -122,6 +121,7 @@ def array2D(val, m, n) -> Union[pdarray, Strings]:
         The `m` dimension of the array to create
     n : int_scalars
         The `n` dimension of the array to create
+
     Returns
     -------
     pdarray
@@ -132,15 +132,18 @@ def array2D(val, m, n) -> Union[pdarray, Strings]:
     TypeError
         Raised if a is not a pdarray, np.ndarray, or Python Iterable such as a
         list, array, tuple, or deque
+
     See Also
     --------
     ak.array
+
     Notes
     -----
     We cannot pass the binary data back for this function since it is optional
     on the server side, which means that its signature must be identical to 
     the regular Arkouda message. Could possibly add a second map that was like
     "arrayCreationMap" or something that handled signatures of that type.    
+
     Examples
     --------
     >>> ak.array2D(5, 2, 2)
@@ -171,6 +174,7 @@ def randint2D(low : numeric_scalars, high : numeric_scalars,
     """
     Generate a 2 dimensional pdarray of randomized int, float, or bool values in a 
     specified range bounded by the low and high parameters.
+
     Parameters
     ----------
     low : numeric_scalars
@@ -198,10 +202,12 @@ def randint2D(low : numeric_scalars, high : numeric_scalars,
         not an int or float, or seed is not an int
     ValueError
         Raised if size < 0 or if high < low
+
     Notes
     -----
     Calling randint with dtype=float64 will result in uniform non-integral
     floating point values.
+
     Examples
     --------
     >>> ak.randint2D(0, 10, 2, 2)
@@ -227,7 +233,49 @@ def randint2D(low : numeric_scalars, high : numeric_scalars,
                          format(dtype.name, lowstr, highstr, m, n, seed))
     return create_pdarray2D(repMsg)
 
-def reshape(obj, newshape):
+def reshape(obj : pdarray, newshape : Union[numeric_scalars, tuple]) -> pdarray:
+    """
+    Reshape
+
+    Parameters
+    ----------
+    obj : pdarray
+        The pdarray to reshape.
+    newshape : Union[numeric_scalars, tuple]
+        The shape to resize the array to. This could either be a single
+        value to reshape to a 1D array or a tuple of 2 values to reshape 
+        to a 2D array.
+        
+    Returns
+    -------
+    pdarray
+        A new pdarray containing the same elements of `obj`, but with a
+        new domain.
+        
+    Raises
+    ------
+    ValueError
+        Raised if `newshape` contains more than 2 elements or the supplied
+        new shape can't fit all elements of original array.
+
+    Notes
+    -----
+    Setting one of the values in `newshape` to `-1` will infer the correct
+    length to pass to ensure that the new array fits the correct number of
+    elements.
+
+    Examples
+    --------
+    >>> a = ak.array([1,2,3,4])
+    >>> ak.reshape(a, (2,2))
+    array([[1, 2],
+           [3, 4]])
+    >>> ak.reshape(a, (-1,1))
+    array([[1],
+           [2],
+           [3],
+           [4]]))
+    """
     initial_size = obj.size
     m = 0
     n = 0

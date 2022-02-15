@@ -157,15 +157,25 @@ module ParquetMsg {
     var warnFlag = processParquetFilenames(filenames, matchingFilenames);
     
     coforall (loc, idx) in zip(A.targetLocales(), filenames.domain) do on loc {
-        var pqErr = new parquetErrorMsg();
-        const myFilename = filenames[idx];
-
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
-        if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0,
-                                  dsetname.localize().c_str(), locDom.size, rowGroupSize,
-                                  dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
-          pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+
+        var fileSizes: [0..#loc.maxTaskPar] int = locDom.size/loc.maxTaskPar;
+        // First file has the extra elements if it isn't evenly divisible by maxTaskPar
+        fileSizes[0] += locDom.size - ((locDom.size/loc.maxTaskPar)*loc.maxTaskPar);
+        
+        var offsets = + scan fileSizes;
+
+        forall i in fileSizes.domain {
+          const myFilename = filenames[idx] + i:string;
+          var oi = if i == 0 then i else offsets[i-1];
+          var coreArr = locArr[oi..#(fileSizes[i])];
+          var pqErr = new parquetErrorMsg();
+          if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(coreArr), 0,
+                                    dsetname.localize().c_str(), coreArr.size, rowGroupSize,
+                                    dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+            pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+          }
         }
       }
     return warnFlag;

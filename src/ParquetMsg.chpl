@@ -148,10 +148,6 @@ module ParquetMsg {
                                        dtype, compressed, errMsg): int;
     var filenames: [0..#A.targetLocales().size] string;
     var dtypeRep = if dtype == "int64" then 1 else 2;
-    for i in 0..#A.targetLocales().size {
-      var suffix = '%04i'.format(i): string;
-      filenames[i] = filename + "_LOCALE" + suffix + ".parquet";
-    }
     var matchingFilenames = glob("%s_LOCALE*%s".format(filename, ".parquet"));
 
     var warnFlag = processParquetFilenames(filenames, matchingFilenames);
@@ -167,7 +163,9 @@ module ParquetMsg {
         var offsets = + scan fileSizes;
 
         forall i in fileSizes.domain {
-          const myFilename = filenames[idx] + i:string;
+          var suffix = '%04i'.format(idx): string;
+          var parSuffix = '%04i'.format(i): string;
+          const myFilename = filename + "_LOCALE" + suffix + "_CORE" + parSuffix + ".parquet";
           var oi = if i == 0 then i else offsets[i-1];
           var coreArr = locArr[oi..#(fileSizes[i])];
           var pqErr = new parquetErrorMsg();

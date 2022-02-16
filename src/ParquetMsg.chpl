@@ -135,11 +135,21 @@ module ParquetMsg {
     if arrType == ARROWERROR {
       pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
     }
-    
-    if arrType == ARROWINT64 then return ArrowTypes.int64;
-    else if arrType == ARROWINT32 then return ArrowTypes.int32;
-    else if arrType == ARROWUINT64 then return ArrowTypes.uint64;
-    return ArrowTypes.notimplemented;
+
+    select arrType {
+      when ARROWINT64 {
+        return ArrowTypes.int64;
+      }
+      when ARROWINT32 {
+        return ArrowTypes.int32;
+      }
+      when ARROWUINT64 {
+        return ArrowTypes.uint64;
+      }
+      otherwise {
+        return ArrowTypes.notimplemented;
+      }
+    }
   }
 
   proc writeDistArrayToParquet(A, filename, dsetname, dtype, rowGroupSize, compressed) throws {

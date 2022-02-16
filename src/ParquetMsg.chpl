@@ -25,6 +25,8 @@ module ParquetMsg {
   // Undocumented for now, just for internal experiments
   private config const batchSize = getEnvInt("ARKOUDA_SERVER_PARQUET_BATCH_SIZE", 8192);
 
+  private config const parallelWriteThreshold = 512*1024*1024 / numBytes(int);
+
   extern var ARROWINT64: c_int;
   extern var ARROWINT32: c_int;
   extern var ARROWUINT64: c_int;
@@ -158,6 +160,7 @@ module ParquetMsg {
                                        dtype, compressed, errMsg): int;
     var filenames: [0..#A.targetLocales().size] string;
     var dtypeRep = if dtype == "int64" then 1 else 2;
+    var doParallel = if A.size > parallelWriteThreshold then true else false;
     var matchingFilenames = glob("%s_LOCALE*%s".format(filename, ".parquet"));
 
     var warnFlag = processParquetFilenames(filenames, matchingFilenames);
@@ -166,23 +169,34 @@ module ParquetMsg {
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
 
-        var fileSizes: [0..#loc.maxTaskPar] int = locDom.size/loc.maxTaskPar;
-        // First file has the extra elements if it isn't evenly divisible by maxTaskPar
-        fileSizes[0] += locDom.size - ((locDom.size/loc.maxTaskPar)*loc.maxTaskPar);
-        
-        var offsets = + scan fileSizes;
-
-        forall i in fileSizes.domain {
-          var suffix = '%04i'.format(idx): string;
-          var parSuffix = '%04i'.format(i): string;
-          const myFilename = filename + "_LOCALE" + suffix + "_CORE" + parSuffix + ".parquet";
-          var oi = if i == 0 then i else offsets[i-1];
-          var coreArr = locArr[oi..#(fileSizes[i])];
+        if !doParallel {
+          const myFilename = filenames[idx];
           var pqErr = new parquetErrorMsg();
-          if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(coreArr), 0,
-                                    dsetname.localize().c_str(), coreArr.size, rowGroupSize,
+          
+          if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0,
+                                    dsetname.localize().c_str(), locDom.size, rowGroupSize,
                                     dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
             pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+          }
+        } else {
+          var fileSizes: [0..#loc.maxTaskPar] int = locDom.size/loc.maxTaskPar;
+          // First file has the extra elements if it isn't evenly divisible by maxTaskPar
+          fileSizes[0] += locDom.size - ((locDom.size/loc.maxTaskPar)*loc.maxTaskPar);
+        
+          var offsets = + scan fileSizes;
+
+          forall i in fileSizes.domain {
+            var suffix = '%04i'.format(idx): string;
+            var parSuffix = '%04i'.format(i): string;
+            const myFilename = filename + "_LOCALE" + suffix + "_CORE" + parSuffix + ".parquet";
+            var oi = if i == 0 then i else offsets[i-1];
+            var coreArr = locArr[oi..#(fileSizes[i])];
+            var pqErr = new parquetErrorMsg();
+            if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(coreArr), 0,
+                                      dsetname.localize().c_str(), coreArr.size, rowGroupSize,
+                                      dtypeRep, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+              pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+            }
           }
         }
       }

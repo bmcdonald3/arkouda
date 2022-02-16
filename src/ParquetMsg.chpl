@@ -95,7 +95,7 @@ module ParquetMsg {
     extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, batchSize, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
     
-    coforall loc in A.targetLocales() do on loc {
+    coforall loc in A.targetLocales do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       forall (filedom, filename) in zip(locFiledoms, locFiles) {
@@ -158,14 +158,18 @@ module ParquetMsg {
     extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                        dsetname, numelems, rowGroupSize,
                                        dtype, compressed, errMsg): int;
-    var filenames: [0..#A.targetLocales().size] string;
+    var filenames: [0..#A.targetLocales.size] string;
+    for i in 0..#A.targetLocales.size {
+      var suffix = '%04i'.format(i): string;
+      filenames[i] = filename + "_LOCALE" + suffix + ".parquet";
+    }
     var dtypeRep = if dtype == "int64" then 1 else 2;
     var doParallel = if A.size > parallelWriteThreshold then true else false;
     var matchingFilenames = glob("%s_LOCALE*%s".format(filename, ".parquet"));
 
     var warnFlag = processParquetFilenames(filenames, matchingFilenames);
     
-    coforall (loc, idx) in zip(A.targetLocales(), filenames.domain) do on loc {
+    coforall (loc, idx) in zip(A.targetLocales, filenames.domain) do on loc {
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
 
@@ -194,7 +198,7 @@ module ParquetMsg {
             var pqErr = new parquetErrorMsg();
             if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(coreArr), 0,
                                       dsetname.localize().c_str(), coreArr.size, rowGroupSize,
-                                      dtypeRep, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+                                      dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
               pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
             }
           }

@@ -95,7 +95,7 @@ module ParquetMsg {
     extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, batchSize, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
     
-    coforall loc in A.targetLocales do on loc {
+    coforall loc in A.targetLocales() do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       forall (filedom, filename) in zip(locFiledoms, locFiles) {
@@ -158,8 +158,8 @@ module ParquetMsg {
     extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                        dsetname, numelems, rowGroupSize,
                                        dtype, compressed, errMsg): int;
-    var filenames: [0..#A.targetLocales.size] string;
-    for i in 0..#A.targetLocales.size {
+    var filenames: [0..#A.targetLocales().size] string;
+    for i in 0..#A.targetLocales().size {
       var suffix = '%04i'.format(i): string;
       filenames[i] = filename + "_LOCALE" + suffix + ".parquet";
     }
@@ -169,7 +169,7 @@ module ParquetMsg {
 
     var warnFlag = processParquetFilenames(filenames, matchingFilenames);
     
-    coforall (loc, idx) in zip(A.targetLocales, filenames.domain) do on loc {
+    coforall (loc, idx) in zip(A.targetLocales(), filenames.domain) do on loc {
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
 

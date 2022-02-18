@@ -18,6 +18,7 @@ extern "C" {
 #define ARROWUINT64 2
 #define ARROWUINT32 3
 #define ARROWTIMESTAMP ARROWINT64
+#define ARROWSTRING 4
 #define ARROWUNDEFINED -1
 #define ARROWERROR -1
 
@@ -34,6 +35,13 @@ extern "C" {
   int cpp_readColumnByName(const char* filename, void* chpl_arr,
                            const char* colname, int64_t numElems, int64_t batchSize,
                            char** errMsg);
+
+  int c_readStrColumnByName(const char* filename, void* chpl_arr, void* offsets,
+                            const char* colname, int64_t numElems, int64_t batchSize,
+                            char** errMsg);
+  int c_readStrColumnByName(const char* filename, void* chpl_arr, void* offsets,
+                            const char* colname, int64_t numElems, int64_t batchSize,
+                            char** errMsg);
 
   int c_getType(const char* filename, const char* colname, char** errMsg);
   int cpp_getType(const char* filename, const char* colname, char** errMsg);

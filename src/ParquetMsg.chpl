@@ -12,6 +12,8 @@ module ParquetMsg {
   use NumPyDType;
   use Sort;
 
+  use SegmentedArray;
+
 
   // Use reflection for error information
   use Reflection;
@@ -28,10 +30,11 @@ module ParquetMsg {
   extern var ARROWINT64: c_int;
   extern var ARROWINT32: c_int;
   extern var ARROWUINT64: c_int;
+  extern var ARROWSTRING: c_int;
   extern var ARROWUNDEFINED: c_int;
   extern var ARROWERROR: c_int;
 
-  enum ArrowTypes { int64, int32, uint64, notimplemented };
+  enum ArrowTypes { int64, int32, uint64, stringArr, notimplemented };
 
   record parquetErrorMsg {
     var errMsg: c_ptr(uint(8));
@@ -114,6 +117,18 @@ module ParquetMsg {
     }
   }
 
+  proc readStrFilesByName(A: [] uint(8), offsets: [] int, filename: string, sizes: [] int, dsetname: string, ty) throws {
+    extern proc c_readStrColumnByName(filename, chpl_arr, offset_arr, colNum, numElems, batchSize, errMsg): int;
+    
+    var pqErr = new parquetErrorMsg();
+    if c_readStrColumnByName(filename.localize().c_str(), c_ptrTo(A), c_ptrTo(offsets),
+                             dsetname.localize().c_str(), offsets.size, batchSize,
+                             c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+      pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+    }
+    offsets = (+ scan offsets) - offsets;
+  }
+
   proc getArrSize(filename: string) throws {
     extern proc c_getNumRows(chpl_str, errMsg): int;
     var pqErr = new parquetErrorMsg();
@@ -139,6 +154,7 @@ module ParquetMsg {
     if arrType == ARROWINT64 then return ArrowTypes.int64;
     else if arrType == ARROWINT32 then return ArrowTypes.int32;
     else if arrType == ARROWUINT64 then return ArrowTypes.uint64;
+    else if arrType == ARROWSTRING then return ArrowTypes.stringArr;
     return ArrowTypes.notimplemented;
   }
 
@@ -309,6 +325,14 @@ module ParquetMsg {
           var valName = st.nextName();
           st.addEntry(valName, entryVal);
           rnames.append((dsetname, "pdarray", valName));
+        } else if ty == ArrowTypes.stringArr {
+          var numStrings = 3;
+          var byteSize = 12;
+          var entrySeg = new shared SymEntry(numStrings, int);;
+          var entryVal = new shared SymEntry(byteSize, uint(8));
+          readStrFilesByName(entryVal.a, entrySeg.a, filenames[0], sizes, dsetname, ty);
+          var stringsEntry = assembleSegStringFromParts(entrySeg, entryVal, st);
+          rnames.append((dsetname, "seg_string", "%s+%t".format(stringsEntry.name, stringsEntry.nBytes)));
         }
     }
 

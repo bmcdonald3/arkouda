@@ -322,7 +322,11 @@ module ParquetMsg {
                 // also, since Parquet files have a `numRows` that isn't specifc
                 // to dsetname like for HDF5, we only need to get this once per
                 // file, regardless of how many datasets we are reading
-                sizes[i] = getArrSize(fname);
+                if ty == ArrowTypes.stringArr {
+                  sizes[i] = getStrColSize(filenames[0], dsetname);
+                } else {
+                  sizes[i] = getArrSize(fname);
+                }
             } catch e: FileNotFoundError {
                 fileErrorMsg = "File %s not found".format(fname);
                 pqLogger.error(getModuleName(),getRoutineName(),getLineNumber(),fileErrorMsg);
@@ -380,10 +384,8 @@ module ParquetMsg {
           st.addEntry(valName, entryVal);
           rnames.append((dsetname, "pdarray", valName));
         } else if ty == ArrowTypes.stringArr {
-          // TODO: Check this for each filename and modify the sizes array with that
-          var byteSize = getStrColSize(filenames[0], dsetname);
-          var entryVal = new shared SymEntry(byteSize, uint(8));
-          readStrFilesByName(entryVal.a, filenames, [byteSize], dsetname, ty);
+          var entryVal = new shared SymEntry(len, uint(8));
+          readStrFilesByName(entryVal.a, filenames, sizes, dsetname, ty);
           proc _buildEntryCalcOffsets(): shared SymEntry throws {
             var offsetsArray = segmentedCalcOffsets(entryVal.a, entryVal.aD);
             return new shared SymEntry(offsetsArray);

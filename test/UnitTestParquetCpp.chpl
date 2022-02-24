@@ -211,20 +211,8 @@ proc main() {
   errors += testGetNumRows(filename, size);
   errors += testGetType(filename, dsetname);
   errors += testVersionInfo();
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
   errors += testGetDsets(filename);
-=======
-  errors += testReadStrings(strFilename);
->>>>>>> fa0ea4d7 (Offsets array working but still trying to figure out string buffer)
-=======
-  // Not testing read strings since we can't write strings yet
-  // errors += testReadStrings(strFilename);
->>>>>>> e4b003f5 (Update unit test for String reading)
-=======
   errors += testReadStrings(strFilename, strDsetname);
->>>>>>> df99be70 (Add string Parquet file to resources)
 
   if errors != 0 then
     writeln(errors, " Parquet tests failed");

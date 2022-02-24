@@ -129,7 +129,6 @@ proc testVersionInfo() {
   }
 }
 
-<<<<<<< HEAD
 proc testGetDsets(filename) {
   extern proc c_getDatasetNames(f: c_string, r: c_ptr(c_ptr(c_char)), e: c_ptr(c_ptr(c_char))): int(32);
   extern proc c_free_string(ptr);
@@ -156,10 +155,11 @@ proc testGetDsets(filename) {
     writeln("FAILED: c_getDatasetNames with ", ret);
     return 1;
   }
-=======
-proc testReadStrings(filename) {
+}
+  
+proc testReadStrings(filename, dsetname) {
   extern proc c_readStrColumnByName(filename, chpl_arr, colNum, errMsg): int;
-  extern proc c_getStringFileOffsets(filename, colname, offset_arr, errMsg): int;
+  extern proc c_getStringColumnNumBytes(filename, colname, errMsg): int;
   extern proc c_getNumRows(chpl_str, err): int;
 
   extern proc c_free_string(a);
@@ -170,34 +170,30 @@ proc testReadStrings(filename) {
   }
 
   var size = c_getNumRows(filename, c_ptrTo(errMsg));
-  var offsets: [0..#size] int;
   
-  var byteSize = c_getStringFileOffsets(filename, 'one'.c_str(), c_ptrTo(offsets), c_ptrTo(errMsg));
+  var byteSize = c_getStringColumnNumBytes(filename, dsetname, c_ptrTo(errMsg));
   if byteSize < 0 {
     var chplMsg;
     try! chplMsg = createStringWithNewBuffer(errMsg, strlen(errMsg));
     writeln(chplMsg);
   }
-  offsets = (+ scan offsets) - offsets;
 
   var a: [0..#byteSize] uint(8);
 
-  if(c_readStrColumnByName(filename, c_ptrTo(a), 'one'.c_str(), c_ptrTo(errMsg)) < 0) {
+  if(c_readStrColumnByName(filename, c_ptrTo(a), dsetname, c_ptrTo(errMsg)) < 0) {
     var chplMsg;
     try! chplMsg = createStringWithNewBuffer(errMsg, strlen(errMsg));
     writeln(chplMsg);
   }
 
-  //offsets = (+ scan offsets) - offsets;
-  var localSlice = new lowLevelLocalizingSlice(a, 0..9);
-  var asd = createStringWithOwnedBuffer(localSlice.ptr, 9, 10);
-  if asd == 'asdasdasd' {
+  var localSlice = new lowLevelLocalizingSlice(a, 0..3);
+  var firstElem = createStringWithOwnedBuffer(localSlice.ptr, 3, 4);
+  if firstElem == 'asd' {
     return 0;
   } else {
-    writeln("FAILED: reading string file ", asd);
+    writeln("FAILED: reading string file ", firstElem);
     return 1;
   }
->>>>>>> e4b003f5 (Update unit test for String reading)
 }
 
 proc main() {
@@ -207,13 +203,15 @@ proc main() {
   const filename = "myFile.parquet".c_str();
   const dsetname = "my-dset-name-test".c_str();
 
-  const strFilename = "str-file.parquet".c_str();
+  const strFilename = "resources/strings.parquet".c_str();
+  const strDsetname = "one".c_str();
   
   errors += testReadWrite(filename, dsetname, size);
   errors += testInt32Read();
   errors += testGetNumRows(filename, size);
   errors += testGetType(filename, dsetname);
   errors += testVersionInfo();
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
   errors += testGetDsets(filename);
@@ -224,6 +222,9 @@ proc main() {
   // Not testing read strings since we can't write strings yet
   // errors += testReadStrings(strFilename);
 >>>>>>> e4b003f5 (Update unit test for String reading)
+=======
+  errors += testReadStrings(strFilename, strDsetname);
+>>>>>>> df99be70 (Add string Parquet file to resources)
 
   if errors != 0 then
     writeln(errors, " Parquet tests failed");

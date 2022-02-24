@@ -174,33 +174,31 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
       
     column_reader = row_group_reader->Column(idx);
 
-    if(ty == ARROWINT64 || ty == ARROWINT32 || ty == ARROWUINT64 || ty == ARROWUINT32) {      
-      // Since int64 and uint64 Arrow dtypes share a physical type and only differ
-      // in logical type, they must be read from the file in the same way
-      if(ty == ARROWINT64 || ty == ARROWUINT64) {
-        auto chpl_ptr = (int64_t*)chpl_arr;
-        parquet::Int64Reader* reader =
-          static_cast<parquet::Int64Reader*>(column_reader.get());
+    // Since int64 and uint64 Arrow dtypes share a physical type and only differ
+    // in logical type, they must be read from the file in the same way
+    if(ty == ARROWINT64 || ty == ARROWUINT64) {
+      auto chpl_ptr = (int64_t*)chpl_arr;
+      parquet::Int64Reader* reader =
+        static_cast<parquet::Int64Reader*>(column_reader.get());
 
-        while (reader->HasNext()) {
-          (void)reader->ReadBatch(batchSize, nullptr, nullptr, &chpl_ptr[i], &values_read);
-          i+=values_read;
-        }
-      } else {
-        auto chpl_ptr = (int64_t*)chpl_arr;
-        parquet::Int32Reader* reader =
-          static_cast<parquet::Int32Reader*>(column_reader.get());
-
-        int32_t* tmpArr = (int32_t*)malloc(batchSize * sizeof(int32_t));
-        while (reader->HasNext()) {
-          // Can't read directly into chpl_ptr because it is int64
-          (void)reader->ReadBatch(batchSize, nullptr, nullptr, tmpArr, &values_read);
-          for (int64_t j = 0; j < values_read; j++)
-            chpl_ptr[i+j] = (int64_t)tmpArr[j];
-          i+=values_read;
-        }
-        free(tmpArr);
+      while (reader->HasNext()) {
+        (void)reader->ReadBatch(batchSize, nullptr, nullptr, &chpl_ptr[i], &values_read);
+        i+=values_read;
       }
+    } else if(ty == ARROWINT32 || ty == ARROWUINT32) {
+      auto chpl_ptr = (int64_t*)chpl_arr;
+      parquet::Int32Reader* reader =
+        static_cast<parquet::Int32Reader*>(column_reader.get());
+
+      int32_t* tmpArr = (int32_t*)malloc(batchSize * sizeof(int32_t));
+      while (reader->HasNext()) {
+        // Can't read directly into chpl_ptr because it is int64
+        (void)reader->ReadBatch(batchSize, nullptr, nullptr, tmpArr, &values_read);
+        for (int64_t j = 0; j < values_read; j++)
+          chpl_ptr[i+j] = (int64_t)tmpArr[j];
+        i+=values_read;
+      }
+      free(tmpArr);
     } else if(ty == ARROWSTRING) {
       auto chpl_ptr = (unsigned char*)chpl_arr;
       parquet::ByteArrayReader* ba_reader =

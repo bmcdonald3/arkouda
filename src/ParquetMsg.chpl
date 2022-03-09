@@ -116,11 +116,12 @@ module ParquetMsg {
           for i in 0..#offsets.size {
             if offsets[i] > intersection.low {
               numToSkip = i-i;
-              bytesToSkip = intersection.low - offsets[i]
+              bytesToSkip = intersection.low - offsets[i];
             }
           }
           
           writeln("NUM TO SKIP: ", numToSkip);
+          writeln("BYTES TO SKIP: ", bytesToSkip);
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
             if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),

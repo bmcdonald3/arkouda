@@ -102,6 +102,8 @@ int cpp_getType(const char* filename, const char* colname, char** errMsg) {
     return ARROWFLOAT;
   else if(myType->id() == arrow::Type::DOUBLE)
     return ARROWDOUBLE;
+  else if(myType->id() == arrow::Type::BINARY)
+    return ARROWSTRING;
   else // TODO: error type not supported
     return ARROWUNDEFINED;
 }
@@ -373,7 +375,8 @@ int cpp_getDatasetNames(const char* filename, char** dsetResult, char** errMsg) 
        sc->field(i)->type()->id() == arrow::Type::BOOL ||
        sc->field(i)->type()->id() == arrow::Type::STRING ||
        sc->field(i)->type()->id() == arrow::Type::FLOAT ||
-       sc->field(i)->type()->id() == arrow::Type::DOUBLE) {
+       sc->field(i)->type()->id() == arrow::Type::DOUBLE ||
+       sc->field(i)->type()->id() == arrow::Type::BINARY) {
       if(!first)
         fields += ("," + sc->field(i)->name());
       else

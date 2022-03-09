@@ -155,7 +155,7 @@ int cpp_getStringColumnNumBytes(const char* filename, const char* colname, void*
   return ARROWUNDEFINED;
 }
 
-int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, char** errMsg) {
+int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, int skipNum, int byteSkip, char** errMsg) {
   int64_t ty = cpp_getType(filename, colname, errMsg);
   
   std::unique_ptr<parquet::ParquetFileReader> parquet_reader =
@@ -233,14 +233,18 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
       auto chpl_ptr = (unsigned char*)chpl_arr;
       parquet::ByteArrayReader* reader =
         static_cast<parquet::ByteArrayReader*>(column_reader.get());
-      reader->Skip(startIdx);
+      reader->Skip(skipNum);
 
       while (reader->HasNext() && i < numElems) {
         parquet::ByteArray value;
         (void)reader->ReadBatch(1, nullptr, nullptr, &value, &values_read);
         for(int j = 0; j < value.len; j++) {
-          chpl_ptr[i] = value.ptr[j];
-          i++;
+          if(byteSkip == 0) {
+            chpl_ptr[i] = value.ptr[j];
+            i++;
+          } else {
+            byteSkip--;
+          }
         }
         i++; // skip one space so the strings are null terminated with a 0
       }
@@ -425,8 +429,8 @@ extern "C" {
     return cpp_getNumRows(chpl_str, errMsg);
   }
 
-  int c_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, char** errMsg) {
-    return cpp_readColumnByName(filename, chpl_arr, colname, numElems, startIdx, batchSize, errMsg);
+  int c_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, int skipNum, int byteSkip, char** errMsg) {
+    return cpp_readColumnByName(filename, chpl_arr, colname, numElems, startIdx, batchSize, skipNum, byteSkip, errMsg);
   }
 
   int c_getType(const char* filename, const char* colname, char** errMsg) {

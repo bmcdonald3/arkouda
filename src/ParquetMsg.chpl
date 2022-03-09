@@ -98,9 +98,10 @@ module ParquetMsg {
   }
 
   proc readFilesByName(A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
-    extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, startIdx, batchSize, errMsg): int;
+    extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, startIdx, batchSize, skipNum, byteSkip, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
     var fileOffsets = (+ scan sizes) - sizes;
+    writeln("SUBDOMS: ", subdoms);
     
     coforall loc in A.targetLocales() do on loc {
       var locFiles = filenames;
@@ -113,10 +114,12 @@ module ParquetMsg {
           var numToSkip: int;
           var bytesToSkip: int;
 
-          for i in 0..#offsets.size {
-            if offsets[i] > intersection.low {
-              numToSkip = i-i;
-              bytesToSkip = intersection.low - offsets[i];
+          if intersection.low > 0 {
+            for i in 0..#offsets.size {
+              if offsets[i] > intersection.low {
+                numToSkip = i-1;
+                bytesToSkip = intersection.low - (offsets[i-1]);
+              }
             }
           }
           
@@ -126,7 +129,7 @@ module ParquetMsg {
             var pqErr = new parquetErrorMsg();
             if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
                                   dsetname.localize().c_str(), intersection.size, intersection.low - off,
-                                  batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+                                  batchSize, numToSkip, bytesToSkip, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
               pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
             }
           }
@@ -399,6 +402,7 @@ module ParquetMsg {
           var entrySeg = new shared SymEntry(len, int);
           calcSizesAndOffset(entrySeg.a, byteSizes, filenames, sizes, dsetname);
           writeln("BYTE SIZES", byteSizes);
+          byteSizes = 9;
           var lastSize = entrySeg.a[entrySeg.a.domain.high];
           writeln("OFFSETS ARRAY before scan ", entrySeg.a);
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;

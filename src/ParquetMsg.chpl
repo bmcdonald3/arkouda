@@ -106,9 +106,21 @@ module ParquetMsg {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
+      var offsets = [0, 4, 7];  
       forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
+          var numToSkip: int;
+          var bytesToSkip: int;
+
+          for i in 0..#offsets.size {
+            if offsets[i] > intersection.low {
+              numToSkip = i-i;
+              bytesToSkip = intersection.low - offsets[i]
+            }
+          }
+          
+          writeln("NUM TO SKIP: ", numToSkip);
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
             if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
@@ -385,9 +397,18 @@ module ParquetMsg {
         } else if ty == ArrowTypes.stringArr {
           var entrySeg = new shared SymEntry(len, int);
           calcSizesAndOffset(entrySeg.a, byteSizes, filenames, sizes, dsetname);
+          writeln("BYTE SIZES", byteSizes);
+          var lastSize = entrySeg.a[entrySeg.a.domain.high];
+          writeln("OFFSETS ARRAY before scan ", entrySeg.a);
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
+          writeln("OFFSETS ARRAY ", entrySeg.a);
+
+          // subdoms represents number of bytes to read in each file
+          var (subdoms, length) = getSubdomains(byteSizes);
+
+          // skips is number of elements must be skipped to get to correct location
           
-          var entryVal = new shared SymEntry((+ reduce byteSizes), uint(8));
+          var entryVal = new shared SymEntry(length, uint(8));
           readFilesByName(entryVal.a, filenames, byteSizes, dsetname, ty);
           
           var stringsEntry = assembleSegStringFromParts(entrySeg, entryVal, st);

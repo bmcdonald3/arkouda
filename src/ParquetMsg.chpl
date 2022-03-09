@@ -98,38 +98,51 @@ module ParquetMsg {
   }
 
   proc readFilesByName(A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
-    extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, startIdx, batchSize, skipNum, byteSkip, errMsg): int;
+    extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, startIdx, batchSize, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
     var fileOffsets = (+ scan sizes) - sizes;
-    writeln("SUBDOMS: ", subdoms);
     
     coforall loc in A.targetLocales() do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
-      var offsets = [0, 4, 7];  
+      
       forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
-          var numToSkip: int;
-          var bytesToSkip: int;
-
-          if intersection.low > 0 {
-            for i in 0..#offsets.size {
-              if offsets[i] > intersection.low {
-                numToSkip = i-1;
-                bytesToSkip = intersection.low - (offsets[i-1]);
-              }
-            }
-          }
           
-          writeln("NUM TO SKIP: ", numToSkip);
-          writeln("BYTES TO SKIP: ", bytesToSkip);
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
             if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
                                   dsetname.localize().c_str(), intersection.size, intersection.low - off,
-                                  batchSize, numToSkip, bytesToSkip, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+                                  batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+              pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+            }
+          }
+        }
+      }
+    }
+  }
+
+  proc readStrFilesByName(A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
+    extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, startIdx, batchSize, errMsg): int;
+    var (subdoms, length) = getSubdomains(sizes);
+    var fileOffsets = (+ scan sizes) - sizes;
+    
+    coforall loc in A.targetLocales() do on loc {
+      var locFiles = filenames;
+      var locFiledoms = subdoms;
+      var locOffsets = fileOffsets;
+      forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
+        for locdom in A.localSubdomains() {
+          const intersection = domain_intersection(locdom, filedom);
+          var startByte = intersection.low - filedom.low;
+
+          if intersection.size > 0 {
+            var pqErr = new parquetErrorMsg();
+            if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
+                                  dsetname.localize().c_str(), intersection.size, startByte,
+                                  batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
               pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
             }
           }
@@ -401,20 +414,16 @@ module ParquetMsg {
         } else if ty == ArrowTypes.stringArr {
           var entrySeg = new shared SymEntry(len, int);
           calcSizesAndOffset(entrySeg.a, byteSizes, filenames, sizes, dsetname);
+          writeln("REGULAR SIZES", sizes);
           writeln("BYTE SIZES", byteSizes);
-          byteSizes = 9;
           var lastSize = entrySeg.a[entrySeg.a.domain.high];
           writeln("OFFSETS ARRAY before scan ", entrySeg.a);
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
+          var length = [lastSize + entrySeg.a[entrySeg.a.domain.high]];
           writeln("OFFSETS ARRAY ", entrySeg.a);
-
-          // subdoms represents number of bytes to read in each file
-          var (subdoms, length) = getSubdomains(byteSizes);
-
-          // skips is number of elements must be skipped to get to correct location
           
-          var entryVal = new shared SymEntry(length, uint(8));
-          readFilesByName(entryVal.a, filenames, byteSizes, dsetname, ty);
+          var entryVal = new shared SymEntry(length[0], uint(8));
+          readStrFilesByName(entryVal.a, filenames, byteSizes, dsetname, ty);
           
           var stringsEntry = assembleSegStringFromParts(entrySeg, entryVal, st);
           rnames.append((dsetname, "seg_string", "%s+%t".format(stringsEntry.name, stringsEntry.nBytes)));

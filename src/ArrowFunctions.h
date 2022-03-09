@@ -34,10 +34,10 @@ extern "C" {
 
   int c_readColumnByName(const char* filename, void* chpl_arr,
                          const char* colname, int64_t numElems, int64_t startIdx,
-                         int64_t batchSize, int skipNum, int byteSkip, char** errMsg);
+                         int64_t batchSize, char** errMsg);
   int cpp_readColumnByName(const char* filename, void* chpl_arr,
                            const char* colname, int64_t numElems, int64_t startIdx,
-                           int64_t batchSize, int skipNum, int byteSkip, char** errMsg);
+                           int64_t batchSize, char** errMsg);
 
   int cpp_getStringColumnNumBytes(const char* filename, const char* colname,
                                   void* chpl_offsets, int64_t numElems, int64_t startIdx, char** errMsg);

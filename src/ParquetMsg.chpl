@@ -142,7 +142,6 @@ module ParquetMsg {
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
 
-            writeln("READING INTO ", intersection);
             if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
                                   dsetname.localize().c_str(), intersection.size, startByte,
                                   batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
@@ -179,8 +178,6 @@ module ParquetMsg {
     for i in 1..sizes.size {
       byteSizes[i] = (+ reduce offsets[startIdx..#sizes[i]]);
       startIdx += sizes[i];
-      writeln("starting at ", startIdx);
-      writeln("counting ", sizes[i], " elements");
     }
   }
 
@@ -426,13 +423,9 @@ module ParquetMsg {
         } else if ty == ArrowTypes.stringArr {
           var entrySeg = new shared SymEntry(len, int);
           calcSizesAndOffset(entrySeg.a, byteSizes, filenames, sizes, dsetname);
-          writeln("REGULAR SIZES", sizes);
-          writeln("BYTE SIZES", byteSizes);
           var lastSize = entrySeg.a[entrySeg.a.domain.high];
-          writeln("OFFSETS ARRAY before scan ", entrySeg.a);
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
           var length = [lastSize + entrySeg.a[entrySeg.a.domain.high]];
-          writeln("OFFSETS ARRAY ", entrySeg.a);
           
           var entryVal = new shared SymEntry(length[0], uint(8));
           readStrFilesByName(entryVal.a, filenames, byteSizes, dsetname, ty);

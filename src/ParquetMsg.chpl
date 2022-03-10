@@ -110,6 +110,8 @@ module ParquetMsg {
       forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
+          writeln(intersection.low - off);
+          writeln(intersection.low - filedom.low);
           
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
@@ -133,18 +135,24 @@ module ParquetMsg {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
-      forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
+      //TODO THIS IS IS A FORALL!!!!
+      for (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
           var startByte = intersection.low - filedom.low;
 
           if intersection.size > 0 {
+            writeln("INTERSECTION: ", intersection);
+            writeln("START BYTE", startByte);
             var pqErr = new parquetErrorMsg();
-            if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
+            var col: [intersection] uint(8);
+            writeln(intersection.size, startByte);
+            if c_readColumnByName(filename.localize().c_str(), c_ptrTo(col),
                                   dsetname.localize().c_str(), intersection.size, startByte,
                                   batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
               pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
             }
+            A[intersection] = col;
           }
         }
       }
@@ -165,10 +173,14 @@ module ParquetMsg {
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
             byteSizes[i] = getStrColSize(filename, dsetname, offsets, intersection.size,
-                                         intersection.low, intersection.low - off);
+                          intersection.low, intersection.low - off);
           }
         }
       }
+    }
+    byteSizes[0] = (+ reduce offsets[0..#sizes[0]]);
+    for i in 1..sizes.size {
+      byteSizes[i] = (+ reduce offsets[(i-1)..#sizes[i]]);
     }
   }
 

@@ -238,14 +238,16 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
         parquet::ByteArray value;
         (void)reader->ReadBatch(1, nullptr, nullptr, &value, &values_read);
         for(int j = 0; j < value.len; j++) {
-          if(startIdx < 1) {
+          if(startIdx < 1 && i < numElems) {
+            std::cout << "reading " << value.ptr[j] << std::endl;
             chpl_ptr[i] = value.ptr[j];
             i++;
           } else {
             startIdx--;
           }
         }
-        i++; // skip one space so the strings are null terminated with a 0
+        if(startIdx < 1 && i < numElems)
+          i++; // skip one space so the strings are null terminated with a 0
         startIdx--;
       }
     } else if(ty == ARROWFLOAT) {

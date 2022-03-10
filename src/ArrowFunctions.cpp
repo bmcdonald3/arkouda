@@ -111,7 +111,6 @@ int cpp_getStringColumnNumBytes(const char* filename, const char* colname, void*
   auto offsets = (int64_t*)chpl_offsets;
 
   if(ty == ARROWSTRING) {
-    int size = 0;
     std::unique_ptr<parquet::ParquetFileReader> parquet_reader =
       parquet::ParquetFileReader::OpenFile(filename, false);
 
@@ -145,12 +144,11 @@ int cpp_getStringColumnNumBytes(const char* filename, const char* colname, void*
       while (ba_reader->HasNext() && numRead < numElems) {
         parquet::ByteArray value;
         (void)ba_reader->ReadBatch(1, nullptr, nullptr, &value, &values_read);
-        size += value.len + 1; // add 1 to account for zero that will be added in Chapel array
         offsets[i++] = value.len + 1;
         numRead += values_read;
       }
     }
-    return size;
+    return 0;
   }
   return ARROWUNDEFINED;
 }
@@ -239,7 +237,6 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
         (void)reader->ReadBatch(1, nullptr, nullptr, &value, &values_read);
         for(int j = 0; j < value.len; j++) {
           if(startIdx < 1 && i < numElems) {
-            std::cout << "reading " << value.ptr[j] << " into index " << i << std::endl;
             chpl_ptr[i] = value.ptr[j];
             i++;
           } else {

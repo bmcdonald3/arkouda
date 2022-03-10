@@ -110,8 +110,6 @@ module ParquetMsg {
       forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
-          writeln(intersection.low - off);
-          writeln(intersection.low - filedom.low);
           
           if intersection.size > 0 {
             var pqErr = new parquetErrorMsg();
@@ -135,24 +133,21 @@ module ParquetMsg {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
-      //TODO THIS IS IS A FORALL!!!!
+      // TODOD THIS IS A FORALL
       for (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
           var startByte = intersection.low - filedom.low;
 
           if intersection.size > 0 {
-            writeln("INTERSECTION: ", intersection);
-            writeln("START BYTE", startByte);
             var pqErr = new parquetErrorMsg();
-            var col: [intersection] uint(8);
-            writeln(intersection.size, startByte);
-            if c_readColumnByName(filename.localize().c_str(), c_ptrTo(col),
+
+            writeln("READING INTO ", intersection);
+            if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
                                   dsetname.localize().c_str(), intersection.size, startByte,
                                   batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
               pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
             }
-            A[intersection] = col;
           }
         }
       }
@@ -178,9 +173,14 @@ module ParquetMsg {
         }
       }
     }
+    var startIdx = 0;
     byteSizes[0] = (+ reduce offsets[0..#sizes[0]]);
+    startIdx += sizes[0];
     for i in 1..sizes.size {
-      byteSizes[i] = (+ reduce offsets[(i-1)..#sizes[i]]);
+      byteSizes[i] = (+ reduce offsets[startIdx..#sizes[i]]);
+      startIdx += sizes[i];
+      writeln("starting at ", startIdx);
+      writeln("counting ", sizes[i], " elements");
     }
   }
 

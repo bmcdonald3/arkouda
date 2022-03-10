@@ -239,7 +239,7 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
         (void)reader->ReadBatch(1, nullptr, nullptr, &value, &values_read);
         for(int j = 0; j < value.len; j++) {
           if(startIdx < 1 && i < numElems) {
-            std::cout << "reading " << value.ptr[j] << std::endl;
+            std::cout << "reading " << value.ptr[j] << " into index " << i << std::endl;
             chpl_ptr[i] = value.ptr[j];
             i++;
           } else {

@@ -32,7 +32,6 @@ module ParquetMsg {
   extern var ARROWUINT64: c_int;
   extern var ARROWBOOLEAN: c_int;
   extern var ARROWSTRING: c_int;
-  extern var ARROWUNDEFINED: c_int;
   extern var ARROWFLOAT: c_int;
   extern var ARROWDOUBLE: c_int;
   extern var ARROWERROR: c_int;
@@ -106,20 +105,24 @@ module ParquetMsg {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
-      
-      forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
-        for locdom in A.localSubdomains() {
-          const intersection = domain_intersection(locdom, filedom);
-          
-          if intersection.size > 0 {
-            var pqErr = new parquetErrorMsg();
-            if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
-                                  dsetname.localize().c_str(), intersection.size, intersection.low - off,
-                                  batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
-              pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+
+      try {
+        forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
+          for locdom in A.localSubdomains() {
+            const intersection = domain_intersection(locdom, filedom);
+
+            if intersection.size > 0 {
+              var pqErr = new parquetErrorMsg();
+              if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
+                                    dsetname.localize().c_str(), intersection.size, intersection.low - off,
+                                    batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+                pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+              }
             }
           }
         }
+      } catch e {
+        throw e;
       }
     }
   }
@@ -133,21 +136,26 @@ module ParquetMsg {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
-      forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
-        for locdom in A.localSubdomains() {
-          const intersection = domain_intersection(locdom, filedom);
-          var startByte = intersection.low - filedom.low;
 
-          if intersection.size > 0 {
-            var pqErr = new parquetErrorMsg();
+      try {
+        forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
+          for locdom in A.localSubdomains() {
+            const intersection = domain_intersection(locdom, filedom);
+            var startByte = intersection.low - filedom.low;
 
-            if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
-                                  dsetname.localize().c_str(), intersection.size, startByte,
-                                  batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
-              pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+            if intersection.size > 0 {
+              var pqErr = new parquetErrorMsg();
+
+              if c_readColumnByName(filename.localize().c_str(), c_ptrTo(A[intersection.low]),
+                                    dsetname.localize().c_str(), intersection.size, startByte,
+                                    batchSize, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+                pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+              }
             }
           }
         }
+      } catch e {
+        throw e;
       }
     }
   }
@@ -160,15 +168,20 @@ module ParquetMsg {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
-      forall (i, off, filedom, filename) in zip(sizes.domain, locOffsets, locFiledoms, locFiles) {
-        for locdom in offsets.localSubdomains() {
-          const intersection = domain_intersection(locdom, filedom);
-          if intersection.size > 0 {
-            var pqErr = new parquetErrorMsg();
-            getStrColSize(filename, dsetname, offsets, intersection.size,
-                          intersection.low, intersection.low - off);
+
+      try {
+        forall (i, off, filedom, filename) in zip(sizes.domain, locOffsets, locFiledoms, locFiles) {
+          for locdom in offsets.localSubdomains() {
+            const intersection = domain_intersection(locdom, filedom);
+            if intersection.size > 0 {
+              var pqErr = new parquetErrorMsg();
+              getStrColSize(filename, dsetname, offsets, intersection.size,
+                            intersection.low, intersection.low - off);
+            }
           }
         }
+      } catch e {
+        throw e;
       }
     }
     var currIdx = 0;
@@ -218,11 +231,16 @@ module ParquetMsg {
     else if arrType == ARROWBOOLEAN then return ArrowTypes.boolean;
     else if arrType == ARROWSTRING then return ArrowTypes.stringArr;
     else if arrType == ARROWDOUBLE then return ArrowTypes.double;
-    // TODO: throw here
+    throw getErrorWithContext(
+                  msg="Unrecognized Parquet data type",
+                  getLineNumber(),
+                  getRoutineName(),
+                  getModuleName(),
+                  errorClass="ParquetError");
     return ArrowTypes.notimplemented;
   }
 
-  proc toCDtype(dtype: string) {
+  proc toCDtype(dtype: string) throws {
     select dtype {
       when 'int64' {
         return ARROWINT64;
@@ -233,8 +251,13 @@ module ParquetMsg {
       } when 'float64' {
         return ARROWDOUBLE;
       } otherwise {
-        // TODO: make this throw so we can catch it
-        return ARROWUNDEFINED;
+         throw getErrorWithContext(
+                msg="Trying to convert unrecognized dtype to Parquet type",
+                getLineNumber(),
+                getRoutineName(),
+                getModuleName(),
+                errorClass="ParquetError");
+        return ARROWERROR;
       }
     }
   }

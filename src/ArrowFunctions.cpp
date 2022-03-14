@@ -304,6 +304,10 @@ int cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
       fields.push_back(parquet::schema::PrimitiveNode::Make(dsetname, parquet::Repetition::REQUIRED, parquet::Type::BOOLEAN, parquet::ConvertedType::NONE));
     else if(dtype == ARROWDOUBLE)
       fields.push_back(parquet::schema::PrimitiveNode::Make(dsetname, parquet::Repetition::REQUIRED, parquet::Type::DOUBLE, parquet::ConvertedType::NONE));
+    else if(dtype == ARROWSTRING) {
+      std::cout << "NICE JOB" << std::endl;
+      fields.push_back(parquet::schema::PrimitiveNode::Make(dsetname, parquet::Repetition::OPTIONAL, parquet::Type::BYTE_ARRAY, parquet::ConvertedType::NONE));
+    }
     std::shared_ptr<parquet::schema::GroupNode> schema = std::static_pointer_cast<parquet::schema::GroupNode>
       (parquet::schema::GroupNode::Make("schema", parquet::Repetition::REQUIRED, fields));
 
@@ -361,6 +365,21 @@ int cpp_writeColumnToParquet(const char* filename, void* chpl_arr,
         writer->WriteBatch(batchSize, nullptr, nullptr, &chpl_ptr[i]);
         numLeft -= batchSize;
         i += batchSize;
+      }
+    } else if(dtype == ARROWSTRING) {
+      std::cout << "YOU DID IT" << std::endl;
+      auto chpl_ptr = (unsigned char*)chpl_arr;
+      parquet::RowGroupWriter* rg_writer = file_writer->AppendRowGroup();
+      parquet::ByteArrayWriter* writer =
+        static_cast<parquet::ByteArrayWriter*>(rg_writer->NextColumn());
+
+      while(numLeft > 0) {
+        parquet::ByteArray value;
+        value.ptr = reinterpret_cast<const uint8_t*>(&chpl_ptr[i]);
+        value.len = 1;
+        int16_t definition_level=1;
+        writer->WriteBatch(1, &definition_level, nullptr, &value);
+        numLeft--;
       }
     } else {
       return ARROWERROR;

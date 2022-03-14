@@ -210,6 +210,8 @@ module ParquetMsg {
         return ARROWBOOLEAN;
       } when 'float64' {
         return ARROWDOUBLE;
+      } when 'str' {
+        return ARROWSTRING;
       } otherwise {
          throw getErrorWithContext(
                 msg="Trying to convert unrecognized dtype to Parquet type",
@@ -227,6 +229,7 @@ module ParquetMsg {
                                        dsetname, numelems, rowGroupSize,
                                        dtype, compressed, errMsg): int;
     var filenames: [0..#A.targetLocales().size] string;
+    writeln(dtype);
     var dtypeRep = toCDtype(dtype);
     for i in 0..#A.targetLocales().size {
       var suffix = '%04i'.format(i): string;
@@ -235,7 +238,7 @@ module ParquetMsg {
     var matchingFilenames = glob("%s_LOCALE*%s".format(filename, ".parquet"));
 
     var warnFlag = processParquetFilenames(filenames, matchingFilenames);
-    
+
     coforall (loc, idx) in zip(A.targetLocales(), filenames.domain) do on loc {
         var pqErr = new parquetErrorMsg();
         const myFilename = filenames[idx];
@@ -243,7 +246,7 @@ module ParquetMsg {
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
         if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0,
-                                  dsetname.localize().c_str(), locDom.size, rowGroupSize,
+                                  dsetname.localize().c_str(), 10000000, rowGroupSize,
                                   dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
           pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
         }
@@ -429,7 +432,17 @@ module ParquetMsg {
   proc toparquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
     var (arrayName, dsetname,  jsonfile, dataType, isCompressed)= payload.splitMsgToTuple(5);
     var filename: string;
-    var entry = getGenericTypedArrayEntry(arrayName, st);
+    var entry = st.lookup(arrayName);
+
+    var entryDtype = DType.UNDEF;
+    if (entry.isAssignableTo(SymbolEntryType.TypedArraySymEntry)) {
+      entryDtype = (entry: borrowed GenSymEntry).dtype;
+    } else if (entry.isAssignableTo(SymbolEntryType.SegStringSymEntry)) {
+      entryDtype = (entry: borrowed SegStringSymEntry).dtype;
+    } else {
+      var errorMsg = "toparquetMsg Unsupported SymbolEntryType:%t".format(entry.entryType);
+      return new MsgTuple(errorMsg, MsgType.ERROR);
+    }
 
     var compressed = try! isCompressed.toLower():bool;
 
@@ -445,21 +458,25 @@ module ParquetMsg {
     var warnFlag: bool;
 
     try {
-      select entry.dtype {
+      select entryDtype {
           when DType.Int64 {
-            var e = toSymEntry(entry, int);
+            var e = toSymEntry(toGenSymEntry(entry), int);
             warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, e.a);
           }
           when DType.UInt64 {
-            var e = toSymEntry(entry, uint);
+            var e = toSymEntry(toGenSymEntry(entry), uint);
             warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, e.a);
           }
           when DType.Bool {
-            var e = toSymEntry(entry, bool);
+            var e = toSymEntry(toGenSymEntry(entry), bool);
             warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, e.a);
           } when DType.Float64 {
-            var e = toSymEntry(entry, real);
+            var e = toSymEntry(toGenSymEntry(entry), real);
             warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, e.a);
+          }
+          when DType.Strings {
+            var segString:SegStringSymEntry = toSegStringSymEntry(entry);
+            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, segString.bytesEntry.a);
           }
           otherwise {
             var errorMsg = "Writing Parquet files is only supported for int arrays";

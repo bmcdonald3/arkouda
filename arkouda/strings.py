@@ -1371,6 +1371,64 @@ class Strings:
         args = f"{self.entry.name} {dataset} {m} {json_array} {self.dtype} {self.entry.name} {save_offsets}"
         return cast(str, generic_msg(cmd, args))
 
+    def save_parquet(self, prefix_path : str, dataset : str='strings_array', 
+             mode : str='truncate', save_offsets : bool = True) -> str:
+        """
+        Save the Strings object to HDF5. The result is a collection of HDF5 files,
+        one file per locale of the arkouda server, where each filename starts
+        with prefix_path. Each locale saves its chunk of the Strings array to its
+        corresponding file.
+
+        Parameters
+        ----------
+        prefix_path : str
+            Directory and filename prefix that all output files share
+        dataset : str
+            The name of the Strings dataset to be written, defaults to strings_array
+        mode : str {'truncate' | 'append'}
+            By default, truncate (overwrite) output files, if they exist.
+            If 'append', create a new Strings dataset within existing files.
+        save_offsets : bool
+            Defaults to True which will instruct the server to save the offsets array to HDF5
+            If False the offsets array will not be save and will be derived from the string values
+            upon load/read.
+
+        Returns
+        -------
+        String message indicating result of save operation
+
+        Raises
+        ------
+        ValueError 
+            Raised if the lengths of columns and values differ, or the mode is 
+            neither 'truncate' nor 'append'
+        TypeError
+            Raised if prefix_path, dataset, or mode is not a str
+
+        See Also
+        --------
+        pdarrayIO.save
+
+        Notes
+        -----
+        Important implementation notes: (1) Strings state is saved as two datasets
+        within an hdf5 group: one for the string characters and one for the
+        segments corresponding to the start of each string, (2) the hdf5 group is named 
+        via the dataset parameter. 
+        """       
+        if mode.lower() in 'truncate':
+            m = 0
+        else: # TODO: add support for the append mode
+            raise ValueError("Currently only the 'truncate' mode is supported")
+        
+        try:
+            json_array = json.dumps([prefix_path])
+        except Exception as e:
+            raise ValueError(e)
+        print(self.dtype)
+        args = f"{self.entry.name} {dataset} {json_array} str False"
+        return cast(str, generic_msg(cmd="writeParquet", args=args))
+
     def is_registered(self) -> np.bool_:
         """
         Return True iff the object is contained in the registry

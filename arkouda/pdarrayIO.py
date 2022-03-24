@@ -181,7 +181,7 @@ def read_parquet(filenames : Union[str, List[str]],
         raise ValueError("Dataset(s) not found: {}".format(nonexistent))
 
     rep_msg = generic_msg(cmd="readAllParquet", args=
-                          f"{strictTypes} {len(datasets)} {len(filenames)} {allow_errors} {json.dumps(datasets)} | {json.dumps(filenames)}")
+                          f"{strictTypes} {len(datasets)} {len(filenames)} {allow_errors} {False} {json.dumps(datasets)} | {json.dumps(filenames)}")
     rep = json.loads(rep_msg)  # See GenSymIO._buildReadAllHdfMsgJson for json structure
     items = rep["items"] if "items" in rep else []
     file_errors = rep["file_errors"] if "file_errors" in rep else []
@@ -300,8 +300,8 @@ def read_all(filenames : Union[str, List[str]],
     if iterative == True: # iterative calls to server readhdf
         return {dset: read_hdf(dset, filenames, strictTypes=strictTypes, allow_errors=allow_errors,
                                calc_string_offsets=calc_string_offsets) for dset in datasets}
-    else:  # single call to server readAllHdf
-        rep_msg = generic_msg(cmd="readAllHdf", args=
+    else:  # single call to server readany (either Parquet or HDF5 file)
+        rep_msg = generic_msg(cmd="readany", args=
         f"{strictTypes} {len(datasets)} {len(filenames)} {allow_errors} {calc_string_offsets} {json.dumps(datasets)} | {json.dumps(filenames)}"
                               )
         rep = json.loads(rep_msg)  # See GenSymIO._buildReadAllHdfMsgJson for json structure
@@ -526,7 +526,7 @@ def load_all(path_prefix: str) -> Mapping[str, Union[pdarray, Strings, Categoric
                                    'the file prefix {}, check file format or permissions'.format(prefix))
 
 def save_all(columns : Union[Mapping[str,pdarray],List[pdarray]], prefix_path : str, 
-             names : List[str]=None, mode : str='truncate') -> None:
+             names : List[str]=None, mode : str='truncate', is_parquet : bool=False) -> None:
     """
     Save multiple named pdarrays to HDF5 files.
 
@@ -586,7 +586,14 @@ def save_all(columns : Union[Mapping[str,pdarray],List[pdarray]], prefix_path : 
         '''Append all pdarrays to existing files as new datasets EXCEPT the first one, 
            and only if user requests truncation'''
         if mode.lower() not in 'append' and first_iter:
+            if is_parquet:
+                arr.save_parquet(prefix_path=prefix_path, dataset=name, mode='truncate')
+            else:
+                arr.save(prefix_path=prefix_path, dataset=name, mode='truncate')
             arr.save(prefix_path=prefix_path, dataset=name, mode='truncate')
             first_iter = False
         else:
-            arr.save(prefix_path=prefix_path, dataset=name, mode='append')
+            if is_parquet:
+                arr.save_parquet(prefix_path=prefix_path, dataset=name, mode='append')
+            else:
+                arr.save(prefix_path=prefix_path, dataset=name, mode='append')

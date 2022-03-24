@@ -143,6 +143,7 @@ proc main() {
         registerFunction("getCmdMap", getCommandMapMsg);
         registerFunction("clear", clearMsg);
         registerFunction("lsany", lsAnyMsg);
+        registerFunction("readany", readAnyMsg);
 
         // For a few specialized cmds we're going to add dummy functions, so they
         // get added to the client listing of available commands. They will be

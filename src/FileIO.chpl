@@ -2,6 +2,8 @@
 
 module FileIO {
     use IO;
+    use GenSymIO;
+    use Sort;
     use FileSystem;
     use Map;
     use Path;
@@ -253,6 +255,58 @@ module FileIO {
         }
         when FileType.PARQUET {
           return executeCommand("lspq", payload, st);
+        } otherwise {
+          var errorMsg = "Unsupported file type; Parquet and HDF5 are only supported formats";
+          return new MsgTuple(errorMsg, MsgType.ERROR);
+        }
+      }
+    }
+
+    proc readAnyMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+      var (strictFlag, ndsetsStr, nfilesStr, allowErrorsFlag, calcStringOffsetsFlag, arraysStr) = payload.splitMsgToTuple(6);
+      
+      if (!checkCast(nfilesStr, int)) {
+        var errMsg = "Number of files:`%s` could not be cast to an integer".format(nfilesStr);
+        return new MsgTuple(errMsg, MsgType.ERROR);
+      }
+
+      var (_, jsonfiles) = arraysStr.splitMsgToTuple(" | ",2);
+      var nfiles = nfilesStr:int; // Error checked above
+      var filelist: [0..#nfiles] string;
+
+      try {
+        filelist = jsonToPdArray(jsonfiles, nfiles);
+      } catch {
+        var errorMsg = "Could not decode json filenames via tempfile (%i files: %s)".format(nfiles, jsonfiles);
+        return new MsgTuple(errorMsg, MsgType.ERROR);
+      }
+
+      var filenames: [filelist.domain] string;
+
+      if filelist.size == 1 {
+        if filelist[0].strip().size == 0 {
+          var errorMsg = "filelist was empty.";
+          return new MsgTuple(errorMsg, MsgType.ERROR);
+        }
+        var tmp = glob(filelist[0]);
+        if tmp.size == 0 {
+          var errorMsg = "The wildcarded filename %s either corresponds to files inaccessible to Arkouda or files of an invalid format".format(filelist[0]);
+          return new MsgTuple(errorMsg, MsgType.ERROR);
+        }
+        sort(tmp);
+        filenames = tmp;
+      } else {
+        filenames = filelist;
+      }
+
+      var filename = filenames[filenames.domain.low];
+      
+      select getFileType(filename) {
+        when FileType.HDF5 {
+          return executeCommand("readAllHdf", payload, st);
+        }
+        when FileType.PARQUET {
+          return executeCommand("readAllParquet", payload, st);
         } otherwise {
           var errorMsg = "Unsupported file type; Parquet and HDF5 are only supported formats";
           return new MsgTuple(errorMsg, MsgType.ERROR);

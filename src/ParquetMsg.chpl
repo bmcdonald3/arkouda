@@ -25,6 +25,9 @@ module ParquetMsg {
   const pqLogger = new Logger(logLevel);
   config const TRUNCATE: int = 0;
   config const APPEND: int = 1;
+
+  // Files written in parallel must be at least 64 MB
+  private config const parallelWriteThreshold = 5;//512*1024*1024 / numBytes(int);
   
   private config const ROWGROUPS = 512*1024*1024 / numBytes(int); // 512 mb of int64
   // Undocumented for now, just for internal experiments
@@ -269,7 +272,21 @@ module ParquetMsg {
     }
   }
 
-  proc writeDistArrayToParquet(A, filename, dsetname, dtype, rowGroupSize, compressed, mode) throws {
+  proc getParallelSubdomains(A, threshold) {
+    var numFiles = A.size / threshold;
+    var subDoms: [0..#numFiles] range(int);
+    var offset = 0;
+    for i in 0..#subDoms.size {
+      if i == subDoms.size - 1 then
+        subDoms[i] = offset..A.domain.high;
+      else
+        subDoms[i] = offset..#threshold;
+      offset += threshold;
+    }
+    return subDoms;
+  }
+  
+  proc writeDistArrayToParquet(A, filename, dsetname, dtype, rowGroupSize, compressed, mode, parallel) throws {
     extern proc c_writeColumnToParquet(filename, chpl_arr, colnum,
                                        dsetname, numelems, rowGroupSize,
                                        dtype, compressed, errMsg): int;
@@ -299,18 +316,40 @@ module ParquetMsg {
     var warnFlag = processParquetFilenames(filenames, matchingFilenames, mode);
     
     coforall (loc, idx) in zip(A.targetLocales(), filenames.domain) do on loc {
-        var pqErr = new parquetErrorMsg();
         const myFilename = filenames[idx];
 
         var locDom = A.localSubdomain();
         var locArr = A[locDom];
         if mode == TRUNCATE {
-          if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0,
-                                    dsetname.localize().c_str(), locDom.size, rowGroupSize,
-                                    dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
-            pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+          if parallel {
+            var parDoms = getParallelSubdomains(locArr, parallelWriteThreshold);
+            try {
+              forall i in 0..#parDoms.size {
+                var pqErr = new parquetErrorMsg();
+                var suffix = '%04i'.format(idx): string;
+                var parSuffix = '%04i'.format(i): string;
+                const locFilename = filename + "_LOCALE" + suffix + "_TASK" + parSuffix + ".parquet";
+                var parDom = parDoms[i];
+
+                if c_writeColumnToParquet(locFilename.localize().c_str(), c_ptrTo(locArr[parDom]), 0,
+                                          dsetname.localize().c_str(), parDom.size, rowGroupSize,
+                                          dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+                  pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+                }
+              }
+            } catch e {
+              throw e;
+            }
+          } else {
+            var pqErr = new parquetErrorMsg();
+            if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0,
+                                      dsetname.localize().c_str(), locDom.size, rowGroupSize,
+                                      dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
+              pqErr.parquetError(getLineNumber(), getRoutineName(), getModuleName());
+            }
           }
         } else {
+          var pqErr = new parquetErrorMsg();
           if c_appendColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr),
                                      dsetname.localize().c_str(), locDom.size,
                                      dtypeRep, compressed, c_ptrTo(pqErr.errMsg)) == ARROWERROR {
@@ -471,8 +510,8 @@ module ParquetMsg {
     return warnFlag;
   }
 
-  proc write1DDistArrayParquet(filename: string, dsetname, dtype, compressed, mode, A) throws {
-    return writeDistArrayToParquet(A, filename, dsetname, dtype, ROWGROUPS, compressed, mode);
+  proc write1DDistArrayParquet(filename: string, dsetname, dtype, compressed, mode, A, parallel) throws {
+    return writeDistArrayToParquet(A, filename, dsetname, dtype, ROWGROUPS, compressed, mode, parallel);
   }
 
   proc readAllParquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
@@ -654,7 +693,7 @@ module ParquetMsg {
   }
   
   proc toparquetMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
-    var (arrayName, dsetname, modeStr, jsonfile, dataType, isCompressed)= payload.splitMsgToTuple(6);
+    var (arrayName, dsetname, modeStr, jsonfile, dataType, isCompressed, isParallel)= payload.splitMsgToTuple(7);
     var mode = try! modeStr: int;
     var filename: string;
     var entry = st.lookup(arrayName);
@@ -670,6 +709,7 @@ module ParquetMsg {
     }
 
     var compressed = try! isCompressed.toLower():bool;
+    var parallel = try! isParallel.toLower():bool;
 
     try {
       filename = jsonToPdArray(jsonfile, 1)[0];
@@ -686,18 +726,18 @@ module ParquetMsg {
       select entryDtype {
           when DType.Int64 {
             var e = toSymEntry(toGenSymEntry(entry), int);
-            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a);
+            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a, parallel);
           }
           when DType.UInt64 {
             var e = toSymEntry(toGenSymEntry(entry), uint);
-            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a);
+            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a, parallel);
           }
           when DType.Bool {
             var e = toSymEntry(toGenSymEntry(entry), bool);
-            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a);
+            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a, parallel);
           } when DType.Float64 {
             var e = toSymEntry(toGenSymEntry(entry), real);
-            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a);
+            warnFlag = write1DDistArrayParquet(filename, dsetname, dataType, compressed, mode, e.a, parallel);
           } when DType.Strings {
             var segString:SegStringSymEntry = toSegStringSymEntry(entry);
             warnFlag = write1DDistStringsAggregators(filename, mode, dsetname, segString, compressed);

@@ -1081,7 +1081,7 @@ class pdarray:
 
     @typechecked
     def save_parquet(self, prefix_path : str, dataset : str='array', mode : str='truncate',
-                     compressed : bool = False) -> str:
+                     compressed : bool=False, parallel : bool=False) -> str:
         """
         Save the pdarray to Parquet. The result is a collection of Parquet files,
         one file per locale of the arkouda server, where each filename starts
@@ -1099,6 +1099,8 @@ class pdarray:
             Append is currently not supported.
         compressed : bool
             By default, write without Snappy compression and RLE encoding.
+        parallel : bool
+            When true, write multiple files per locale to increase read times.
 
         Returns
         -------
@@ -1155,9 +1157,9 @@ class pdarray:
             json_array = json.dumps([prefix_path])
         except Exception as e:
             raise ValueError(e)
-        return cast(str, generic_msg(cmd="writeParquet", args="{} {} {} {} {} {}".\
+        return cast(str, generic_msg(cmd="writeParquet", args="{} {} {} {} {} {} {}".\
                                      format(self.name, dataset, m, json_array, self.dtype,
-                                            compressed)))
+                                            compressed, parallel)))
     
     @typechecked
     def register(self, user_defined_name: str) -> pdarray:

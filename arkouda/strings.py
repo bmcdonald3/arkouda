@@ -1381,7 +1381,8 @@ class Strings:
         return cast(str, generic_msg(cmd, args))
 
     def save_parquet(self, prefix_path : str, dataset : str='strings_array', 
-                     mode : str='truncate', compressed : bool = False) -> str:
+                     mode : str='truncate', compressed : bool=False,
+                     parallel : bool=False) -> str:
         """
         Save the Strings object to Parquet. The result is a collection of Parquet files,
         one file per locale of the arkouda server, where each filename starts
@@ -1425,13 +1426,16 @@ class Strings:
         else:
             raise ValueError("Allowed modes are 'truncate' and 'append'")
 
+        if parallel:
+            raise ValueError("Strings do not currently support parallel writing")
+        
         try:
             json_array = json.dumps([prefix_path])
         except Exception as e:
             raise ValueError(e)
 
         cmd = "writeParquet"
-        args = f"{self.entry.name} {dataset} {m} {json_array} str {compressed}"
+        args = f"{self.entry.name} {dataset} {m} {json_array} str {compressed} {parallel}"
         return cast(str, generic_msg(cmd, args))
         
     def is_registered(self) -> np.bool_:

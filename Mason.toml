@@ -1,0 +1,11 @@
+
+[brick]
+chplVersion = "1.27.0"
+license = "None"
+name = "ArkoudaMason"
+version = "0.1.0"
+
+[dependencies]
+DataStructures = "0.1.0"
+
+

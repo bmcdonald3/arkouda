@@ -17,8 +17,6 @@ CHPL := chpl
 # We need to make the HDF5 API use the 1.10.x version for compatibility between 1.10 and 1.12
 CHPL_FLAGS += --ccflags="-DH5_USE_110_API"
 
-MASON_INCLUDES := $(shell mason flags)
-
 CHPL_DEBUG_FLAGS += --print-passes
 ifdef ARKOUDA_DEVELOPER
 CHPL_FLAGS += --ccflags="-O1"
@@ -206,6 +204,11 @@ check-arrow: $(ARROW_CHECK) $(ARROW_O)
 	$(DEP_INSTALL_DIR)/$@ -nl 1
 	@rm -f $(DEP_INSTALL_DIR)/$@ $(DEP_INSTALL_DIR)/$@_real
 
+MASON_TOML = $(ARKOUDA_SOURCE_DIR)/Mason.toml
+MASON_LOCK = $(ARKOUDA_SOURCE_DIR)/Mason.lock
+mason-prep:
+	mason prep
+
 ALL_TARGETS := $(ARKOUDA_MAIN_MODULE)
 .PHONY: all
 all: $(ALL_TARGETS)
@@ -283,9 +286,9 @@ endif
 
 MODULE_GENERATION_SCRIPT=$(ARKOUDA_SOURCE_DIR)/serverModuleGen.py
 # This is the main compilation statement section
-$(ARKOUDA_MAIN_MODULE): check-deps $(ARROW_O) $(ARKOUDA_SOURCES) $(ARKOUDA_MAKEFILES)
+$(ARKOUDA_MAIN_MODULE): check-deps $(ARROW_O) $(ARKOUDA_SOURCES) $(ARKOUDA_MAKEFILES) mason-prep
 	$(eval MOD_GEN_OUT=$(shell python3 $(MODULE_GENERATION_SCRIPT) $(ARKOUDA_CONFIG_FILE)))
-	@echo $(MOD_GEN_OUT);
+	$(eval MASON_INCLUDES=$(shell mason flags))
 
 	$(CHPL) $(CHPL_DEBUG_FLAGS) $(PRINT_PASSES_FLAGS) $(REGEX_MAX_CAPTURES_FLAG) $(OPTIONAL_SERVER_FLAGS) $(CHPL_FLAGS_WITH_VERSION) $(ARKOUDA_MAIN_SOURCE) $(ARKOUDA_COMPAT_MODULES) $(ARKOUDA_SERVER_USER_MODULES) $(MASON_INCLUDES) -o $@
 

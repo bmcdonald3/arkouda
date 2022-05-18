@@ -23,8 +23,6 @@ use Message;
 
 use CommandMap, ServerRegistration;
 
-use DataStructures;
-
 private config const logLevel = ServerConfig.logLevel;
 const asLogger = new Logger(logLevel);
 

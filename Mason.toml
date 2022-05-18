@@ -6,6 +6,6 @@ name = "ArkoudaMason"
 version = "0.1.0"
 
 [dependencies]
-DataStructures = "0.1.0"
+SymArrayDmap = "0.1.0"
 
 

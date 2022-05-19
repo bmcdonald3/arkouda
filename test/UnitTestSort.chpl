@@ -7,6 +7,7 @@ prototype module UnitTestSort
 
   use RadixSortLSD;
   use CommAggregation;
+  use AryUtil;
 
   config param perfOnlyCompile = false; // reduces compilation time
 
@@ -49,17 +50,17 @@ prototype module UnitTestSort
   /* Main sort testing routine */
 
   proc testSort(A:[?D], type elemType, nElems, sortDesc) {
-    {
+    /*{
       startDiag();
       var sortedA = radixSortLSD_keys(A, checkSorted=false);
       endDiag("radixSortLSD_keys", elemType, nElems, sortDesc);
       if printArrays { writeln(A); writeln(sortedA); }
       if verify { assert(AryUtil.isSorted(sortedA)); }
-    }
+      }*/
 
     {
       startDiag();
-      var rankSortedA = radixSortLSD_ranks(A, checkSorted=false);
+      var rankSortedA = radixSortLSD_ranks(A, checkSorted=false, print=true);
       endDiag("radixSortLSD_ranks", elemType, nElems, sortDesc);
       if verify {
         var sortedA: [D] elemType;
@@ -69,7 +70,7 @@ prototype module UnitTestSort
         if printArrays { writeln(A); writeln(rankSortedA); writeln(sortedA); }
         assert(AryUtil.isSorted(sortedA));
       }
-    }
+      }
   }
  
  

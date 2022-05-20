@@ -176,7 +176,10 @@ module RadixSortLSD
             // Only do this if there are more digits left
             arrayCopyT.start();
             if !last {
+              if doSwap then
                 temp <=> a;
+              else
+                temp = a;
             }
             arrayCopyT.stop();
         } // for rshift

@@ -21,6 +21,8 @@ prototype module UnitTestSort
 
   config param verify = true;
 
+  config const seed = 10;
+
   /* Timing and Comm diagnostic reporting helpers */
 
   var d: Diags;
@@ -60,7 +62,7 @@ prototype module UnitTestSort
 
     {
       startDiag();
-      var rankSortedA = radixSortLSD_ranks(A, checkSorted=false, print=true);
+      var rankSortedA = radixSortLSD_ranks(A, checkSorted=false, print=false);
       endDiag("radixSortLSD_ranks", elemType, nElems, sortDesc);
       if verify {
         var sortedA: [D] elemType;
@@ -108,7 +110,7 @@ prototype module UnitTestSort
     type elemType = A.eltType;
 
     var B: [D] T;
-    fillRandom(B);
+    fillRandom(B, seed);
     A = B:A.eltType;
 
     testSort(A, elemType, nElems, "rand "+T:string+" vals");
@@ -138,7 +140,7 @@ prototype module UnitTestSort
       if bit < numBits(int) then mask |= (1:uint<<bit):int;
     }
 
-    fillRandom(A);
+    fillRandom(A, seed);
     A &= mask;
 
     testSort(A, elemType, nElems, "activeBits="+activeBits:string);
@@ -191,7 +193,7 @@ prototype module UnitTestSort
     const D = makeDistDom(nElems);
     var A: [D] perfElemType;
     var B: [D] perfValRange;
-    fillRandom(B);
+    fillRandom(B, seed);
     A = B:perfElemType;
 
     // Warmup

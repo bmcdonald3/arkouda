@@ -68,7 +68,7 @@ prototype module UnitTestSort
       startDiag();
       var sortClass = new RadixSortLSDInstance();
 
-      var rankSortedA = sortClass.radixSortLSD_ranks(A, false);
+      var rankSortedA = sortClass.radixSortLSD_ranks(A, false, print=true);
       endDiag("class radixSortLSD_ranks", elemType, nElems, sortDesc);
     }
   }

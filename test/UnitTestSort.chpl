@@ -61,14 +61,15 @@ prototype module UnitTestSort
       startDiag();
       var rankSortedA = radixSortLSD_ranks(A, checkSorted=false);
       endDiag("radixSortLSD_ranks", elemType, nElems, sortDesc);
-      if verify {
-        var sortedA: [D] elemType;
-        forall (sA, i) in zip(sortedA, rankSortedA) with (var agg = newSrcAggregator(elemType)) {
-          agg.copy(sA, A[i]);
-        }
-        if printArrays { writeln(A); writeln(rankSortedA); writeln(sortedA); }
-        assert(AryUtil.isSorted(sortedA));
-      }
+    }
+
+    {
+      use RadixSortLSDClass;
+      startDiag();
+      var sortClass = new RadixSortLSDInstance();
+
+      var rankSortedA = sortClass.radixSortLSD_ranks(A, false);
+      endDiag("class radixSortLSD_ranks", elemType, nElems, sortDesc);
     }
   }
  
@@ -196,6 +197,9 @@ prototype module UnitTestSort
     // Warmup
     radixSortLSD_keys(A, checkSorted=false);
     radixSortLSD_ranks(A, checkSorted=false);
+    use RadixSortLSDClass;
+    var sortClass = new RadixSortLSDInstance();
+    var rankSortedA = sortClass.radixSortLSD_ranks(A, false);
 
     testSort(A, perfElemType, nElems, "rand "+perfValRange:string+" vals");
   }

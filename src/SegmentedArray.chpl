@@ -136,6 +136,7 @@ module SegmentedArray {
 
     /* Retrieve one string from the array */
     proc this(idx: ?t): string throws where t == int || t == uint {
+                                                                   writeln('apples to apples, spice to spice');
       if (idx < offsets.aD.low) || (idx > offsets.aD.high) {
         throw new owned OutOfBoundsError();
       }
@@ -157,6 +158,7 @@ module SegmentedArray {
        Chapel range, i.e. low..high by stride, not a Python slice.
        Returns arrays for the segment offsets and bytes of the slice.*/
     proc this(const slice: range(stridable=true)) throws {
+                                                          writeln("doo doo doo");
       if (slice.low < offsets.aD.low) || (slice.high > offsets.aD.high) {
           saLogger.error(getModuleName(),getRoutineName(),getLineNumber(),
           "Array is out of bounds");
@@ -198,12 +200,24 @@ module SegmentedArray {
     /* Gather strings by index. Returns arrays for the segment offsets
        and bytes of the gathered strings.*/
     proc this(iv: [?D] ?t) throws where t == int || t == uint {
+      writeln("you got in champ");
+      var begT: Timer;
+      var gatherT: Timer;
+      var scan1T:Timer;
+      var diffsT: Timer;
+      var forall1T: Timer;
+      var scan2T: Timer;
+      var forall2T: Timer;
+      
       use ChplConfig;
       
       // Early return for zero-length result
       if (D.size == 0) {
-        return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        var a: [0..0] int;
+        return (a,makeDistArray(0, uint(8)));
+        //return (makeDistArray(0, int), makeDistArray(0, uint(8)));
       }
+      begT.start();
       // Check all indices within bounds
       var ivMin = min reduce iv;
       var ivMax = max reduce iv;
@@ -229,12 +243,21 @@ module SegmentedArray {
         }
         agg.copy(l, oa[idx:int]);
       }
+
+      
       // Lengths of segments including null bytes
-      var gatheredLengths: [D] int = right - left;
+      //var gatheredLengths: [D] int = right - left;
+      var gatheredLengths: [0..#D.size] int = right - left;
+      writeln("Gathered lengths: ");
+      writeln(gatheredLengths);
+      begT.stop();
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * gatheredLengths.size);
       // The returned offsets are the 0-up cumulative lengths
+      scan1T.start();
       var gatheredOffsets = (+ scan gatheredLengths);
+      scan1T.stop();
+      gatherT.start();
       // The total number of bytes in the gathered strings
       var retBytes = gatheredOffsets[D.high];
       gatheredOffsets -= gatheredLengths;
@@ -256,8 +279,11 @@ module SegmentedArray {
            it is the difference between the src offset of the current segment ("left")
            and the src index of the last byte in the previous segment (right - 1).
         */
-        var srcIdx = makeDistArray(retBytes, int);
+        //var srcIdx = makeDistArray(retBytes, int);
+        var srcIdx: [0..#retBytes] int;
         srcIdx = 1;
+        gatherT.stop();
+        diffsT.start();
         var diffs: [D] int;
         diffs[D.low] = left[D.low]; // first offset is not affected by scan
         if (D.size > 1) {
@@ -265,19 +291,27 @@ module SegmentedArray {
           // However, this logic is only necessary when D.size > 1 anyway
           diffs[D.interior(D.size-1)] = left[D.interior(D.size-1)] - (right[D.interior(-(D.size-1))] - 1);
         }
+        diffsT.stop();
+        forall1T.start();
         // Set srcIdx to diffs at segment boundaries
         forall (go, d) in zip(gatheredOffsets, diffs) with (var agg = newDstAggregator(int)) {
           agg.copy(srcIdx[go], d);
         }
+        forall1T.stop();
         // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
         overMemLimit(numBytes(int) * srcIdx.size);
+        scan2T.start();
         srcIdx = + scan srcIdx;
+        scan2T.stop();
         // Now srcIdx has a dst-local copy of the source index and vals can be efficiently gathered
+        forall2T.start();
         ref va = values.a;
         forall (v, si) in zip(gatheredVals, srcIdx) with (var agg = newSrcAggregator(uint(8))) {
           agg.copy(v, va[si]);
         }
+        forall2T.stop();
       } else {
+        writeln("Oops");
         ref va = values.a;
         // Copy string data to gathered result
         forall (go, gl, idx) in zip(gatheredOffsets, gatheredLengths, iv) {
@@ -289,6 +323,18 @@ module SegmentedArray {
       saLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                             "Gathered offsets and vals in %i seconds".format(
                                            getCurrentTime() -t1));
+      writeln();
+      writeln();
+      writeln("beginning : ", begT.elapsed());
+      writeln("gather    : ", gatherT.elapsed());
+      writeln("diffs     : ", diffsT.elapsed());
+      writeln("forall1   : ", forall1T.elapsed());
+      writeln("forall2   : ", forall2T.elapsed());
+      writeln("scan1     : ", scan1T.elapsed());
+      writeln("scan2     : ", scan2T.elapsed());
+      writeln();
+      writeln();
+      
       return (gatheredOffsets, gatheredVals);
     }
 
@@ -313,7 +359,8 @@ module SegmentedArray {
       steps -= iv;
       // Early return for zero-length result
       if (newSize == 0) {
-        return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        var a: [0..0] int;
+        return (a, makeDistArray(0, uint(8)));
       }
       var segInds = makeDistArray(newSize, int);
       forall (t, dst, idx) in zip(iv, steps, D) with (var agg = newDstAggregator(int)) {

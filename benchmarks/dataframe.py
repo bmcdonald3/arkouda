@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 import arkouda as ak
+import time
 
 OPS = ['_get_head_tail_server', '_get_head_tail']
 TYPES = ('int64', 'uint64',)

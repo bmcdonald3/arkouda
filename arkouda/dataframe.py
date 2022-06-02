@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from collections import UserDict
 from warnings import warn
 import pandas as pd  # type: ignore
@@ -547,8 +549,11 @@ class DataFrame(UserDict):
             else:
                 msg_list.append(f"pdarray+{col}+{self[col].name}")
 
+        start = time.time()
         repMsg = cast(str, generic_msg(cmd="dataframe_idx", args="{} {} {}".
                                        format(len(msg_list), idx.name, json.dumps(msg_list))))
+        stop = time.time()
+        print("Server call took " + str(stop-start))
         msgList = json.loads(repMsg)
 
         df_dict = {}

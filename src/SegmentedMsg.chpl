@@ -771,7 +771,8 @@ module SegmentedMsg {
     
     smLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                                   "objtype:%s".format(objtype));
-    
+    use Time;
+    var tim: Timer;
     select objtype {
         when "str" {
             var strings = getSegString(args[1], st);
@@ -780,22 +781,33 @@ module SegmentedMsg {
             try {
                 select gIV.dtype {
                     when DType.Int64 {
+                      writeln("INT");
                         var iv = toSymEntry(gIV, int);
+                        //writeln("THESE ARE MY INDICES");
+                        //writeln(iv.a);
+                        tim.start();
                         var (newSegs, newVals) = strings[iv.a];
+                        tim.stop();
                         var newStringsObj = getSegString(newSegs, newVals, st);
                         newStringsName = newStringsObj.name;
                         nBytes = newStringsObj.nBytes;
                     }
                     when DType.UInt64 {
+                      writeln("UINT");
                         var iv = toSymEntry(gIV, uint);
+                        tim.start();
                         var (newSegs, newVals) = strings[iv.a];
+                        tim.stop();
                         var newStringsObj = getSegString(newSegs, newVals, st);
                         newStringsName = newStringsObj.name;
                         nBytes = newStringsObj.nBytes;
                     } 
                     when DType.Bool {
+                      writeln("BOOL");
                         var iv = toSymEntry(gIV, bool);
+                        tim.start();
                         var (newSegs, newVals) = strings[iv.a];
+                        tim.stop();
                         var newStringsObj = getSegString(newSegs, newVals, st);
                         newStringsName = newStringsObj.name;
                         nBytes = newStringsObj.nBytes;
@@ -822,6 +834,7 @@ module SegmentedMsg {
     var repMsg = "created " + st.attrib(newStringsName) + "+created bytes.size %t".format(nBytes);
 
     smLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+    writeln("Indexing       : ", tim.elapsed());
 
     return new MsgTuple(repMsg, MsgType.NORMAL);
   }

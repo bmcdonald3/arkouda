@@ -197,12 +197,17 @@ module SegmentedArray {
 
     /* Gather strings by index. Returns arrays for the segment offsets
        and bytes of the gathered strings.*/
-    proc this(iv: [?D] ?t) throws where t == int || t == uint {
+    proc this(iv: [?D] ?t, param large=true) throws where t == int || t == uint {
       use ChplConfig;
       
       // Early return for zero-length result
       if (D.size == 0) {
-        return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        if large {
+            return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        } else {
+            var a: [0..0] int;
+            return (a,makeDistArray(0, uint(8)));
+        }
       }
       // Check all indices within bounds
       var ivMin = min reduce iv;
@@ -230,7 +235,14 @@ module SegmentedArray {
         agg.copy(l, oa[idx:int]);
       }
       // Lengths of segments including null bytes
-      var gatheredLengths: [D] int = right - left;
+      var gatheredLengths;
+      if large {
+          var temp: [D] int = right - left;
+          gatheredLengths = temp;
+      } else {
+          var temp: [0..#D.size] int = right - left;
+          gatheredLengths = temp;
+      }
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * gatheredLengths.size);
       // The returned offsets are the 0-up cumulative lengths
@@ -256,7 +268,13 @@ module SegmentedArray {
            it is the difference between the src offset of the current segment ("left")
            and the src index of the last byte in the previous segment (right - 1).
         */
-        var srcIdx = makeDistArray(retBytes, int);
+        var srcIdx;
+        if large {
+            srcIdx = makeDistArray(retBytes, int);
+        } else {
+            var temp: [0..#retBytes] int;
+            srcIdx = temp;
+        }
         srcIdx = 1;
         var diffs: [D] int;
         diffs[D.low] = left[D.low]; // first offset is not affected by scan

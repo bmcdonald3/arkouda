@@ -136,7 +136,6 @@ module SegmentedArray {
 
     /* Retrieve one string from the array */
     proc this(idx: ?t): string throws where t == int || t == uint {
-                                                                   writeln('apples to apples, spice to spice');
       if (idx < offsets.aD.low) || (idx > offsets.aD.high) {
         throw new owned OutOfBoundsError();
       }
@@ -158,7 +157,6 @@ module SegmentedArray {
        Chapel range, i.e. low..high by stride, not a Python slice.
        Returns arrays for the segment offsets and bytes of the slice.*/
     proc this(const slice: range(stridable=true)) throws {
-                                                          writeln("doo doo doo");
       if (slice.low < offsets.aD.low) || (slice.high > offsets.aD.high) {
           saLogger.error(getModuleName(),getRoutineName(),getLineNumber(),
           "Array is out of bounds");
@@ -199,7 +197,7 @@ module SegmentedArray {
 
     /* Gather strings by index. Returns arrays for the segment offsets
        and bytes of the gathered strings.*/
-    proc this(iv: [?D] ?t) throws where t == int || t == uint {
+    proc this(iv: [?D] ?t, param large=true) throws where t == int || t == uint {
       writeln("you got in champ");
       var begT: Timer;
       var gatherT: Timer;
@@ -213,9 +211,12 @@ module SegmentedArray {
       
       // Early return for zero-length result
       if (D.size == 0) {
-        var a: [0..0] int;
-        return (a,makeDistArray(0, uint(8)));
-        //return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        if large {
+            var a: [0..0] int;
+            return (a,makeDistArray(0, uint(8)));
+        } else {
+            return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        }
       }
       begT.start();
       // Check all indices within bounds
@@ -244,10 +245,18 @@ module SegmentedArray {
         agg.copy(l, oa[idx:int]);
       }
 
-      
+
+      var gatheredLengths;
       // Lengths of segments including null bytes
-      //var gatheredLengths: [D] int = right - left;
-      var gatheredLengths: [0..#D.size] int = right - left;
+      if large {
+        writeln("doing distributed");
+          var temp: [D] int = right - left;
+          gatheredLengths = temp;
+      } else {
+        writeln("doing default rect");
+          var temp: [0..#D.size] int = right - left;
+          gatheredLengths = temp;
+      }
       writeln("Gathered lengths: ");
       writeln(gatheredLengths);
       begT.stop();
@@ -279,8 +288,13 @@ module SegmentedArray {
            it is the difference between the src offset of the current segment ("left")
            and the src index of the last byte in the previous segment (right - 1).
         */
-        //var srcIdx = makeDistArray(retBytes, int);
-        var srcIdx: [0..#retBytes] int;
+        var srcIdx;
+        if large {
+            srcIdx = makeDistArray(retBytes, int);
+        } else {
+            var temp: [0..#retBytes] int;
+            srcIdx = temp;
+        }
         srcIdx = 1;
         gatherT.stop();
         diffsT.start();

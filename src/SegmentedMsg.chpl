@@ -760,7 +760,7 @@ module SegmentedMsg {
   }
 
   proc segPdarrayIndex(objtype: string, args: [] string, 
-                                 st: borrowed SymTab): MsgTuple throws {
+                       st: borrowed SymTab, param largeArrays=true): MsgTuple throws {
     var pn = Reflection.getRoutineName();
 
     // check to make sure symbols defined
@@ -786,7 +786,7 @@ module SegmentedMsg {
                         //writeln("THESE ARE MY INDICES");
                         //writeln(iv.a);
                         tim.start();
-                        var (newSegs, newVals) = strings[iv.a];
+                        var (newSegs, newVals) = strings[iv.a, largeArrays];
                         tim.stop();
                         var newStringsObj = getSegString(newSegs, newVals, st);
                         newStringsName = newStringsObj.name;

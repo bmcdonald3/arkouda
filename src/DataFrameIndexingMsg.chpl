@@ -150,7 +150,7 @@
                     
                     var args: [1..2] string = [categories_name, idxCodeName];
                     catIdxT.start();
-                    var repTup = segPdarrayIndex("str", args, st);
+                    var repTup = segPdarrayIndex("str", args, st, smallArrays);
                     catIdxT.stop();
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
@@ -165,7 +165,7 @@
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is Strings. Name: %s".format(i, ele_parts[2]));
                     var args: [1..2] string = [ele_parts[2], iname];
                     strIdxT.start();
-                    var repTup = segPdarrayIndex("str", args, st);
+                    var repTup = segPdarrayIndex("str", args, st, smallArrays);
                     strIdxT.stop();
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);

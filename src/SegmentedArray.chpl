@@ -212,10 +212,10 @@ module SegmentedArray {
       // Early return for zero-length result
       if (D.size == 0) {
         if large {
+            return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        } else {
             var a: [0..0] int;
             return (a,makeDistArray(0, uint(8)));
-        } else {
-            return (makeDistArray(0, int), makeDistArray(0, uint(8)));
         }
       }
       begT.start();
@@ -353,7 +353,7 @@ module SegmentedArray {
     }
 
     /* Logical indexing (compress) of strings. */
-    proc this(iv: [?D] bool) throws {
+    proc this(iv: [?D] bool, param large=true) throws {
       // Index vector must be same domain as array
       if (D != offsets.aD) {
           saLogger.info(getModuleName(),getRoutineName(),getLineNumber(),
@@ -373,8 +373,12 @@ module SegmentedArray {
       steps -= iv;
       // Early return for zero-length result
       if (newSize == 0) {
-        var a: [0..0] int;
-        return (a, makeDistArray(0, uint(8)));
+        if large {
+          return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        } else {
+          var a: [0..0] int;
+          return (a, makeDistArray(0, uint(8)));
+        }
       }
       var segInds = makeDistArray(newSize, int);
       forall (t, dst, idx) in zip(iv, steps, D) with (var agg = newDstAggregator(int)) {

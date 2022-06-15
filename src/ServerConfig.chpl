@@ -13,7 +13,7 @@ module ServerConfig
     use ServerErrors;
     use Logging;
 
-    config param smallArrays = true;
+    config param smallArrays = false;
     
     /*
     Trace logging flag

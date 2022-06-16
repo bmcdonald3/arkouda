@@ -202,7 +202,11 @@ module SegmentedArray {
       
       // Early return for zero-length result
       if (D.size == 0) {
-        return (makeDistArray(0, int), makeDistArray(0, uint(8)));
+        if isRectangularDom(D) {
+          var ret: [0..0] int;
+          return (ret, makeDistArray(0, uint(8)));
+        } else
+          return (makeDistArray(0, int), makeDistArray(0, uint(8)));
       }
       // Check all indices within bounds
       var ivMin = min reduce iv;
@@ -256,7 +260,13 @@ module SegmentedArray {
            it is the difference between the src offset of the current segment ("left")
            and the src index of the last byte in the previous segment (right - 1).
         */
-        var srcIdx = makeDistArray(retBytes, int);
+        var srcIdx;
+        if isRectangularDom(D) {
+          var tmp: [0..#retBytes] int;
+          srcIdx = tmp;
+        } else {
+          srcIdx = makeDistArray(retBytes, int);
+        }
         srcIdx = 1;
         var diffs: [D] int;
         diffs[D.low] = left[D.low]; // first offset is not affected by scan

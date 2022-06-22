@@ -130,7 +130,8 @@
                     var idxCodeName = dfIdxHelper(idx, code_vals, st, col_name, true);
                     
                     var args: [1..2] string = [categories_name, idxCodeName];
-                    var repTup = segPdarrayIndex("str", args, st);
+                    // skip aggregation since we know we aren't requesting many elements
+                    var repTup = segPdarrayIndex("str", args, st, skipAgg=true);
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
                     }
@@ -140,7 +141,8 @@
                 when ("Strings") {
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is Strings. Name: %s".format(i, ele_parts[2]));
                     var args: [1..2] string = [ele_parts[2], iname];
-                    var repTup = segPdarrayIndex("str", args, st);
+                    // skip aggregation since we know we aren't requesting many elements
+                    var repTup = segPdarrayIndex("str", args, st, skipAgg=true);
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
                     }

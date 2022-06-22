@@ -199,7 +199,16 @@ module SegmentedArray {
        and bytes of the gathered strings.*/
     proc this(iv: [?D] ?t) throws where t == int || t == uint {
       use ChplConfig;
-      
+
+      var reduceT: Timer;
+      var agg1T: Timer;
+      var gatherLengthsT: Timer;
+      var scanT: Timer;
+      var sliceT: Timer;
+      var agg2T: Timer;
+      var agg3T: Timer;
+
+      reduceT.start();
       // Early return for zero-length result
       if (D.size == 0) {
         return (makeDistArray(0, int), makeDistArray(0, uint(8)));
@@ -214,7 +223,10 @@ module SegmentedArray {
       }
       saLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                               "Computing lengths and offsets");
+      reduceT.stop();
       var t1 = getCurrentTime();
+
+      agg1T.start();
       ref oa = offsets.a;
       const low = offsets.aD.low, high = offsets.aD.high;
       // Gather the right and left boundaries of the indexed strings
@@ -229,12 +241,20 @@ module SegmentedArray {
         }
         agg.copy(l, oa[idx:int]);
       }
+      agg1T.stop();
+
+      gatherLengthsT.start();
       // Lengths of segments including null bytes
       var gatheredLengths: [D] int = right - left;
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * gatheredLengths.size);
+      gatherLengthsT.stop();
       // The returned offsets are the 0-up cumulative lengths
+      scanT.start();
       var gatheredOffsets = (+ scan gatheredLengths);
+      scanT.stop();
+
+      gatherLengthsT.start();
       // The total number of bytes in the gathered strings
       var retBytes = gatheredOffsets[D.high];
       gatheredOffsets -= gatheredLengths;
@@ -246,6 +266,7 @@ module SegmentedArray {
           t1 = getCurrentTime();
       }
       var gatheredVals = makeDistArray(retBytes, uint(8));
+      gatherLengthsT.stop();
       // Multi-locale requires some extra localization work that is not needed
       // in CHPL_COMM=none
       if CHPL_COMM != 'none' {
@@ -256,6 +277,8 @@ module SegmentedArray {
            it is the difference between the src offset of the current segment ("left")
            and the src index of the last byte in the previous segment (right - 1).
         */
+        sliceT.start();
+        
         var srcIdx = makeDistArray(retBytes, int);
         srcIdx = 1;
         var diffs: [D] int;
@@ -265,18 +288,27 @@ module SegmentedArray {
           // However, this logic is only necessary when D.size > 1 anyway
           diffs[D.interior(D.size-1)] = left[D.interior(D.size-1)] - (right[D.interior(-(D.size-1))] - 1);
         }
+        sliceT.stop();
+
+        agg2T.start();
         // Set srcIdx to diffs at segment boundaries
         forall (go, d) in zip(gatheredOffsets, diffs) with (var agg = newDstAggregator(int)) {
           agg.copy(srcIdx[go], d);
         }
+        agg2T.stop();
         // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
         overMemLimit(numBytes(int) * srcIdx.size);
+        scanT.start();
         srcIdx = + scan srcIdx;
+        scanT.stop();
         // Now srcIdx has a dst-local copy of the source index and vals can be efficiently gathered
+
+        agg3T.start();
         ref va = values.a;
         forall (v, si) in zip(gatheredVals, srcIdx) with (var agg = newSrcAggregator(uint(8))) {
           agg.copy(v, va[si]);
         }
+        agg3T.stop();
       } else {
         ref va = values.a;
         // Copy string data to gathered result
@@ -289,6 +321,14 @@ module SegmentedArray {
       saLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                             "Gathered offsets and vals in %i seconds".format(
                                            getCurrentTime() -t1));
+
+      writeln("Reduce             : ", reduceT.elapsed());
+      writeln("First agg          : ", agg1T.elapsed());
+      writeln("Gather lengths     : ", gatherLengthsT.elapsed());
+      writeln("Scan               : ", scanT.elapsed());
+      writeln("Slicing            : ", sliceT.elapsed());
+      writeln("Second agg         : ", agg2T.elapsed());
+      writeln("Third agg          : ", agg3T.elapsed());
       return (gatheredOffsets, gatheredVals);
     }
 

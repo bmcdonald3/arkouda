@@ -197,9 +197,16 @@ module SegmentedArray {
 
     /* Gather strings by index. Returns arrays for the segment offsets
        and bytes of the gathered strings.*/
-    proc this(iv: [?D] ?t) throws where t == int || t == uint {
+    proc this(iv: [?D] ?t, doAggregation: bool = true) throws where t == int || t == uint {
       use ChplConfig;
-      
+      use Time;
+
+      var otherT: Timer;
+      var aggTopT: Timer;
+      var aggTwoT: Timer;
+      var aggThreeT: Timer;
+
+      otherT.start();
       // Early return for zero-length result
       if (D.size == 0) {
         return (makeDistArray(0, int), makeDistArray(0, uint(8)));
@@ -221,14 +228,32 @@ module SegmentedArray {
       // NOTE: cannot compute lengths inside forall because agg.copy will
       // experience race condition with loop-private variable
       var right: [D] int, left: [D] int;
-      forall (r, l, idx) in zip(right, left, iv) with (var agg = newSrcAggregator(int)) {
-        if (idx == high) {
-          agg.copy(r, values.size);
-        } else {
-          agg.copy(r, oa[idx:int+1]);
+      otherT.stop();
+
+      aggTopT.start();
+      if doAggregation {
+        forall (r, l, idx) in zip(right, left, iv) with (var agg = newSrcAggregator(int)) {
+          if (idx == high) {
+            agg.copy(r, values.size);
+          } else {
+            agg.copy(r, oa[idx:int+1]);
+          }
+          agg.copy(l, oa[idx:int]);
         }
-        agg.copy(l, oa[idx:int]);
+      } else {
+        writeln("Not doing aggregation");
+        forall (r, l, idx) in zip(right, left, iv) {
+          if (idx == high) {
+            r = values.size;
+          } else {
+            r = oa[idx:int+1];
+          }
+          l = oa[idx:int];
+        }
       }
+      aggTopT.stop();
+      otherT.start();
+      
       // Lengths of segments including null bytes
       var gatheredLengths: [D] int = right - left;
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -265,18 +290,42 @@ module SegmentedArray {
           // However, this logic is only necessary when D.size > 1 anyway
           diffs[D.interior(D.size-1)] = left[D.interior(D.size-1)] - (right[D.interior(-(D.size-1))] - 1);
         }
+        otherT.stop();
+
+        aggTwoT.start();
+        
         // Set srcIdx to diffs at segment boundaries
-        forall (go, d) in zip(gatheredOffsets, diffs) with (var agg = newDstAggregator(int)) {
-          agg.copy(srcIdx[go], d);
+        if doAggregation {
+          forall (go, d) in zip(gatheredOffsets, diffs) with (var agg = newDstAggregator(int)) {
+            agg.copy(srcIdx[go], d);
+          }
+        } else {
+          forall (go, d) in zip(gatheredOffsets, diffs) {
+            srcIdx[go] = d;
+          }
         }
+        aggTwoT.stop();
+        otherT.start();
+        
         // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
         overMemLimit(numBytes(int) * srcIdx.size);
         srcIdx = + scan srcIdx;
         // Now srcIdx has a dst-local copy of the source index and vals can be efficiently gathered
         ref va = values.a;
-        forall (v, si) in zip(gatheredVals, srcIdx) with (var agg = newSrcAggregator(uint(8))) {
-          agg.copy(v, va[si]);
+        otherT.stop();
+
+        aggThreeT.start();
+        if doAggregation {
+          forall (v, si) in zip(gatheredVals, srcIdx) with (var agg = newSrcAggregator(uint(8))) {
+            agg.copy(v, va[si]);
+          }
+        } else {
+          forall (v, si) in zip(gatheredVals, srcIdx) {
+            v = va[si];
+          }          
         }
+        aggThreeT.stop();
+        otherT.start();
       } else {
         ref va = values.a;
         // Copy string data to gathered result
@@ -289,6 +338,11 @@ module SegmentedArray {
       saLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                             "Gathered offsets and vals in %i seconds".format(
                                            getCurrentTime() -t1));
+      otherT.stop();
+      writeln("Other            : ", otherT.elapsed());
+      writeln("First agg        : ", aggTopT.elapsed());
+      writeln("Second agg       : ", aggTwoT.elapsed());
+      writeln("Third agg        : ", aggThreeT.elapsed());
       return (gatheredOffsets, gatheredVals);
     }
 

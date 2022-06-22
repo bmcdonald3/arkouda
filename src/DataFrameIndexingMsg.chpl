@@ -94,6 +94,18 @@
     }
 
     proc dataframeBatchIndexingMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+      use Time;
+      var topT: Timer;
+      var catT: Timer;
+      var strT: Timer;
+      var pdaT: Timer;
+      var segT: Timer;
+
+      var catTopT: Timer;
+      var catBotT: Timer;
+      var catIndexT: Timer;
+
+      topT.start();
         param pn = Reflection.getRoutineName();
         var repMsg: string; // response message
         // split request into fields
@@ -115,29 +127,40 @@
         var idx = toSymEntry(gIdx, int);
 
         var repMsgList: [0..#jsonsize] string;
-
+        topT.stop();
         for (i, rpm, ele) in zip(repMsgList.domain, repMsgList, eleList) { 
             var ele_parts = ele.split("+");
             ref col_name = ele_parts[1];
             select (ele_parts[0]) {
                 when ("Categorical") {
+                  catT.start();
                     ref codes_name = ele_parts[2];
                     ref categories_name = ele_parts[3];
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is Categorical\nCodes Name: %s, Categories Name: %s".format(i, codes_name, categories_name));
 
                     var gCode: borrowed GenSymEntry = getGenericTypedArrayEntry(codes_name, st);
                     var code_vals = toSymEntry(gCode, int);
+
+                    catTopT.start();
                     var idxCodeName = dfIdxHelper(idx, code_vals, st, col_name, true);
+                    catTopT.stop();
                     
                     var args: [1..2] string = [categories_name, idxCodeName];
-                    var repTup = segPdarrayIndex("str", args, st);
+                    catIndexT.start();
+                    var repTup = segPdarrayIndex("str", args, st, doAggregation=false);
+                    catIndexT.stop();
+                    
+                    catBotT.start();
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
                     }
 
                     rpm = "%jt".format("Strings+%s+%s".format(col_name, repTup.msg));
+                    catBotT.stop();
+                    catT.stop();
                 }
                 when ("Strings") {
+                  strT.start();
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is Strings. Name: %s".format(i, ele_parts[2]));
                     var args: [1..2] string = [ele_parts[2], iname];
                     var repTup = segPdarrayIndex("str", args, st);
@@ -146,8 +169,10 @@
                     }
 
                     rpm = "%jt".format("Strings+%s+%s".format(col_name, repTup.msg));
+                    strT.stop();
                 }
                 when ("pdarray"){
+                  pdaT.start();
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is pdarray. Name: %s".format(i, ele_parts[2]));
                     var gCol: borrowed GenSymEntry = getGenericTypedArrayEntry(ele_parts[2], st);
                     select (gCol.dtype) {
@@ -173,8 +198,10 @@
                             throw new IllegalArgumentError(errorMsg);
                         }
                     }
+                    pdaT.stop();
                 }
                 when ("SegArray"){
+                  segT.start();
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is SegArray".format(i));
                     ref segments_name = ele_parts[2];
                     ref values_name = ele_parts[3];
@@ -206,6 +233,7 @@
                             throw new IllegalArgumentError(errorMsg);
                         }
                     }
+                    segT.stop();
                 }
                 otherwise {
                     var errorMsg = notImplementedError(pn, ele_parts[0]);
@@ -214,6 +242,17 @@
                 }
             }
         }
+
+        writeln();
+      writeln("Top took        : ", topT.elapsed());
+      writeln("Cat took        : ", catT.elapsed());
+      writeln("Cat top took    : ", catTopT.elapsed());
+      writeln("Cat index took  : ", catIndexT.elapsed());
+      writeln("Cat bot took    : ", catBotT.elapsed());
+      writeln("Str took        : ", strT.elapsed());
+      writeln("Pda took        : ", pdaT.elapsed());
+      writeln("Seg took        : ", segT.elapsed());
+      writeln();
 
         repMsg = "[%s]".format(",".join(repMsgList));
         dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);

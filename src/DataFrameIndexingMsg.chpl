@@ -16,6 +16,8 @@
     private config const logLevel = ServerConfig.logLevel;
     const dfiLogger = new Logger(logLevel);
 
+    config const skipAgg=true;
+    
     // gather indexing by integer index vector
     proc dfIdxHelper(idx: borrowed SymEntry(int), columnVals: borrowed SymEntry(?t), st: borrowed SymTab, col: string, rtnName: bool=false): string throws {
         param pn = Reflection.getRoutineName();
@@ -131,7 +133,7 @@
                     
                     var args: [1..2] string = [categories_name, idxCodeName];
                     // skip aggregation since we know we aren't requesting many elements
-                    var repTup = segPdarrayIndex("str", args, st, skipAgg=true);
+                    var repTup = segPdarrayIndex("str", args, st, skipAgg=skipAgg);
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
                     }
@@ -142,7 +144,7 @@
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is Strings. Name: %s".format(i, ele_parts[2]));
                     var args: [1..2] string = [ele_parts[2], iname];
                     // skip aggregation since we know we aren't requesting many elements
-                    var repTup = segPdarrayIndex("str", args, st, skipAgg=true);
+                    var repTup = segPdarrayIndex("str", args, st, skipAgg=skipAgg);
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
                     }

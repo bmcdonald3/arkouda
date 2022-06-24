@@ -196,8 +196,10 @@ module SegmentedArray {
     }
 
     /* Gather strings by index. Returns arrays for the segment offsets
-       and bytes of the gathered strings.*/
-    proc this(iv: [?D] ?t, skipAgg:bool=false) throws where t == int || t == uint {
+       and bytes of the gathered strings. When smallArr is set to true,
+       a naive copy will take place that can perform better by avoiding
+       some overhead costs when indexing with a small array. */
+    proc this(iv: [?D] ?t, smallArr:bool=false) throws where t == int || t == uint {
       use ChplConfig;
       
       // Early return for zero-length result
@@ -248,7 +250,7 @@ module SegmentedArray {
       var gatheredVals = makeDistArray(retBytes, uint(8));
       // Multi-locale requires some extra localization work that is not needed
       // in CHPL_COMM=none
-      if CHPL_COMM != 'none' && !skipAgg {
+      if CHPL_COMM != 'none' && !smallArr {
         // Compute the src index for each byte in gatheredVals
         /* For performance, we will do this with a scan, so first we need an array
            with the difference in index between the current and previous byte. For

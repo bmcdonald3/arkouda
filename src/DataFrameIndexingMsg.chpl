@@ -130,8 +130,10 @@
                     var idxCodeName = dfIdxHelper(idx, code_vals, st, col_name, true);
                     
                     var args: [1..2] string = [categories_name, idxCodeName];
-                    // skip aggregation since we know we aren't requesting many elements
-                    var repTup = segPdarrayIndex("str", args, st, skipAgg=true);
+                    // since we know that we are indexing using a relatively small array,
+                    // we can skip some high-overhead operations that are beneficial when
+                    // indexing with large arrays
+                    var repTup = segPdarrayIndex("str", args, st, smallArr=true);
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
                     }
@@ -141,8 +143,10 @@
                 when ("Strings") {
                     dfiLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"Element at %i is Strings. Name: %s".format(i, ele_parts[2]));
                     var args: [1..2] string = [ele_parts[2], iname];
-                    // skip aggregation since we know we aren't requesting many elements
-                    var repTup = segPdarrayIndex("str", args, st, skipAgg=true);
+                    // since we know that we are indexing using a relatively small array,
+                    // we can skip some high-overhead operations that are beneficial when
+                    // indexing with large arrays
+                    var repTup = segPdarrayIndex("str", args, st, smallArr=true);
                     if repTup.msgType == MsgType.ERROR {
                         throw new IllegalArgumentError(repTup.msg);
                     }

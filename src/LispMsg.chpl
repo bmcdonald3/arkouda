@@ -69,22 +69,30 @@ module LispMsg
     
     proc evalLisp(prog: string, ret: [] ?t, st) throws {
       try {
-        coforall loc in Locales {
-            on loc {
-                coforall task in Tasks {
-                    var lD = ret.domain.localSubdomain();
-                    var tD = calcBlock(task, lD.low, lD.high);
-                    var ast = parse(prog);
-                    var env = new owned Env();
-                    for i in tD {
-                        env.addEntry("i", i);
-                        
-                        // Evaluate for this index
-                        ret[i] = eval(ast, env, st).toValue(t).v;
-                    }
-                }
-            }
+        use Time;
+        var lookupT: Timer;
+        var otherT: Timer;
+        var totalT: Timer;
+        totalT.start();
+        otherT.start();
+        for task in Tasks {
+          var lD = ret.domain.localSubdomain();
+          var tD = calcBlock(task, lD.low, lD.high);
+          var ast = parse(prog);
+          var env = new owned Env();
+          for i in tD {
+            env.addEntry("i", i);
+
+            otherT.stop();
+            // Evaluate for this index
+            ret[i] = eval(ast, env, st, otherT, lookupT).toValue(t).v;
+            otherT.start();
+          }
         }
+        totalT.stop();
+        writeln("Lookup took         : ", lookupT.elapsed());
+        writeln("Other took          : ", otherT.elapsed());
+        writeln("Total time:         : ", totalT.elapsed());
       } catch e {
         writeln(e!.message());
       }

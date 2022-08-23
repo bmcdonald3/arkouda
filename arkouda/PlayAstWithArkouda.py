@@ -23,9 +23,11 @@ def my_filter3(v : ak.int64, x : ak.pdarray, y : ak.pdarray) -> ak.pdarray:
     return ((y+1) if (not (x < a) and (x >= 0)) else (y-1))
 
 # try it out
+size = 1000000
+
 ak.connect()
-x = ak.array([1.0,2,3,4,5,6,7,8,9,10])
-y = ak.array([10.0,10,10,10,10,10,10,10,10,10])
+x = ak.randint(0,100,size)
+y = ak.randint(0,100,size)
 a = 5.0
 
 #ret = my_axpy(5.0,x,y)

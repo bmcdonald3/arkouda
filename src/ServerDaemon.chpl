@@ -23,9 +23,8 @@ module ServerDaemon {
     use Errors;
     use List;
     use ExternalIntegration;
-    use MetricsMsg;
 
-    enum ServerDaemonType {DEFAULT,INTEGRATION,METRICS}
+    enum ServerDaemonType {DEFAULT,INTEGRATION}
 
     private config const logLevel = ServerConfig.logLevel;
     const sdLogger = new Logger(logLevel);
@@ -53,13 +52,6 @@ module ServerDaemon {
         return types;
     }    
 
-    /**
-     * Returns a boolean indicating if Arkouda is configured to generate and
-     * make available metrics via a dedicated metrics socket
-     */
-    proc metricsEnabled() {
-        return getDaemonTypes().contains(ServerDaemonType.METRICS);
-    }
 
     /**
      * Returns a boolean indicating whether Arkouda is configured to 
@@ -520,10 +512,6 @@ module ServerDaemon {
                     sdLogger.info(getModuleName(),getRoutineName(),getLineNumber(),
                         "bytes of memory used after command %t".format(getMemUsed():uint * numLocales:uint));
                 }
-                if metricsEnabled() {
-                    userMetrics.incrementPerUserRequestMetrics(user,cmd);
-                    requestMetrics.increment(cmd);
-                }
             } catch (e: ErrorWithMsg) {
                 // Generate a ReplyMsg of type ERROR and serialize to a JSON-formatted string
                 sendRepMsg(serialize(msg=e.msg,msgType=MsgType.ERROR, msgFormat=MsgFormat.STRING, 
@@ -601,7 +589,6 @@ module ServerDaemon {
                 var repTuple: MsgTuple;
 
                 select cmd {
-                    when "metrics" {repTuple = metricsMsg(cmd, args, st);}        
                     when "connect" {
                         if authenticate {
                             repTuple = new MsgTuple("connected to arkouda metrics server tcp://*:%i as user " +
@@ -640,9 +627,6 @@ module ServerDaemon {
             on Locales[here.id] {
                 deregisterFromExternalSystem(ServiceEndpoint.ARKOUDA_CLIENT);
                 // if metrics is enabled, deregister the metrics socket
-                if metricsEnabled() {
-                    deregisterFromExternalSystem(ServiceEndpoint.METRICS);
-                }
             }
 
             super.shutdown(user);
@@ -656,9 +640,6 @@ module ServerDaemon {
             }
             when ServerDaemonType.INTEGRATION {
                 return new ExternalIntegrationServerDaemon():ArkoudaServerDaemon;
-            }
-            when ServerDaemonType.METRICS {
-               return new MetricsServerDaemon():ArkoudaServerDaemon;
             }
             otherwise {
                 throw getErrorWithContext(

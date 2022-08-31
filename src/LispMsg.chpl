@@ -68,7 +68,8 @@ module LispMsg
         repMsg = "created " + st.attrib(retName);
         return new MsgTuple(repMsg, MsgType.NORMAL);
     }
-    
+
+    use Map;
     proc evalLisp(prog: string, ret: [] ?t, st) throws {
       try {
         coforall loc in Locales {
@@ -79,13 +80,17 @@ module LispMsg
                     var ast = parse(prog);
                     var env = new owned Env();
                     var p = new pool();
+                    var a: [0..9] real;
+                    var stMap = new map(string, a.type);
+                    var constMap = new map(string, real);
+
+                    // Store local arrays
+                    setupEnv(ast, env, st, stMap, constMap, '');
 
                     // start verbose mem
                     for i in tD {
-                      env.addEntry("i", i);
-                        
                       // Evaluate for this index
-                      ret[i] = eval(ast, env, st, p).toValue(t).v;
+                      ret[i] = eval(ast, env, st, p, stMap,i).toValue(t).v;
                       p.freeAll();
                     }
                     // stop verbose mem

@@ -65,10 +65,14 @@ module LispMsg
           var ret = st.addEntry(retName, size, real);
           evalLisp(lispCode, ret.a, st);
         }
+        writeln("Symbol took        : ", gSymbolT);
+        writeln("Check took         : ", gCheckT);
+        writeln("Lookup took        : ", gLookupT);
         repMsg = "created " + st.attrib(retName);
         return new MsgTuple(repMsg, MsgType.NORMAL);
     }
-    
+
+    use Memory.Diagnostics;
     proc evalLisp(prog: string, ret: [] ?t, st) throws {
       try {
         coforall loc in Locales {
@@ -81,6 +85,7 @@ module LispMsg
                     var p = new pool();
 
                     // start verbose mem
+                    //startVerboseMem();
                     for i in tD {
                       env.addEntry("i", i);
                         
@@ -88,6 +93,7 @@ module LispMsg
                       ret[i] = eval(ast, env, st, p).toValue(t).v;
                       p.freeAll();
                     }
+                    //stopVerboseMem();
                     // stop verbose mem
                     // memtracking size = 0 in makefile 
                 }

@@ -3,6 +3,7 @@ module LisExprInterp
 
     use LisExprData;
     use ObjectPool;
+    use Time;
 
     /*
       tokenize the prog
@@ -90,70 +91,105 @@ module LisExprInterp
         }
     }
 
+    var gSymbolT: real;
+    var gCheckT: real;
+    var gLookupT: real;
+    
     /*
       evaluate the expression
     */
     proc eval(ast: BGenListValue, env: borrowed Env, st, ref p: pool): GenValue throws {
+      var symbolT: Timer;
+      var checkT: Timer;
+      var lookupT: Timer;
+      
         select (ast.lvt) {
             when (LVT.Sym) {
+              symbolT.start();
                 var gv = env.lookup(ast.toListValue(Symbol).lv);
-                return gv.copy();
+                var asd = gv.copy();
+                symbolT.stop(); gSymbolT += symbolT.elapsed(); 
+                return asd;
             }
             when (LVT.I) {
+              symbolT.start();
                 var ret: int = ast.toListValue(int).lv;
-                return new Value(ret);
+                var asd = new Value(ret);
+                symbolT.stop(); gSymbolT += symbolT.elapsed(); 
+                return asd;
             }
             when (LVT.R) {
+              symbolT.start();
                 var ret: real = ast.toListValue(real).lv;
-                return p.getReal(ret);
+                var asd = p.getReal(ret);
+                symbolT.stop(); gSymbolT += symbolT.elapsed(); 
+                return asd;
             }
             when (LVT.Lst) {
                 ref lst = ast.toListValue(GenList).lv;
                 // no empty lists allowed
+                checkT.start();
                 checkGEqLstSize(lst,1);
                 // currently first list element must be a symbol of operator
                 checkSymbol(lst[0]);
+                checkT.stop();
                 var op = lst[0].toListValue(Symbol).lv;
                 select (op) {
-                    when "+"   {checkEqLstSize(lst,3); return poolAdd(eval(lst[1], env, st, p), eval(lst[2], env, st, p),p);}
-                    when "-"   {checkEqLstSize(lst,3); return eval(lst[1], env, st, p) - eval(lst[2], env, st, p);}
-                    when "*"   {checkEqLstSize(lst,3); return poolMul(eval(lst[1], env, st, p), eval(lst[2], env, st, p),p);}
-                    when "=="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p) == eval(lst[2], env, st, p);}
-                    when "!="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p) != eval(lst[2], env, st, p);}
-                    when "<"   {checkEqLstSize(lst,3); return eval(lst[1], env, st, p) < eval(lst[2], env, st, p);}
-                    when "<="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p) <= eval(lst[2], env, st, p);}
-                    when ">"   {checkEqLstSize(lst,3); return eval(lst[1], env, st, p) > eval(lst[2], env, st, p);}
-                    when ">="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p) >= eval(lst[2], env, st, p);}
-                    when "or"  {checkEqLstSize(lst,3); return or(eval(lst[1], env, st, p), eval(lst[2], env, st, p));}
-                    when "and" {checkEqLstSize(lst,3); return and(eval(lst[1], env, st, p), eval(lst[2], env, st, p));}
-                    when "not" {checkEqLstSize(lst,2); return not(eval(lst[1], env, st, p));}
+                    when "+"   {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return poolAdd(eval(lst[1], env, st, p), eval(lst[2], env, st, p),p);}
+                    when "-"   {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return eval(lst[1], env, st, p) - eval(lst[2], env, st, p);}
+                    when "*"   {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return poolMul(eval(lst[1], env, st, p), eval(lst[2], env, st, p),p);}
+                    when "=="  {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return eval(lst[1], env, st, p) == eval(lst[2], env, st, p);}
+                    when "!="  {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return eval(lst[1], env, st, p) != eval(lst[2], env, st, p);}
+                    when "<"   {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return eval(lst[1], env, st, p) < eval(lst[2], env, st, p);}
+                    when "<="  {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return eval(lst[1], env, st, p) <= eval(lst[2], env, st, p);}
+                    when ">"   {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return eval(lst[1], env, st, p) > eval(lst[2], env, st, p);}
+                    when ">="  {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return eval(lst[1], env, st, p) >= eval(lst[2], env, st, p);}
+                    when "or"  {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return or(eval(lst[1], env, st, p), eval(lst[2], env, st, p));}
+                    when "and" {checkT.start();checkEqLstSize(lst,3);checkT.stop(); gCheckT+=checkT.elapsed();  return and(eval(lst[1], env, st, p), eval(lst[2], env, st, p));}
+                    when "not" {checkT.start();checkEqLstSize(lst,2);checkT.stop(); gCheckT+=checkT.elapsed();  return not(eval(lst[1], env, st, p));}
                     when ":=" {
+                      checkT.start();
                         checkEqLstSize(lst,3);
                         checkSymbol(lst[1]);
+                        checkT.stop(); gCheckT+=checkT.elapsed(); 
+
+                        symbolT.start();
                         var name = lst[1].toListValue(Symbol).lv;
                         // addEnrtry redefines values for already existing entries
                         var gv = env.addEntry(name, eval(lst[2],env, st, p));
                         //TODO: how to continue evaling after an assignment?
-                        return gv.copy(); // return value assigned to symbol
+                        var asd = gv.copy();
+                        symbolT.stop(); gSymbolT += symbolT.elapsed(); 
+                        return asd; // return value assigned to symbol
                     }
                     when "lookup_and_index_float64" {
+                      lookupT.start();
                         var entry = st.lookup(lst[1].toListValue(Symbol).lv);
                         var e = toSymEntry(toGenSymEntry(entry), real);
                         var i = eval(lst[2],env,st,p).toValue(int).v;
-                        return p.getReal(e.a[i]);
+                        var asd = p.getReal(e.a[i]);
+                        lookupT.stop();
+                        gLookupT+= lookupT.elapsed();
+                        return asd;
                     }
                     when "lookup_and_index_int64" {
+                      lookupT.start();
                         var entry = st.lookup(lst[1].toListValue(Symbol).lv);
                         var e = toSymEntry(toGenSymEntry(entry), int);
                         var i = eval(lst[2],env,st,p).toValue(int).v;
-                        return new Value(e.a[i]);
+                        var asd =new Value(e.a[i]);
+                        lookupT.stop();
+                        gLookupT+= lookupT.elapsed();
+                        return asd;
                     }
                     when "if" {
                         checkEqLstSize(lst,4);
                         if isTrue(eval(lst[1], env, st, p)) {return eval(lst[2], env, st, p);} else {return eval(lst[3], env, st, p);}
                     }
                     when "begin" {
+                      checkT.start();
                       checkGEqLstSize(lst, 1);
+                      checkT.stop(); gCheckT+=checkT.elapsed(); 
                       // setup the environment
                       for i in 1..#lst.size-1 do
                         eval(lst[i], env, st, p);

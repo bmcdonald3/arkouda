@@ -68,7 +68,7 @@ module LispMsg
         repMsg = "created " + st.attrib(retName);
         return new MsgTuple(repMsg, MsgType.NORMAL);
     }
-    
+    use Time;
     proc evalLisp(prog: string, ret: [] ?t, st) throws {
       try {
         coforall loc in Locales {
@@ -78,18 +78,32 @@ module LispMsg
                     var tD = calcBlock(task, lD.low, lD.high);
                     var ast = parse(prog);
                     var env = new owned Env();
+                    var allocT: Timer;
+                    allocT.start();
                     var p = new pool();
+                    allocT.stop();
 
+                    var entryT: Timer;
+                    var evalT: Timer;
+                    
                     // start verbose mem
                     for i in tD {
+                      entryT.start();
                       env.addEntry("i", i);
-                        
+                      entryT.stop();
+
+                      evalT.start();
                       // Evaluate for this index
                       ret[i] = eval(ast, env, st, p).toValue(t).v;
+                      evalT.stop();
                       p.freeAll();
                     }
                     // stop verbose mem
-                    // memtracking size = 0 in makefile 
+                    // memtracking size = 0 in makefile
+                    writeln("Alloc pool took  : ", allocT.elapsed());
+                    writeln("Get real took    : ", p.t.elapsed());
+                    writeln("Add entry took   : ", entryT.elapsed());
+                    writeln("Eval took        : ", evalT.elapsed());
                 }
             }
         }

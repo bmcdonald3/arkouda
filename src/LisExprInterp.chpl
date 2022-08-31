@@ -91,31 +91,35 @@ module LisExprInterp
         }
     }
 
+    var gStrSymbolT: real;
     var gSymbolT: real;
     var gCheckT: real;
     var gLookupT: real;
+    var gAssignT: real;
     
     /*
       evaluate the expression
     */
     proc eval(ast: BGenListValue, env: borrowed Env, st, ref p: pool): GenValue throws {
+      var strSymbolT: Timer;
       var symbolT: Timer;
       var checkT: Timer;
       var lookupT: Timer;
+      var assignT: Timer;
       
         select (ast.lvt) {
             when (LVT.Sym) {
-              symbolT.start();
+              strSymbolT.start();
                 var gv = env.lookup(ast.toListValue(Symbol).lv);
                 var asd = gv.copy();
-                symbolT.stop(); gSymbolT += symbolT.elapsed(); 
+                strSymbolT.stop(); gStrSymbolT += strSymbolT.elapsed(); 
                 return asd;
             }
             when (LVT.I) {
-              symbolT.start();
+              //symbolT.start();
                 var ret: int = ast.toListValue(int).lv;
                 var asd = new Value(ret);
-                symbolT.stop(); gSymbolT += symbolT.elapsed(); 
+                //symbolT.stop(); gSymbolT += symbolT.elapsed(); 
                 return asd;
             }
             when (LVT.R) {
@@ -153,13 +157,13 @@ module LisExprInterp
                         checkSymbol(lst[1]);
                         checkT.stop(); gCheckT+=checkT.elapsed(); 
 
-                        symbolT.start();
+                        assignT.start();
                         var name = lst[1].toListValue(Symbol).lv;
                         // addEnrtry redefines values for already existing entries
                         var gv = env.addEntry(name, eval(lst[2],env, st, p));
                         //TODO: how to continue evaling after an assignment?
                         var asd = gv.copy();
-                        symbolT.stop(); gSymbolT += symbolT.elapsed(); 
+                        assignT.stop(); gAssignT += assignT.elapsed(); 
                         return asd; // return value assigned to symbol
                     }
                     when "lookup_and_index_float64" {

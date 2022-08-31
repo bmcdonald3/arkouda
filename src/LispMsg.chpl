@@ -68,6 +68,8 @@ module LispMsg
         writeln("Symbol took        : ", gSymbolT);
         writeln("Check took         : ", gCheckT);
         writeln("Lookup took        : ", gLookupT);
+        writeln("String symbol took : ", gStrSymbolT);
+        writeln("Assign took        : ", gAssignT);
         repMsg = "created " + st.attrib(retName);
         return new MsgTuple(repMsg, MsgType.NORMAL);
     }

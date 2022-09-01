@@ -96,16 +96,9 @@ module LisExprInterp
     proc eval(ast: BGenListValue, env: borrowed Env, st, ref p: pool, idx: int): GenValue throws {
         select (ast.lvt) {
             when (LVT.Sym) {
+              return env.getRealVal(ast.toListValue(Symbol).lv, idx);
                 var gv = env.lookup(ast.toListValue(Symbol).lv);
                 return gv.copy();
-            }
-            when (LVT.I) {
-                var ret: int = ast.toListValue(int).lv;
-                return new Value(ret);
-            }
-            when (LVT.R) {
-                var ret: real = ast.toListValue(real).lv;
-                return p.getReal(ret);
             }
             when (LVT.Lst) {
                 ref lst = ast.toListValue(GenList).lv;
@@ -127,35 +120,13 @@ module LisExprInterp
                     when "or"  {checkEqLstSize(lst,3); return or(eval(lst[1], env, st, p, idx), eval(lst[2], env, st, p, idx));}
                     when "and" {checkEqLstSize(lst,3); return and(eval(lst[1], env, st, p, idx), eval(lst[2], env, st, p, idx));}
                     when "not" {checkEqLstSize(lst,2); return not(eval(lst[1], env, st, p, idx));}
-                    when ":=" {
-                        checkEqLstSize(lst,3);
-                        checkSymbol(lst[1]);
-                        var name = lst[1].toListValue(Symbol).lv;
-                        // addEnrtry redefines values for already existing entries
-                        var gv = env.addEntry(name, eval(lst[2],env, st, p, idx));
-                        //TODO: how to continue evaling after an assignment?
-                        return gv.copy(); // return value assigned to symbol
-                    }
-                    when "lookup_and_index_float64" {
-                        var entry = st.lookup(lst[1].toListValue(Symbol).lv);
-                        var e = toSymEntry(toGenSymEntry(entry), real);
-                        return p.getReal(e.a[idx]);
-                    }
-                    when "lookup_and_index_int64" {
-                        var entry = st.lookup(lst[1].toListValue(Symbol).lv);
-                        var e = toSymEntry(toGenSymEntry(entry), int);
-                        return new Value(e.a[idx]);
-                    }
                     when "if" {
                         checkEqLstSize(lst,4);
                         if isTrue(eval(lst[1], env, st, p, idx)) {return eval(lst[2], env, st, p, idx);} else {return eval(lst[3], env, st, p, idx);}
                     }
                     when "begin" {
                       checkGEqLstSize(lst, 1);
-                      // setup the environment
-                      for i in 1..#lst.size-2 do
-                        eval(lst[i], env, st, p, idx);
-                      // eval the return expression
+                      // env already setup, only eval last statement
                       return eval(lst[lst.size-1], env, st, p, idx);
                     }
                     when "return" { // for now, just eval the next line, in time, might want to coerce return value
@@ -170,5 +141,51 @@ module LisExprInterp
               throw new owned Error("undefined ast node type " + ast:string);
             }
         }
+    }
+
+    proc setupEnv(ast: BGenListValue, env: borrowed Env, name: string, st) throws {
+      select (ast.lvt) {
+        when (LVT.R) {
+          env.addReal(name, new Value(ast.toListValue(real).lv));
+          return;
+        }
+        when (LVT.Lst) {
+          ref lst = ast.toListValue(GenList).lv;
+          // no empty lists allowed
+          checkGEqLstSize(lst,1);
+          // currently first list element must be a symbol of operator
+          checkSymbol(lst[0]);
+          var op = lst[0].toListValue(Symbol).lv;
+          select (op) {
+            when ":=" {
+                checkEqLstSize(lst,3);
+                checkSymbol(lst[1]);
+                var name = lst[1].toListValue(Symbol).lv;
+                setupEnv(lst[2],env,name,st);
+            }
+            when "lookup_and_index_float64" {
+                var id = lst[1].toListValue(Symbol).lv;
+                env.addArr(name, id, st);
+                return;
+            }
+            when "begin" {
+              checkGEqLstSize(lst, 1);
+              // setup the environment
+              for i in 1..#lst.size-2 do
+                setupEnv(lst[i], env, '', st);
+              // don't eval the return statement
+            }
+            when "return" { // for now, just eval the next line, in time, might want to coerce return value
+              // skip for setup
+            }
+            otherwise {
+                throw new owned Error("op not implemented " + op);
+            }
+          }
+        }
+        otherwise {
+          throw new owned Error("undefined ast node type " + ast:string);
+        }
+      }
     }
 }

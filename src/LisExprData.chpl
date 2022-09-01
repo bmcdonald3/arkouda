@@ -3,6 +3,7 @@ module LisExprData
 
     public use List;
     public use Map;
+    use MultiTypeSymEntry;
     
     type Symbol = string;
 
@@ -275,6 +276,26 @@ module LisExprData
     {
         /* map of Symbol to GenValue */
         var tab: map(Symbol, GenValue);
+        var realTab = new map(Symbol, Value(real));
+        var genSymTab = new map(Symbol, borrowed SymEntry(real));
+
+        proc addReal(name: string, val) throws {
+          realTab.addOrSet(name, val);
+        }
+        proc getReal(name: string) throws {
+          return realTab.getReference(name);
+        }
+        proc addArr(name: string, id: string,st) throws {
+          var entry = st.lookup(id);
+          genSymTab.addOrSet(name, toSymEntry(toGenSymEntry(entry), real));
+          return genSymTab.getReference(name);
+        }
+        proc getRealVal(name: string, i: int) {
+          if realTab.contains(name) then
+            return realTab.getReference(name);
+          ref ea = genSymTab.getReference(name).a;
+          return new Value(ea[i]);
+        }
 
         /* add a new entry or set an entry to a new value */
         proc addEntry(name:string, val: ?t): BValue(t) throws {
@@ -292,7 +313,7 @@ module LisExprData
         /* lookup symbol and throw error if not found */
         proc lookup(name: string): BGenValue throws {
             if (!tab.contains(name)) {
-              throw new owned Error("undefined symbol error " + name);
+              return realTab.getReference(name);
             }
             return tab.getReference(name);
         }

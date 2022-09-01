@@ -269,12 +269,15 @@ module LisExprData
             otherwise {throw new owned Error("not implemented");}
         }
     }
+
+    var globArr: [0..#10000000] real;
     
     /* environment is a dictionary of {string:GenValue} */
     class Env
     {
         /* map of Symbol to GenValue */
         var tab: map(Symbol, GenValue);
+        var arr1 = globArr;
 
         /* add a new entry or set an entry to a new value */
         proc addEntry(name:string, val: ?t): BValue(t) throws {

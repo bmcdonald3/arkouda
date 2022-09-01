@@ -137,9 +137,7 @@ module LisExprInterp
                         return gv.copy(); // return value assigned to symbol
                     }
                     when "lookup_and_index_float64" {
-                        var entry = st.lookup(lst[1].toListValue(Symbol).lv);
-                        var e = toSymEntry(toGenSymEntry(entry), real);
-                        return p.getReal(e.a[idx]);
+                        return p.getReal(env.arr1[idx]);
                     }
                     when "lookup_and_index_int64" {
                         var entry = st.lookup(lst[1].toListValue(Symbol).lv);

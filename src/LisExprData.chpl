@@ -329,6 +329,9 @@ module LisExprData
                 try! stdout.flush();
             }
         }
+        proc deinit() {
+          // TODO: cleanup real map
+        }
     }
 
 

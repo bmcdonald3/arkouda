@@ -274,63 +274,41 @@ module LisExprData
     /* environment is a dictionary of {string:GenValue} */
     class Env
     {
-        /* map of Symbol to GenValue */
-        var tab: map(Symbol, GenValue);
         var realTab = new map(Symbol, Value(real));
         var genSymTab = new map(Symbol, borrowed SymEntry(real));
 
         proc addReal(name: string, val) throws {
           realTab.addOrSet(name, val);
         }
+      
         proc getReal(name: string) throws {
           return realTab.getReference(name);
         }
+      
         proc addArr(name: string, id: string,st) throws {
           var entry = st.lookup(id);
           genSymTab.addOrSet(name, toSymEntry(toGenSymEntry(entry), real));
           return genSymTab.getReference(name);
         }
+      
         proc getRealVal(name: string, i: int) {
           if realTab.contains(name) then
             return realTab.getReference(name);
           ref ea = genSymTab.getReference(name).a;
+          // TODO: This value is now not managed, we need to store it in realTab
+          //       and then update per iteration, rather than returning a new one
+          //       everytime 
           return new Value(ea[i]);
-        }
-
-        /* add a new entry or set an entry to a new value */
-        proc addEntry(name:string, val: ?t): BValue(t) throws {
-            var entry = new Value(val);
-            tab.addOrSet(name, entry);
-            return tab.getReference(name).toValue(t);
-        }
-
-        /* add a new entry or set an entry to a new value */
-        proc addEntry(name:string, in entry: GenValue): BGenValue throws {
-            tab.addOrSet(name, entry);
-            return tab.getReference(name);
         }
 
         /* lookup symbol and throw error if not found */
         proc lookup(name: string): BGenValue throws {
-            if (!tab.contains(name)) {
-              return realTab.getReference(name);
-            }
-            return tab.getReference(name);
+          return realTab.getReference(name);
         }
 
-        /* delete entry -- not sure if we need this */
-        proc deleteEntry(name: string) {
-            import IO.stdout;
-            if (tab.contains(name)) {
-                tab.remove(name);
-            }
-            else {
-                writeln("unkown symbol ",name);
-                try! stdout.flush();
-            }
-        }
         proc deinit() {
-          // TODO: cleanup real map
+          for val in realTab.values() do
+            delete val;
         }
     }
 

@@ -162,6 +162,7 @@ module LisExprInterp
                 checkSymbol(lst[1]);
                 var name = lst[1].toListValue(Symbol).lv;
                 setupEnv(lst[2],env,name,st);
+                return;
             }
             when "lookup_and_index_float64" {
                 var id = lst[1].toListValue(Symbol).lv;
@@ -174,6 +175,7 @@ module LisExprInterp
               for i in 1..#lst.size-2 do
                 setupEnv(lst[i], env, '', st);
               // don't eval the return statement
+              return;
             }
             when "return" { // for now, just eval the next line, in time, might want to coerce return value
               // skip for setup

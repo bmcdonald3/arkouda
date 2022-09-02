@@ -80,7 +80,6 @@ module LispMsg
                     var env = new owned Env();
                     var p = new pool();
                     setupEnv(ast, env, '', st);
-                    writeln(env.realTab);
 
                     // start verbose mem
                     for i in tD {

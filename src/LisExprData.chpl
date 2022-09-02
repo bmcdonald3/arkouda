@@ -341,7 +341,8 @@ module LisExprData
     }
     
     record pool {
-      var freeRealList: [0..6] unmanaged ValueClass(real) = [0..6] new unmanaged ValueClass(0.0);
+      var freeRealList = new list(Value(real));
+      var numElems = 0;
       var realCounter = 0;
 
       proc deinit() {
@@ -355,6 +356,11 @@ module LisExprData
       }
 
       proc getReal(val: real) throws {
+        if numElems - realCounter <= 0 {
+          numElems+=1;
+          realCounter+=1;
+          return freeRealList[freeRealList.append(new Value(val))];
+        }
         ref curr = freeRealList[realCounter];
         curr.v = val;
         realCounter+=1;

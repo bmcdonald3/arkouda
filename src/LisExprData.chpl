@@ -275,45 +275,68 @@ module LisExprData
     class Env
     {
         var realTab = new map(Symbol, Value(real));
+        var intTab = new map(Symbol, Value(int));
+
+        // stores a single value per arr that is updated at
+        // each index, rather than reallocating
         var realArrValTab = new map(Symbol, Value(real));
-        var genSymTab = new map(Symbol, borrowed SymEntry(real));
+        var intArrValTab = new map(Symbol, Value(int));
+
+        // Stores all sym entries
+        var genSymRealTab = new map(Symbol, borrowed SymEntry(real));
+        var genSymIntTab = new map(Symbol, borrowed SymEntry(int));
 
         proc addReal(name: string, val) throws {
           realTab.addOrSet(name, val);
         }
-      
-        proc getReal(name: string) throws {
-          return realTab.getReference(name);
+
+        proc addInt(name: string, val) throws {
+          intTab.addOrSet(name, val);
         }
       
-        proc addArr(name: string, id: string,st) throws {
+        proc addRealArr(name: string, id: string,st) throws {
           var entry = st.lookup(id);
-          genSymTab.addOrSet(name, toSymEntry(toGenSymEntry(entry), real));
+          genSymRealTab.addOrSet(name, toSymEntry(toGenSymEntry(entry), real));
           // allocate a placeholder value to update later
           realArrValTab.addOrSet(name, new Value(-1.0));
         }
+
+        proc addIntArr(name: string, id: string,st) throws {
+          var entry = st.lookup(id);
+          genSymIntTab.addOrSet(name, toSymEntry(toGenSymEntry(entry), int));
+          // allocate a placeholder value to update later
+          intArrValTab.addOrSet(name, new Value(-1));
+        }
       
-        proc getVal(name: string, i: int) {
+        proc getVal(name: string, i: int) throws {
           if realTab.contains(name) then
             return realTab.getReference(name): GenValue;
-          else {
-            // this is a value from an array
-            ref ea = genSymTab.getReference(name).a;
+          else if realArrValTab.contains(name) {
+            // this is a real value from an array
+            ref ea = genSymRealTab.getReference(name).a;
             ref val = realArrValTab.getReference(name);
             val.v = ea[i];
             return val: GenValue;
+          } else if intTab.contains(name) then
+              return intTab.getReference(name): GenValue;
+          else if intArrValTab.contains(name) {
+            // this is an int value from an array
+            ref ea = genSymIntTab.getReference(name).a;
+            ref val = intArrValTab.getReference(name);
+            val.v = ea[i];
+            return val: GenValue;
           }
-        }
-
-        /* lookup symbol and throw error if not found */
-        proc lookup(name: string): BGenValue throws {
-          return realTab.getReference(name);
+          throw new owned Error("value not in environment");
         }
 
         proc deinit() {
           for val in realTab.values() do
             delete val;
+          for val in intTab.values() do
+            delete val;
           for val in realArrValTab.values() do
+            delete val;
+          for val in intArrValTab.values() do
             delete val;
         }
     }

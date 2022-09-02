@@ -147,6 +147,9 @@ module LisExprInterp
           env.addReal(name, new Value(ast.toListValue(real).lv));
           return;
         }
+        when (LVT.I) {
+          env.addInt(name, new Value(ast.toListValue(int).lv));
+        }
         when (LVT.Lst) {
           ref lst = ast.toListValue(GenList).lv;
           // no empty lists allowed
@@ -164,7 +167,12 @@ module LisExprInterp
             }
             when "lookup_and_index_float64" {
                 var id = lst[1].toListValue(Symbol).lv;
-                env.addArr(name, id, st);
+                env.addRealArr(name, id, st);
+                return;
+            }
+            when "lookup_and_index_int64" {
+                var id = lst[1].toListValue(Symbol).lv;
+                env.addIntArr(name, id, st);
                 return;
             }
             when "begin" {

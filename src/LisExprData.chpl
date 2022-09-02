@@ -150,7 +150,6 @@ module LisExprData
         }
     }
 
-    use ObjectPool;
     inline proc poolAdd(l: BGenValue, r: BGenValue, ref p: pool): GenValue throws {
         select (l.vt, r.vt) {
             when (VT.I, VT.I) {return new Value(l.toValue(int).v + r.toValue(int).v);}
@@ -339,5 +338,27 @@ module LisExprData
           for val in intArrValTab.values() do
             delete val;
         }
+    }
+    
+    record pool {
+      var freeRealList: [0..6] unmanaged ValueClass(real) = [0..6] new unmanaged ValueClass(0.0);
+      var realCounter = 0;
+
+      proc deinit() {
+        forall val in freeRealList {
+          delete val;
+        }
+      }
+
+      proc freeAll() {
+        realCounter = 0;
+      }
+
+      proc getReal(val: real) throws {
+        ref curr = freeRealList[realCounter];
+        curr.v = val;
+        realCounter+=1;
+        return curr;
+      }
     }
 }

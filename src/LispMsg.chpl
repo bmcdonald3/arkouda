@@ -32,8 +32,6 @@ module LispMsg
     use GenSymIO;
     use Message;
 
-    use ObjectPool;
-
     private config const logLevel = ServerConfig.logLevel;
     const asLogger = new Logger(logLevel);
     const Tasks = {0..#numTasks};

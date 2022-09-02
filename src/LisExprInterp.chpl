@@ -96,7 +96,7 @@ module LisExprInterp
     proc eval(ast: BGenListValue, env: borrowed Env, st, ref p: pool, idx: int): GenValue throws {
         select (ast.lvt) {
             when (LVT.Sym) {
-              return env.getRealVal(ast.toListValue(Symbol).lv, idx);
+              return env.getVal(ast.toListValue(Symbol).lv, idx);
             }
             when (LVT.Lst) {
                 ref lst = ast.toListValue(GenList).lv;
@@ -175,7 +175,7 @@ module LisExprInterp
               // don't eval the return statement
               return;
             }
-            when "return" { // for now, just eval the next line, in time, might want to coerce return value
+            when "return" {
               // skip for setup
             }
             otherwise {

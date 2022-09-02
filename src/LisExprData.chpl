@@ -293,15 +293,15 @@ module LisExprData
           realArrValTab.addOrSet(name, new Value(-1.0));
         }
       
-        proc getRealVal(name: string, i: int) {
+        proc getVal(name: string, i: int) {
           if realTab.contains(name) then
-            return realTab.getReference(name);
+            return realTab.getReference(name): GenValue;
           else {
             // this is a value from an array
             ref ea = genSymTab.getReference(name).a;
             ref val = realArrValTab.getReference(name);
             val.v = ea[i];
-            return val;
+            return val: GenValue;
           }
         }
 
@@ -317,6 +317,4 @@ module LisExprData
             delete val;
         }
     }
-
-
 }

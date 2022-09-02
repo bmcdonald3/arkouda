@@ -275,6 +275,7 @@ module LisExprData
     class Env
     {
         var realTab = new map(Symbol, Value(real));
+        var realArrValTab = new map(Symbol, Value(real));
         var genSymTab = new map(Symbol, borrowed SymEntry(real));
 
         proc addReal(name: string, val) throws {
@@ -288,17 +289,20 @@ module LisExprData
         proc addArr(name: string, id: string,st) throws {
           var entry = st.lookup(id);
           genSymTab.addOrSet(name, toSymEntry(toGenSymEntry(entry), real));
-          return genSymTab.getReference(name);
+          // allocate a placeholder value to update later
+          realArrValTab.addOrSet(name, new Value(-1.0));
         }
       
         proc getRealVal(name: string, i: int) {
           if realTab.contains(name) then
             return realTab.getReference(name);
-          ref ea = genSymTab.getReference(name).a;
-          // TODO: This value is now not managed, we need to store it in realTab
-          //       and then update per iteration, rather than returning a new one
-          //       everytime 
-          return new Value(ea[i]);
+          else {
+            // this is a value from an array
+            ref ea = genSymTab.getReference(name).a;
+            ref val = realArrValTab.getReference(name);
+            val.v = ea[i];
+            return val;
+          }
         }
 
         /* lookup symbol and throw error if not found */
@@ -308,6 +312,8 @@ module LisExprData
 
         proc deinit() {
           for val in realTab.values() do
+            delete val;
+          for val in realArrValTab.values() do
             delete val;
         }
     }

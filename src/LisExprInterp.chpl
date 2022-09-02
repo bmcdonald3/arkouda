@@ -97,8 +97,6 @@ module LisExprInterp
         select (ast.lvt) {
             when (LVT.Sym) {
               return env.getRealVal(ast.toListValue(Symbol).lv, idx);
-                var gv = env.lookup(ast.toListValue(Symbol).lv);
-                return gv.copy();
             }
             when (LVT.Lst) {
                 ref lst = ast.toListValue(GenList).lv;

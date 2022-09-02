@@ -2,7 +2,6 @@ module LisExprInterp
 {
 
     use LisExprData;
-    use ObjectPool;
 
     /*
       tokenize the prog

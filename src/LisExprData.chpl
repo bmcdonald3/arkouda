@@ -325,19 +325,19 @@ module LisExprData
             val.v = ea[i];
             return val: GenValue;
           }
-          throw new owned Error("value not in environment");
+          throw new owned Error(name + " not in environment");
         }
 
-        proc deinit() {
-          for val in realTab.values() do
-            delete val;
-          for val in intTab.values() do
-            delete val;
-          for val in realArrValTab.values() do
-            delete val;
-          for val in intArrValTab.values() do
-            delete val;
-        }
+      proc deinit() {
+        for name in realTab.keys() do
+          delete realTab.getReference(name);
+        for name in realArrValTab.keys() do
+          delete realArrValTab.getReference(name);
+        for name in intTab.keys() do
+          delete intTab.getReference(name);
+        for name in intArrValTab.keys() do
+          delete intArrValTab.getReference(name);
+      }
     }
     
     record pool {

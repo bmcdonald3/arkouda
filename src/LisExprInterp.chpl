@@ -144,7 +144,6 @@ module LisExprInterp
       select (ast.lvt) {
         when (LVT.R) {
           env.addReal(name, new Value(ast.toListValue(real).lv));
-          return;
         }
         when (LVT.I) {
           env.addInt(name, new Value(ast.toListValue(int).lv));
@@ -162,17 +161,14 @@ module LisExprInterp
                 checkSymbol(lst[1]);
                 var name = lst[1].toListValue(Symbol).lv;
                 setupEnv(lst[2],env,name,st);
-                return;
             }
             when "lookup_and_index_float64" {
                 var id = lst[1].toListValue(Symbol).lv;
                 env.addRealArr(name, id, st);
-                return;
             }
             when "lookup_and_index_int64" {
                 var id = lst[1].toListValue(Symbol).lv;
                 env.addIntArr(name, id, st);
-                return;
             }
             when "begin" {
               checkGEqLstSize(lst, 1);
@@ -180,7 +176,6 @@ module LisExprInterp
               for i in 1..#lst.size-2 do
                 setupEnv(lst[i], env, '', st);
               // don't eval the return statement
-              return;
             }
             when "return" {
               // skip for setup

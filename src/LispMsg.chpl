@@ -77,7 +77,8 @@ module LispMsg
                     var ast = parse(prog);
                     var env = new owned Env();
                     var p = new pool();
-                    setupEnv(ast, env, '', st);
+                    if tD.size > 0 then
+                      setupEnv(ast, env, '', st);
 
                     // start verbose mem
                     for i in tD {

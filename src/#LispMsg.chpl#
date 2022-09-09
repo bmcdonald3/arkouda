@@ -74,19 +74,20 @@ module LispMsg
         var loc = Locales[1];
         //coforall loc in Locales {
             on loc {
-              var ast = parse(prog);
-              var env = new owned Env();
-              //startVerboseComm();
-              setupEnv(ast, env, '', st);
-              forall task in Tasks {
+              for task in Tasks {
+                startVerboseComm();
                     var lD = ret.domain.localSubdomain();
                     var tD = calcBlock(task, lD.low, lD.high);
-                    //startVerboseComm();
+                    var ast = parse(prog);
+                    var env = new owned Env();
+                    var p = new pool();
+                    if tD.size > 0 then
+                      setupEnv(ast, env, '', st);
+
 
                     // start verbose mem
                     //startVerboseComm();
                     //startVerboseMem();
-                    var p = new pool();
                     for i in tD {
                       // Evaluate for this index
                       ret[i] = eval(ast, env, st, p, i).toValue(t).v;

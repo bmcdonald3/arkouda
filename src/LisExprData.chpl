@@ -3,6 +3,7 @@ module LisExprData
 
     public use List;
     public use Map;
+    use CommDiagnostics;
     use MultiTypeSymEntry;
     
     type Symbol = string;
@@ -295,7 +296,9 @@ module LisExprData
       
         proc addRealArr(name: string, id: string,st) throws {
           var entry = st.lookup(id);
+          startVerboseComm();
           genSymRealTab.addOrSet(name, toSymEntry(toGenSymEntry(entry), real));
+          stopVerboseComm();
           // allocate a placeholder value to update later
           realArrValTab.addOrSet(name, new Value(-1.0));
         }
@@ -308,13 +311,19 @@ module LisExprData
         }
       
         proc getVal(name: string, i: int) throws {
-          if realTab.contains(name) then
-            return realTab.getReference(name): GenValue;
+          if realTab.contains(name) {
+            var ret = realTab.getValue(name): GenValue;
+            return ret;
+          }
           else if realArrValTab.contains(name) {
             // this is a real value from an array
-            ref ea = genSymRealTab.getReference(name).a;
+            var e = genSymRealTab.getReference(name);
+            ref ea = e.a;
             ref val = realArrValTab.getReference(name);
+            //startCommDiagnostics();
             val.v = ea[i];
+            //stopCommDiagnostics();
+            //printCommDiagnosticsTable();
             return val: GenValue;
           } else if intTab.contains(name) then
               return intTab.getReference(name): GenValue;

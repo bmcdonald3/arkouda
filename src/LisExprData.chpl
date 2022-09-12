@@ -318,8 +318,16 @@ module LisExprData
           for name in e.realArrValTab.keys() {
             realArrValTab.addOrSet(name, new Value(-1.0));
           }
-          // This one can be a ref
+
+          for (name, val) in e.intTab.items() {
+            intTab.addOrSet(name, new Value(val.v));
+          }
+          for name in e.intArrValTab.keys() {
+            intArrValTab.addOrSet(name, new Value(-1));
+          }
+          // These can just be refs?
           genSymRealTab = e.genSymRealTab;
+          genSymIntTab = e.genSymIntTab;
         }
 
         proc addReal(name: string, val) throws {

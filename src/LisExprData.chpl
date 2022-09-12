@@ -273,17 +273,54 @@ module LisExprData
     /* environment is a dictionary of {string:GenValue} */
     class Env
     {
-        var realTab = new map(Symbol, Value(real));
-        var intTab = new map(Symbol, Value(int));
+      var realTab: map(Symbol, Value(real));
+      var intTab: map(Symbol, Value(int));
 
         // stores a single value per arr that is updated at
         // each index, rather than reallocating
-        var realArrValTab = new map(Symbol, Value(real));
-        var intArrValTab = new map(Symbol, Value(int));
+      var realArrValTab: map(Symbol, Value(real));
+      var intArrValTab: map(Symbol, Value(int));
 
         // Stores all sym entries
-        var genSymRealTab = new map(Symbol, borrowed SymEntry(real));
-        var genSymIntTab = new map(Symbol, borrowed SymEntry(int));
+      var genSymRealTab: map(Symbol, borrowed SymEntry(real));
+      var genSymIntTab: map(Symbol, borrowed SymEntry(int));
+
+        proc init() {
+          realTab = new map(Symbol, Value(real));
+          intTab = new map(Symbol, Value(int));
+
+          // stores a single value per arr that is updated at
+          // each index, rather than reallocating
+          realArrValTab = new map(Symbol, Value(real));
+          intArrValTab = new map(Symbol, Value(int));
+
+          // Stores all sym entries
+          genSymRealTab = new map(Symbol, borrowed SymEntry(real));
+          genSymIntTab = new map(Symbol, borrowed SymEntry(int));
+        }
+      
+        proc init(e: Env) {
+          realTab = new map(Symbol, Value(real));
+          intTab = new map(Symbol, Value(int));
+
+          // stores a single value per arr that is updated at
+          // each index, rather than reallocating
+          realArrValTab = new map(Symbol, Value(real));
+          intArrValTab = new map(Symbol, Value(int));
+
+          // Stores all sym entries
+          genSymRealTab = new map(Symbol, borrowed SymEntry(real));
+          genSymIntTab = new map(Symbol, borrowed SymEntry(int));
+          
+          for (name, val) in e.realTab.items() {
+            realTab.addOrSet(name, new Value(val.v));
+          }
+          for name in e.realArrValTab.keys() {
+            realArrValTab.addOrSet(name, new Value(-1.0));
+          }
+          // This one can be a ref
+          genSymRealTab = e.genSymRealTab;
+        }
 
         proc addReal(name: string, val) throws {
           realTab.addOrSet(name, val);

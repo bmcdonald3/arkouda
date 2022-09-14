@@ -71,18 +71,19 @@ module LispMsg
       try {
         coforall loc in Locales {
             on loc {
-              const ast = parse(prog);
-              var env = new owned Env();
-              setupEnv(ast, env, '', st);
               coforall task in Tasks {
                     var lD = ret.domain.localSubdomain();
                     var tD = calcBlock(task, lD.low, lD.high);
                     var p = new pool();
 
-                    var locEnv = new owned Env(env);
+                    const ast = parse(prog);
+                    var env = new owned Env();
+                    setupEnv(ast, env, '', st);
+                    ref lst = ast.toListValue(GenList).lv;
                     for i in tD {
                       // Evaluate for this index
-                      ret[i] = eval(ast, locEnv, st, p, i).toValue(t).v;
+                      // only eval the last statement
+                      ret[i] = eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, i).toValue(t).v;
                       p.freeAll();
                     }
                     // memtracking size = 0 in makefile 

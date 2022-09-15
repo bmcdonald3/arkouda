@@ -80,10 +80,12 @@ module LispMsg
                     var env = new owned Env();
                     setupEnv(ast, env, '', st);
                     ref lst = ast.toListValue(GenList).lv;
+                    var ops = new list(string);
+                    eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, 0, ops, 0, true).toValue(t).v;
                     for i in tD {
                       // Evaluate for this index
                       // only eval the last statement
-                      ret[i] = eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, i).toValue(t).v;
+                      ret[i] = eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, i, ops, 0, false).toValue(t).v;
                       p.freeAll();
                     }
                     // memtracking size = 0 in makefile 

@@ -92,42 +92,50 @@ module LisExprInterp
     /*
       evaluate the expression
     */
-    proc eval(ast: BGenListValue, env: borrowed Env, st, ref p: pool, idx: int): GenValue throws {
+    proc eval(ast: BGenListValue, env: borrowed Env, st, ref p: pool, idx: int, ref ops, opIdx=0, param doChecks=false): GenValue throws {
         select (ast.lvt) {
             when (LVT.Sym) {
+              // We don't care about the value when doing checks
+              if doChecks then return new Value(1.0): GenValue;
               return env.getVal(ast.toListValue(Symbol).lv, idx);
             }
             when (LVT.Lst) {
                 ref lst = ast.toListValue(GenList).lv;
                 // no empty lists allowed
-                checkGEqLstSize(lst,1);
+                if doChecks then checkGEqLstSize(lst,1);
                 // currently first list element must be a symbol of operator
-                checkSymbol(lst[0]);
-                var op = lst[0].toListValue(Symbol).lv;
+                if doChecks then checkSymbol(lst[0]);
+                var op: string;
+                if doChecks {
+                  op = lst[0].toListValue(Symbol).lv;
+                  ops.append(op);
+                } else {
+                  op = ops[opIdx];
+                }
                 select (op) {
-                    when "+"   {checkEqLstSize(lst,3); return poolAdd(eval(lst[1], env, st, p, idx), eval(lst[2], env, st, p, idx),p);}
-                    when "-"   {checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx) - eval(lst[2], env, st, p, idx);}
-                    when "*"   {checkEqLstSize(lst,3); return poolMul(eval(lst[1], env, st, p, idx), eval(lst[2], env, st, p, idx),p);}
-                    when "=="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx) == eval(lst[2], env, st, p, idx);}
-                    when "!="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx) != eval(lst[2], env, st, p, idx);}
-                    when "<"   {checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx) < eval(lst[2], env, st, p, idx);}
-                    when "<="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx) <= eval(lst[2], env, st, p, idx);}
-                    when ">"   {checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx) > eval(lst[2], env, st, p, idx);}
-                    when ">="  {checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx) >= eval(lst[2], env, st, p, idx);}
-                    when "or"  {checkEqLstSize(lst,3); return or(eval(lst[1], env, st, p, idx), eval(lst[2], env, st, p, idx));}
-                    when "and" {checkEqLstSize(lst,3); return and(eval(lst[1], env, st, p, idx), eval(lst[2], env, st, p, idx));}
-                    when "not" {checkEqLstSize(lst,2); return not(eval(lst[1], env, st, p, idx));}
+                when "+"   {if doChecks then checkEqLstSize(lst,3); return poolAdd(eval(lst[1], env, st, p, idx, ops, opIdx+1, doChecks), eval(lst[2], env, st, p, idx, ops, opIdx+1, doChecks),p);}
+                    when "-"   {if doChecks then checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks) - eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);}
+                when "*"   {if doChecks then checkEqLstSize(lst,3); return poolMul(eval(lst[1], env, st, p, idx, ops, opIdx+1, doChecks), eval(lst[2], env, st, p, idx, ops, opIdx+1, doChecks),p);}
+                    when "=="  {if doChecks then checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks) == eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);}
+                    when "!="  {if doChecks then checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks) != eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);}
+                    when "<"   {if doChecks then checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks) < eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);}
+                    when "<="  {if doChecks then checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks) <= eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);}
+                    when ">"   {if doChecks then checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks) > eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);}
+                    when ">="  {if doChecks then checkEqLstSize(lst,3); return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks) >= eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);}
+                    when "or"  {if doChecks then checkEqLstSize(lst,3); return or(eval(lst[1], env, st, p, idx, ops, opIdx, doChecks), eval(lst[2], env, st, p, idx, ops, opIdx, doChecks));}
+                    when "and" {if doChecks then checkEqLstSize(lst,3); return and(eval(lst[1], env, st, p, idx, ops, opIdx, doChecks), eval(lst[2], env, st, p, idx, ops, opIdx, doChecks));}
+                    when "not" {if doChecks then checkEqLstSize(lst,2); return not(eval(lst[1], env, st, p, idx, ops, opIdx, doChecks));}
                     when "if" {
-                        checkEqLstSize(lst,4);
-                        if isTrue(eval(lst[1], env, st, p, idx)) {return eval(lst[2], env, st, p, idx);} else {return eval(lst[3], env, st, p, idx);}
+                        if doChecks then checkEqLstSize(lst,4);
+                        if isTrue(eval(lst[1], env, st, p, idx, ops, opIdx, doChecks)) {return eval(lst[2], env, st, p, idx, ops, opIdx, doChecks);} else {return eval(lst[3], env, st, p, idx, ops, opIdx, doChecks);}
                     }
                     when "begin" {
-                      checkGEqLstSize(lst, 1);
+                      if doChecks then checkGEqLstSize(lst, 1);
                       // env already setup, only eval last statement
-                      return eval(lst[lst.size-1], env, st, p, idx);
+                      return eval(lst[lst.size-1], env, st, p, idx, ops, opIdx, doChecks);
                     }
                     when "return" { // for now, just eval the next line, in time, might want to coerce return value
-                        return eval(lst[1], env, st, p, idx);
+                        return eval(lst[1], env, st, p, idx, ops, opIdx, doChecks);
                     }
                     otherwise {
                         throw new owned Error("op not implemented " + op);

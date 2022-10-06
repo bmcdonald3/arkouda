@@ -89,8 +89,6 @@ module Arr2DMsg {
         var seed = msgArgs.getValueOf("seed");
 
         var entry = new shared SymEntry2D(m, n, int);
-        var localA: [{0..#m, 0..#n}] int;
-        entry.a = localA;
         st.addEntry(rname, entry);
         fillInt(entry.a, aMin, aMax, seed);
       }
@@ -101,8 +99,6 @@ module Arr2DMsg {
         var aMax = msgArgs.get("high").getRealValue();
 
         var entry = new shared SymEntry2D(m, n, real);
-        var localA: [{0..#m, 0..#n}] real;
-        entry.a = localA;
         st.addEntry(rname, entry);
         fillReal(entry.a, aMin, aMax, seed);
       }
@@ -111,8 +107,6 @@ module Arr2DMsg {
         overMemLimit(8*m*n);
 
         var entry = new shared SymEntry2D(m, n, bool);
-        var localA: [{0..#m, 0..#n}] bool;
-        entry.a = localA;
         st.addEntry(rname, entry);
         fillBool(entry.a, seed);
       }

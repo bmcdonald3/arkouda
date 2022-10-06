@@ -31,3 +31,7 @@ from arkouda.series import *
 from arkouda.alignment import *
 from arkouda.plotting import *
 from arkouda.accessor import *
+from arkouda.pdarray2dclass import *
+#from arkouda.pdarray3dclass import *
+#from arkouda.pdarray4dclass import *
+#from arkouda.reshape import *

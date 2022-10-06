@@ -97,8 +97,8 @@ module Arr2DMsg {
       when (DType.Float64) {
         var seed = msgArgs.getValueOf("seed");
         overMemLimit(8*m*n);
-        var aMin = msgArgs.get("low").getIntValue();
-        var aMax = msgArgs.get("high").getIntValue();
+        var aMin = msgArgs.get("low").getRealValue();
+        var aMax = msgArgs.get("high").getRealValue();
 
         var entry = new shared SymEntry2D(m, n, real);
         var localA: [{0..#m, 0..#n}] real;
@@ -304,27 +304,42 @@ module Arr2DMsg {
       var errorMsg = "Error parsing/decoding key";
       gsLogger.error(getModuleName(), getRoutineName(), getLineNumber(), errorMsg);
     }
-    var inputEntry: borrowed GenSymEntry = getGenericTypedArrayEntry(name, st);
-    // TODO: why is this type real when I pass 5?
+    
+    // TODO: why is this type real when I pass 5 to array2d?
+    var gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(name, st);
 
-    // TODO: Select on type
-    var inputArr = inputEntry: SymEntry2D(real);
     var rname = st.nextName();
 
-    // TODO: select on op and type
-    if axis == 0 { // sum column-wise
-      var numCols = inputArr.n;
-      var res = st.addEntry(rname, numCols, real);
-      forall i in 0..#numCols {
-        res.a[i] = + reduce inputArr.a[.., i];
-      }
-    } else {
-      var numRows = inputArr.m;
-      var res = st.addEntry(rname, numRows, real);
-      forall i in 0..#numRows {
-        res.a[i] = + reduce inputArr.a[i, ..];
+    proc sumReductionHelper(type inputType, type resType) throws {
+      var e = toSymEntry2D(gEnt, inputType);
+      if axis == 0 { // sum column-wise
+        var numCols = e.n;
+        var res = st.addEntry(rname, numCols, resType);
+        forall i in 0..#numCols {
+          res.a[i] = + reduce e.a[.., i];
+        }
+      } else if axis == 1 {
+        var numRows = e.m;
+        var res = st.addEntry(rname, numRows, resType);
+        forall i in 0..#numRows {
+          res.a[i] = + reduce e.a[i, ..];
+        }
       }
     }
+
+    // TODO: Select on op (product, sum, etc.)
+    select (gEnt.dtype) {
+      when (DType.Int64) {
+        sumReductionHelper(int, int);
+      }
+      when (DType.Float64) {
+        sumReductionHelper(real, real);
+      }
+      when (DType.Bool) {
+        sumReductionHelper(bool, int);
+      }
+    }
+    
 
     repMsg = "created " + st.attrib(rname);
     return new MsgTuple(repMsg, MsgType.NORMAL);

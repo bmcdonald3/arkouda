@@ -307,16 +307,20 @@ module Arr2DMsg {
     proc sumReductionHelper(type inputType, type resType) throws {
       var e = toSymEntry2D(gEnt, inputType);
       if axis == 0 { // sum column-wise
+        var dD = e.a.domain[0..0, ..];
+        writeln(dD.size);
         var numCols = e.n;
         var res = st.addEntry(rname, numCols, resType);
-        forall i in 0..#numCols {
-          res.a[i] = + reduce e.a[.., i];
+        forall (_,j) in dD {
+          res.a[j] = + reduce e.a[.., j..j];
         }
       } else if axis == 1 {
+        var dD = e.a.domain[..,0..0];
+        writeln(dD.size);
         var numRows = e.m;
         var res = st.addEntry(rname, numRows, resType);
-        forall i in 0..#numRows {
-          res.a[i] = + reduce e.a[i, ..];
+        forall (i,j) in dD {
+          res.a[i] = + reduce e.a[i..i, ..];
         }
       }
     }

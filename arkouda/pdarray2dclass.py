@@ -30,7 +30,7 @@ from arkouda.infoclass import list_registry, information, pretty_print_informati
 
 logger = getArkoudaLogger(name='pdarrayclass')
 
-__all__ = ['array2D', 'randint2D', 'reshape', 'sum']
+__all__ = ['array2D', 'randint2D', 'reshape', 'sum', 'product', 'min', 'max']
 
 class pdarray2D(pdarray):
     objtype = 'pdarray2D'
@@ -108,6 +108,18 @@ def create_pdarray2D(repMsg : str) -> pdarray2D:
 
 def sum(pda: pdarray, axis: int) -> pdarray:
     rep_msg = generic_msg(cmd='partialReduction2D', args={"name": pda.name, "axis": axis, "op": "sum"})
+    return create_pdarray(rep_msg)
+
+def product(pda: pdarray, axis: int) -> pdarray:
+    rep_msg = generic_msg(cmd='partialReduction2D', args={"name": pda.name, "axis": axis, "op": "product"})
+    return create_pdarray(rep_msg)
+
+def min(pda: pdarray, axis: int) -> pdarray:
+    rep_msg = generic_msg(cmd='partialReduction2D', args={"name": pda.name, "axis": axis, "op": "min"})
+    return create_pdarray(rep_msg)
+
+def max(pda: pdarray, axis: int) -> pdarray:
+    rep_msg = generic_msg(cmd='partialReduction2D', args={"name": pda.name, "axis": axis, "op": "max"})
     return create_pdarray(rep_msg)
 
 def array2D(val, m, n, dtype: Union[np.dtype, type, str] = float64) -> Union[pdarray, Strings]:

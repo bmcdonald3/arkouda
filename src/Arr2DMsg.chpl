@@ -291,6 +291,7 @@ module Arr2DMsg {
     var repMsg: string;
 
     var name = msgArgs.getValueOf("name");
+    var op = msgArgs.getValueOf("op");
     var axis: int;
     try {
       axis = msgArgs.get("axis").getIntValue();
@@ -303,24 +304,104 @@ module Arr2DMsg {
     var gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(name, st);
 
     var rname = st.nextName();
+    var errorMsg = "";
+    var hadError = false;
 
-    proc sumReductionHelper(type inputType, type resType) throws {
+    proc partialReductionHelper(type inputType, type resType, op: string) throws {
       var e = toSymEntry2D(gEnt, inputType);
       if axis == 0 { // sum column-wise
         var dD = e.a.domain[0..0, ..];
         writeln(dD.size);
         var numCols = e.n;
         var res = st.addEntry(rname, numCols, resType);
-        forall (_,j) in dD {
-          res.a[j] = + reduce e.a[.., j..j];
+        select (op) {
+          when ("sum") {
+            forall (_,j) in dD {
+              res.a[j] = + reduce e.a[.., j..j];
+            }
+          }
+          when ("product") {
+            if inputType == bool {
+              errorMsg = "product not supported on boolean pdarrays";
+              hadError = true;
+            } else {
+              forall (_,j) in dD {
+                res.a[j] = * reduce e.a[.., j..j];
+              }
+            }
+          }
+          when ("min") {
+            if inputType == bool {
+              errorMsg = "min not supported on boolean pdarrays";
+              hadError = true;
+            } else {
+              forall (_,j) in dD {
+                (res.a[j], _) = minloc reduce zip(e.a[.., j..j], dD);
+              }
+            }
+          }
+          when ("max") {
+            if inputType == bool {
+              errorMsg = "max not supported on boolean pdarrays";
+              hadError = true;
+            } else {
+              forall (_,j) in dD {
+                (res.a[j], _) = maxloc reduce zip(e.a[.., j..j], dD);
+              }
+            }
+          }
+          otherwise {
+            errorMsg = "unrecognized partial reduction op";;
+            hadError = true;
+          }
         }
       } else if axis == 1 {
         var dD = e.a.domain[..,0..0];
         writeln(dD.size);
         var numRows = e.m;
         var res = st.addEntry(rname, numRows, resType);
-        forall (i,j) in dD {
-          res.a[i] = + reduce e.a[i..i, ..];
+        select (op) {
+          when ("sum") {
+            forall (i,_) in dD {
+              res.a[i] = + reduce e.a[i..i, ..];
+            }
+          }
+          when ("product") {
+            if inputType == bool {
+              errorMsg = "product not supported on boolean pdarrays";
+              hadError = true;
+            } else {
+              forall (i,_) in dD {
+                res.a[i] = * reduce e.a[i..i, ..];
+              }
+            }
+          }
+          when ("min") {
+            if inputType == bool {
+              errorMsg = "min not supported on boolean pdarrays";
+              hadError = true;
+            } else {
+              forall (i,_) in dD {
+                writeln("dD: ", dD);
+                writeln("arr: ", e.a[.., i..i]);
+                (res.a[i], _) = minloc reduce zip(e.a[i..i,..], dD);
+              }
+            }
+          }
+          when ("max") {
+            if inputType == bool {
+              errorMsg = "max not supported on boolean pdarrays";
+              hadError = true;
+            } else {
+              forall (i,_) in dD {
+                (res.a[i], _) = maxloc reduce zip(e.a[i..i, ..], dD);
+              }
+            }
+          }
+          otherwise {
+            errorMsg = "unrecognized partial reduction op: " + op;
+            hadError = true;
+          }
         }
       }
     }
@@ -328,17 +409,18 @@ module Arr2DMsg {
     // TODO: Select on op (product, sum, etc.)
     select (gEnt.dtype) {
       when (DType.Int64) {
-        sumReductionHelper(int, int);
+        partialReductionHelper(int, int, op);
       }
       when (DType.Float64) {
-        sumReductionHelper(real, real);
+        partialReductionHelper(real, real, op);
       }
       when (DType.Bool) {
-        sumReductionHelper(bool, int);
+        partialReductionHelper(bool, int, op);
       }
     }
-    
 
+    if hadError then
+      return new MsgTuple(errorMsg, MsgType.ERROR);
     repMsg = "created " + st.attrib(rname);
     return new MsgTuple(repMsg, MsgType.NORMAL);
   }

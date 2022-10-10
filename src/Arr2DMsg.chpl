@@ -307,11 +307,10 @@ module Arr2DMsg {
     var errorMsg = "";
     var hadError = false;
 
-    proc partialReductionHelper(type inputType, type resType, op: string) throws {
+    proc partialReductionHelper(type inputType, type resType, op: string): void throws {
       var e = toSymEntry2D(gEnt, inputType);
       if axis == 0 { // sum column-wise
         var dD = e.a.domain[0..0, ..];
-        writeln(dD.size);
         var numCols = e.n;
         var res = st.addEntry(rname, numCols, resType);
         select (op) {
@@ -357,7 +356,6 @@ module Arr2DMsg {
         }
       } else if axis == 1 {
         var dD = e.a.domain[..,0..0];
-        writeln(dD.size);
         var numRows = e.m;
         var res = st.addEntry(rname, numRows, resType);
         select (op) {
@@ -382,8 +380,6 @@ module Arr2DMsg {
               hadError = true;
             } else {
               forall (i,_) in dD {
-                writeln("dD: ", dD);
-                writeln("arr: ", e.a[.., i..i]);
                 (res.a[i], _) = minloc reduce zip(e.a[i..i,..], dD);
               }
             }
@@ -406,16 +402,66 @@ module Arr2DMsg {
       }
     }
 
-    // TODO: Select on op (product, sum, etc.)
-    select (gEnt.dtype) {
-      when (DType.Int64) {
-        partialReductionHelper(int, int, op);
+    proc cumSumHelper(type inputType, type resType, op: string): void throws {
+      var e = toSymEntry2D(gEnt, inputType);
+      if axis == 0 { // sum column-wise
+        var dD = e.a.domain[0..0, ..];
+        var numCols = e.n;
+        var res = new shared SymEntry2D(e.m, e.n, resType);
+        st.addEntry(rname, res);
+        select (op) {
+          when ("cumsum") {
+            forall (_,j) in dD {
+              res.a[..,j..j] = + scan e.a[.., j..j];
+            }
+          }
+          otherwise {
+            errorMsg = "unrecognized partial reduction op";;
+            hadError = true;
+          }
+        }
+      } else if axis == 1 {
+        var dD = e.a.domain[..,0..0];
+        var numRows = e.m;
+        var res = new shared SymEntry2D(e.m, e.n, resType);
+        st.addEntry(rname, res);
+        select (op) {
+          when ("cumsum") {
+            forall (i,_) in dD {
+              res.a[i..i,..] = + scan e.a[i..i, ..];
+            }
+          }
+          otherwise {
+            errorMsg = "unrecognized partial reduction op: " + op;
+            hadError = true;
+          }
+        }
       }
-      when (DType.Float64) {
-        partialReductionHelper(real, real, op);
+    }
+
+    if op == "cumsum" {
+      select (gEnt.dtype) {
+        when (DType.Int64) {
+          cumSumHelper(int, int, op);
+        }
+        when (DType.Float64) {
+          cumSumHelper(real, real, op);
+        }
+        when (DType.Bool) {
+          cumSumHelper(bool, int, op);
+        }
       }
-      when (DType.Bool) {
-        partialReductionHelper(bool, int, op);
+    } else {
+      select (gEnt.dtype) {
+        when (DType.Int64) {
+          partialReductionHelper(int, int, op);
+        }
+        when (DType.Float64) {
+          partialReductionHelper(real, real, op);
+        }
+        when (DType.Bool) {
+          partialReductionHelper(bool, int, op);
+        }
       }
     }
 

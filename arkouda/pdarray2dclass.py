@@ -30,7 +30,7 @@ from arkouda.infoclass import list_registry, information, pretty_print_informati
 
 logger = getArkoudaLogger(name='pdarrayclass')
 
-__all__ = ['array2D', 'randint2D', 'reshape', 'sum', 'product', 'min', 'max']
+__all__ = ['array2D', 'randint2D', 'reshape', 'sum', 'product', 'min', 'max', 'cumsum']
 
 class pdarray2D(pdarray):
     objtype = 'pdarray2D'
@@ -121,6 +121,10 @@ def min(pda: pdarray, axis: int) -> pdarray:
 def max(pda: pdarray, axis: int) -> pdarray:
     rep_msg = generic_msg(cmd='partialReduction2D', args={"name": pda.name, "axis": axis, "op": "max"})
     return create_pdarray(rep_msg)
+
+def cumsum(pda: pdarray, axis: int) -> pdarray:
+    rep_msg = generic_msg(cmd='partialReduction2D', args={"name": pda.name, "axis": axis, "op": "cumsum"})
+    return create_pdarray2D(rep_msg)
 
 def array2D(val, m, n, dtype: Union[np.dtype, type, str] = float64) -> Union[pdarray, Strings]:
     """

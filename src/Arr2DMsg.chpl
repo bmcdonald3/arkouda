@@ -406,35 +406,34 @@ module Arr2DMsg {
       var e = toSymEntry2D(gEnt, inputType);
       if axis == 0 { // sum column-wise
         var dD = e.a.domain[0..0, ..];
-        var numCols = e.n;
         var res = new shared SymEntry2D(e.m, e.n, resType);
         st.addEntry(rname, res);
-        select (op) {
-          when ("cumsum") {
-            forall (_,j) in dD {
-              res.a[..,j..j] = + scan e.a[.., j..j];
-            }
-          }
-          otherwise {
-            errorMsg = "unrecognized partial reduction op";;
-            hadError = true;
-          }
+        forall (_,j) in dD {
+          res.a[..,j..j] = + scan e.a[.., j..j];
         }
       } else if axis == 1 {
         var dD = e.a.domain[..,0..0];
-        var numRows = e.m;
         var res = new shared SymEntry2D(e.m, e.n, resType);
         st.addEntry(rname, res);
-        select (op) {
-          when ("cumsum") {
-            forall (i,_) in dD {
-              res.a[i..i,..] = + scan e.a[i..i, ..];
-            }
-          }
-          otherwise {
-            errorMsg = "unrecognized partial reduction op: " + op;
-            hadError = true;
-          }
+        forall (i,_) in dD {
+          res.a[i..i,..] = + scan e.a[i..i, ..];
+        }
+      }
+    }
+
+    proc diffHelper(type inputType, type resType, op: string): void throws {
+      var e = toSymEntry2D(gEnt, inputType);
+      if axis == 0 { // sum column-wise
+        var res = new shared SymEntry2D(e.m-1, e.n, resType);
+        st.addEntry(rname, res);
+        forall (i,j) in res.a.domain {
+          res.a[i,j] = e.a[i+1,j] - e.a[i,j];
+        }
+      } else if axis == 1 {
+        var res = new shared SymEntry2D(e.m, e.n-1, resType);
+        st.addEntry(rname, res);
+        forall (i,j) in res.a.domain {
+          res.a[i,j] = e.a[i,j+1] - e.a[i,j];
         }
       }
     }
@@ -449,6 +448,18 @@ module Arr2DMsg {
         }
         when (DType.Bool) {
           cumSumHelper(bool, int, op);
+        }
+      }
+    } else if op == "diff" {
+      select (gEnt.dtype) {
+        when (DType.Int64) {
+          diffHelper(int, int, op);
+        }
+        when (DType.Float64) {
+          diffHelper(real, real, op);
+        }
+        when (DType.Bool) {
+          diffHelper(bool, int, op);
         }
       }
     } else {

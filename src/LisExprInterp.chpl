@@ -181,12 +181,13 @@ module LisExprInterp
             when "begin" {
               checkGEqLstSize(lst, 1);
               // setup the environment
-              for i in 1..#lst.size-2 do
+              for i in 1..#lst.size-1 do
                 setupEnv(lst[i], env, '', st);
               // don't eval the return statement
             }
             when "return" {
               // skip for setup
+              writeln("YOU MADE IT TO RETURN");
             }
             otherwise {
                 throw new owned Error("op not implemented " + op);
@@ -197,5 +198,62 @@ module LisExprInterp
           throw new owned Error("undefined ast node type " + ast:string);
         }
       }
+    }
+    
+    proc setupInstructions(ast: BGenListValue, env: borrowed Env, name: string, ref instructions, st) throws {
+      select (ast.lvt) {
+        when (LVT.R) {
+          env.addReal(name, new Value(ast.toListValue(real).lv));
+        }
+        when (LVT.I) {
+          env.addInt(name, new Value(ast.toListValue(int).lv));
+        }
+        when (LVT.Lst) {
+          ref lst = ast.toListValue(GenList).lv;
+          // no empty lists allowed
+          checkGEqLstSize(lst,1);
+          // currently first list element must be a symbol of operator
+          checkSymbol(lst[0]);
+          var op = lst[0].toListValue(Symbol).lv;
+          select (op) {
+            when ":=" {
+                checkEqLstSize(lst,3);
+                checkSymbol(lst[1]);
+                var name = lst[1].toListValue(Symbol).lv;
+                setupInstructions(lst[2],env,name,instructions, st);
+            }
+            when "lookup_and_index_float64" {
+                var id = lst[1].toListValue(Symbol).lv;
+                env.addRealArr(name, id, st);
+            }
+            when "lookup_and_index_int64" {
+                var id = lst[1].toListValue(Symbol).lv;
+                env.addIntArr(name, id, st);
+            }
+            when "begin" {
+              checkGEqLstSize(lst, 1);
+              // setup the environment
+              for i in 1..#lst.size-1 do
+                setupInstructions(lst[i], env, '', instructions, st);
+              // don't eval the return statement
+            }
+            when "return" {
+              // Generate our list of instructions
+              instructions.append(genInstructions(lst[1], env, st, new pool(), 0, 0, false));
+            }
+            otherwise {
+                throw new owned Error("op not implemented " + op);
+            }
+          }
+        }
+        otherwise {
+          throw new owned Error("undefined ast node type " + ast:string);
+        }
+      }
+    }
+
+    proc genInstructions(ast: BGenListValue, env: borrowed Env, st, ref p: pool, idx: int, opIdx=0, param doChecks=false): instruction throws {
+      ref lst = ast.toListValue(GenList).lv;
+      return new instruction(opsEnum.add, lst[1].toListValue(Symbol).lv, lst[2].toListValue(Symbol).lv);
     }
 }

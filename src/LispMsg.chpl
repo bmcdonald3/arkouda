@@ -44,30 +44,32 @@ module LispMsg
     :type st: borrowed SymTab
     :returns: (MsgTuple) response message
     */
-    proc lispMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+    proc lispMsg(cmd: string, payload: string, argSize: int, st: borrowed SymTab): MsgTuple throws {
         param pn = Reflection.getRoutineName();
         var repMsg: string; // response message
-        // TODO: If we support `|` in lisp, we don't want that to be delimeter
-        var (retTypeStr, sizeStr, lispCode) = payload.splitMsgToTuple("|", 3);
+        var msgArgs = parseMessageArgs(payload, argSize);
 
-        retTypeStr = retTypeStr.strip(" ");
+        var retTypeStr = msgArgs.getValueOf("ret_type");
+        var size = msgArgs.get("num_elems").getIntValue();
+        var lispCode = msgArgs.getValueOf("code");
+        writeln("CODE: ", lispCode);
         
-        var size = sizeStr: int;
+        retTypeStr = retTypeStr.strip(" ");
 
         var retName = st.nextName();
 
         if retTypeStr == "int64" {
-          var ret = st.addEntry(retName, size, int);
-          evalLisp(lispCode, ret.a, st);
+          var ret = st.addEntry(retName, size, real);
+          evalLispIttr(lispCode, ret.a, st);
         } else if retTypeStr == "float64" {
           var ret = st.addEntry(retName, size, real);
-          evalLisp(lispCode, ret.a, st);
+          evalLispIttr(lispCode, ret.a, st);
         }
         repMsg = "created " + st.attrib(retName);
         return new MsgTuple(repMsg, MsgType.NORMAL);
     }
     
-    proc evalLisp(prog: string, ret: [] ?t, st) throws {
+    /*proc evalLisp(prog: string, ret: [] ?t, st) throws {
       try {
         coforall loc in Locales {
             on loc {
@@ -86,6 +88,42 @@ module LispMsg
                       // Evaluate for this index
                       // only eval the last statement
                       ret[i] = eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, i, ops, 0, false).toValue(t).v;
+                      p.freeAll();
+                    }
+                    // memtracking size = 0 in makefile 
+                }
+            }
+        }
+      } catch e {
+        writeln(e!.message());
+      }
+      }*/
+
+    proc evalLispIttr(prog: string, ret: [] ?t, st) throws {
+      try {
+        coforall loc in Locales {
+            on loc {
+              coforall task in Tasks {
+                    var lD = ret.domain.localSubdomain();
+                    var tD = calcBlock(task, lD.low, lD.high);
+                    var p = new pool();
+
+                    const ast = parse(prog);
+                    var env = new owned Env();
+                    var instructions = new list(instruction);
+                    setupInstructions(ast, env, '', instructions, st);
+                    writeln("INSTRUCTIONS: ", instructions);
+                    ref lst = ast.toListValue(GenList).lv;
+                    var ops = new list(string);
+                    eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, 0, ops, 0, true).toValue(t).v;
+                    for i in tD {
+                      for instr in instructions {
+                        select instr.op {
+                          when opsEnum.add {
+                            ret[i] = env.getVal(instr.lhs,i).toValue(real).v + env.getVal(instr.rhs,i).toValue(real).v;
+                          }
+                        }
+                      }
                       p.freeAll();
                     }
                     // memtracking size = 0 in makefile 

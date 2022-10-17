@@ -6,7 +6,7 @@ from arkouda_lambda import arkouda_func
 # some test function definitions
 @arkouda_func
 def my_axpy(a : ak.float64, x : ak.pdarray, y : ak.pdarray) -> ak.pdarray:
-    return a * x + y
+    return x + y
 
 @arkouda_func
 def my_filter(v : ak.int64, x : ak.pdarray, y : ak.pdarray) -> ak.pdarray:

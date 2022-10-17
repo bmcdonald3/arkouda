@@ -412,4 +412,26 @@ module LisExprData
         return curr;
       }
     }
+
+    enum opsEnum {
+      add,
+      mul,
+      ld,
+      val
+    }
+    
+    record instruction {
+      var op: opsEnum;
+
+      var lhs: string;
+      var rhs: string;
+      
+      var res: int;
+
+      proc init(opType: opsEnum, lhs:string, rhs:string) {
+        op = opType;
+        this.lhs = lhs;
+        this.rhs = rhs;
+      }
+    }
 }

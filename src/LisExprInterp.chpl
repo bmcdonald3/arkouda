@@ -187,7 +187,6 @@ module LisExprInterp
             }
             when "return" {
               // skip for setup
-              writeln("YOU MADE IT TO RETURN");
             }
             otherwise {
                 throw new owned Error("op not implemented " + op);

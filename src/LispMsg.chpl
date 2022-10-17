@@ -52,7 +52,6 @@ module LispMsg
         var retTypeStr = msgArgs.getValueOf("ret_type");
         var size = msgArgs.get("num_elems").getIntValue();
         var lispCode = msgArgs.getValueOf("code");
-        writeln("CODE: ", lispCode);
         
         retTypeStr = retTypeStr.strip(" ");
 
@@ -112,7 +111,6 @@ module LispMsg
                     var env = new owned Env();
                     var instructions = new list(instruction);
                     setupInstructions(ast, env, '', instructions, st);
-                    writeln("INSTRUCTIONS: ", instructions);
                     ref lst = ast.toListValue(GenList).lv;
                     var ops = new list(string);
                     eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, 0, ops, 0, true).toValue(t).v;

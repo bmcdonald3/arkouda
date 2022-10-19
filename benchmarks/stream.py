@@ -41,7 +41,7 @@ def time_ak_stream(N_per_locale, trials, alpha, dtype, random, seed):
 
 @arkouda_func
 def my_axpy(a: ak.float64, x : ak.pdarray, y: ak.pdarray) -> ak.pdarray:
-    return a * x + y
+    return x + y
     
 def time_lisp_stream(N_per_locale, trials, alpha, dtype, random, seed):
     print(">>> arkouda {} lisp stream".format(dtype))

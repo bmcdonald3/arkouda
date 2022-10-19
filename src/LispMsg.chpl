@@ -113,12 +113,24 @@ module LispMsg
                     setupInstructions(ast, env, '', instructions, st);
                     ref lst = ast.toListValue(GenList).lv;
                     var ops = new list(string);
-                    eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, 0, ops, 0, true).toValue(t).v;
+                    //eval(lst[lst.size-1].toListValue(GenList).lv[1], env, st, p, 0, ops, 0, true).toValue(t).v;
                     for i in tD {
                       for instr in instructions {
                         select instr.op {
                           when opsEnum.add {
-                            ret[i] = env.getVal(instr.lhs,i).toValue(real).v + env.getVal(instr.rhs,i).toValue(real).v;
+                            var l = env.getVal(instr.lhs, i);
+                            var r = env.getVal(instr.rhs, i);
+                            select (l.vt, r.vt) {
+                              when (VT.I, VT.I) {
+                                ret[i] = l.toValue(int).v + r.toValue(int).v;
+                              }
+                              when (VT.R, VT.R) {
+                                ret[i] = l.toValue(real).v + r.toValue(real).v;
+                              }
+                              //when (VT.R, VT.I) {return p.getReal(l.toValue(real).v + r.toValue(int).v);}
+                              //when (VT.R, VT.R) {return p.getReal(l.toValue(real).v + r.toValue(real).v);}
+                              //ret[i] = env.getVal(instr.lhs,i).toValue(real).v + env.getVal(instr.rhs,i).toValue(real).v;
+                              }
                           }
                         }
                       }

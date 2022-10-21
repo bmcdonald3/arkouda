@@ -238,7 +238,9 @@ module LisExprInterp
             }
             when "return" {
               // Generate our list of instructions
-              instructions.append(genInstructions(lst[1], env, st, new pool(), 0, 0, false));
+              var depth = 0;
+              genInstructions(lst[1], env, instructions, depth, st);
+              writeln(instructions);
             }
             otherwise {
                 throw new owned Error("op not implemented " + op);
@@ -250,9 +252,41 @@ module LisExprInterp
         }
       }
     }
+    
+    proc genInstructions(ast: BGenListValue, env: borrowed Env, ref instructions, ref depth: int, st): string throws {
+      // {l = [{lvt = Sym, lv = +}, {lvt = Lst, lv = {l = [{lvt = Sym, lv = *}, {lvt = Sym, lv = a}, {lvt = Sym, lv = x}]}}, {lvt = Sym, lv = y}]}
+      // return new instruction(opsEnum.add, lst[1].toListValue(Symbol).lv, lst[2].toListValue(Symbol).lv);
+      select (ast.lvt) {
+        when (LVT.Sym) {
+          return ast.toListValue(Symbol).lv;
+          // return env.getVal(ast.toListValue(Symbol).lv, idx);
+        }
+        when (LVT.Lst) {
+          ref lst = ast.toListValue(GenList).lv;
 
-    proc genInstructions(ast: BGenListValue, env: borrowed Env, st, ref p: pool, idx: int, opIdx=0, param doChecks=false): instruction throws {
-      ref lst = ast.toListValue(GenList).lv;
-      return new instruction(opsEnum.add, lst[1].toListValue(Symbol).lv, lst[2].toListValue(Symbol).lv);
+          var opStr = lst[0].toListValue(Symbol).lv;
+          select (opStr) {
+            when "+" {
+              var instr = new instruction(opsEnum.add,
+                                          genInstructions(lst[1], env, instructions, depth, st),
+                                          genInstructions(lst[2], env, instructions, depth, st));
+              instructions.append(instr);
+              depth += 1;
+              return "res" + (depth-1):string;
+            }
+            when "*" {
+              var instr = new instruction(opsEnum.mul,
+                                          genInstructions(lst[1], env, instructions, depth, st),
+                                          genInstructions(lst[2], env, instructions, depth, st));
+              instructions.append(instr);
+              depth += 1;
+              return "res" + (depth-1):string;
+            }
+          }
+        } otherwise {
+          return "Nothing";
+        }
+      }
+      return "Nothing";
     }
 }

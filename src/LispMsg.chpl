@@ -119,11 +119,11 @@ module LispMsg
                             var l, r: real;
                             if instr.lhs == "prev" then
                               l = ret[i];
-                            else
+                            else // TODO: stop hardcoding these to real
                               l = env.getVal(instr.lhs, i).toValue(real).v;
                             if instr.rhs == "prev" then
                               r = ret[i];
-                            else
+                            else // TODO: These getval calls are most expensive, so how improve?
                               r = env.getVal(instr.rhs, i).toValue(real).v;
                             ret[i] = l + r;
                           }

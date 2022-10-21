@@ -253,12 +253,9 @@ module LisExprInterp
     }
     
     proc genInstructions(ast: BGenListValue, env: borrowed Env, ref instructions, ref depth: int, st): string throws {
-      // {l = [{lvt = Sym, lv = +}, {lvt = Lst, lv = {l = [{lvt = Sym, lv = *}, {lvt = Sym, lv = a}, {lvt = Sym, lv = x}]}}, {lvt = Sym, lv = y}]}
-      // return new instruction(opsEnum.add, lst[1].toListValue(Symbol).lv, lst[2].toListValue(Symbol).lv);
       select (ast.lvt) {
         when (LVT.Sym) {
           return ast.toListValue(Symbol).lv;
-          // return env.getVal(ast.toListValue(Symbol).lv, idx);
         }
         when (LVT.Lst) {
           ref lst = ast.toListValue(GenList).lv;
@@ -270,18 +267,14 @@ module LisExprInterp
                                           genInstructions(lst[1], env, instructions, depth, st),
                                           genInstructions(lst[2], env, instructions, depth, st));
               instructions.append(instr);
-              env.addReal("res" + depth:string, new Value(-1.0));
-              depth += 1;
-              return "res" + (depth-1):string;
+              return "prev";
             }
             when "*" {
               var instr = new instruction(opsEnum.mul,
                                           genInstructions(lst[1], env, instructions, depth, st),
                                           genInstructions(lst[2], env, instructions, depth, st));
               instructions.append(instr);
-              env.addReal("res" + depth:string, new Value(-1.0));
-              depth += 1;
-              return "res" + (depth-1):string;
+              return "prev";
             }
           }
         } otherwise {

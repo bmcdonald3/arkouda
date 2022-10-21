@@ -118,7 +118,6 @@ module LispMsg
                     for i in tD {
                       var depth = 0;
                       for instr in instructions {
-                        writeln("encountered ", instr, "\n");
                         select instr.op {
                           when opsEnum.add {
                             var l = env.getVal(instr.lhs, i);
@@ -126,12 +125,12 @@ module LispMsg
                             select (l.vt, r.vt) {
                               when (VT.I, VT.I) {
                                 ret[i] = l.toValue(int).v + r.toValue(int).v;
-                                env.addReal("res" + depth:string, new Value(ret[i]));
+                                env.addReal("res" + depth:string, ret[i]);
                                 depth += 1;
                               }
                               when (VT.R, VT.R) {
                                 ret[i] = l.toValue(real).v + r.toValue(real).v;
-                                env.addReal("res" + depth:string, new Value(ret[i]));
+                                env.addReal("res" + depth:string, ret[i]);
                                 depth += 1;
                               }
                             }
@@ -142,12 +141,12 @@ module LispMsg
                             select (l.vt, r.vt) {
                               when (VT.I, VT.I) {
                                 ret[i] = l.toValue(int).v * r.toValue(int).v;
-                                env.addReal("res" + depth:string, new Value(ret[i]));
+                                env.addReal("res" + depth:string, ret[i]);
                                 depth += 1;
                               }
                               when (VT.R, VT.R) {
                                 ret[i] = l.toValue(real).v * r.toValue(real).v;
-                                env.addReal("res" + depth:string, new Value(ret[i]));
+                                env.addReal("res" + depth:string, ret[i]);
                                 depth += 1;
                               }
                             }

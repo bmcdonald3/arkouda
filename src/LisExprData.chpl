@@ -334,6 +334,10 @@ module LisExprData
           realTab.addOrSet(name, val);
         }
 
+        proc addReal(name: string, val:real) throws {
+          realTab.getReference(name).v = val;
+        }
+
         proc addInt(name: string, val) throws {
           intTab.addOrSet(name, val);
         }

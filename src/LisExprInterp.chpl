@@ -240,7 +240,6 @@ module LisExprInterp
               // Generate our list of instructions
               var depth = 0;
               genInstructions(lst[1], env, instructions, depth, st);
-              writeln(instructions);
             }
             otherwise {
                 throw new owned Error("op not implemented " + op);
@@ -271,6 +270,7 @@ module LisExprInterp
                                           genInstructions(lst[1], env, instructions, depth, st),
                                           genInstructions(lst[2], env, instructions, depth, st));
               instructions.append(instr);
+              env.addReal("res" + depth:string, new Value(-1.0));
               depth += 1;
               return "res" + (depth-1):string;
             }
@@ -279,6 +279,7 @@ module LisExprInterp
                                           genInstructions(lst[1], env, instructions, depth, st),
                                           genInstructions(lst[2], env, instructions, depth, st));
               instructions.append(instr);
+              env.addReal("res" + depth:string, new Value(-1.0));
               depth += 1;
               return "res" + (depth-1):string;
             }

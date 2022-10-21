@@ -44,15 +44,15 @@ module LispMsg
     :type st: borrowed SymTab
     :returns: (MsgTuple) response message
     */
-    proc lispMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
+    proc lispMsg(cmd: string, payload: string, argSize: int, st: borrowed SymTab): MsgTuple throws {
         param pn = Reflection.getRoutineName();
         var repMsg: string; // response message
-        // TODO: If we support `|` in lisp, we don't want that to be delimeter
-        var (retTypeStr, sizeStr, lispCode) = payload.splitMsgToTuple("|", 3);
+        var msgArgs = parseMessageArgs(payload, argSize);
 
+        var retTypeStr = msgArgs.getValueOf("ret_type");
+        var size = msgArgs.get("num_elems").getIntValue();
+        var lispCode = msgArgs.getValueOf("code");
         retTypeStr = retTypeStr.strip(" ");
-        
-        var size = sizeStr: int;
 
         var retName = st.nextName();
 

@@ -501,69 +501,6 @@ module SegmentedString {
       }
     }
 
-    proc idnaEncodeDecode(cmd: string) throws {
-      // select the appropriate file based on the command
-      var procFile: string;
-      // we need to add this dir check for testing functionality
-      var basePath: string = realPath(curDir);
-      var (pathName, dirName) = splitPath(basePath);
-      if "tests" == dirName {
-        basePath = pathName;
-      }
-      select cmd {
-        when "encode" {
-          procFile = "/"+basePath+"/src/exec/ak_encode.py";
-        }
-        when "decode" {
-          procFile = "/"+basePath+"/src/exec/ak_decode.py";
-        }
-        otherwise {
-          throw getErrorWithContext(msg="Invalid encode/decode cmd. %s".format(cmd),
-                      lineNumber=getLineNumber(), 
-                      routineName=getRoutineName(), 
-                      moduleName=getModuleName(), 
-                      errorClass='ValueError');
-        }
-      }
-    
-      ref origVals = this.values.a;
-      ref offs = this.offsets.a;
-      var encodeArr: [0..#this.size] string; 
-      var encodeOffsets: [this.offsets.aD] int;
-      var encodeLengths: [this.offsets.aD] int;
-
-      const lengths = this.getLengths();
-      forall (i, off, len) in zip(0..#this.size, offs, lengths) {
-        // var str_entry: string;
-        const filename: string = basePath+"/src/exec/%i_tmp.txt".format(i);
-        var str_entry: string = interpretAsString(origVals, off..#len);
-        // use subprocessing to make a call to a python file for the encoding
-        var sub = spawn(["python3", procFile, "-v", str_entry, "-f", filename]);
-        sub.wait();
-
-        // read file python wrote to
-        var encodedFile = open(filename, iomode.r);
-        var encodedStr: string;
-        var reader = encodedFile.reader();
-        var readSomething = reader.read(encodedStr);
-        encodeArr[i] = encodedStr;
-        // delete the temp file if it was created
-        remove(filename);
-      }
-      // calculate offsets and lengths
-      encodeLengths = [e in encodeArr] e.numBytes;
-      encodeOffsets = (+ scan encodeLengths) - encodeLengths + [i in 0..<encodeLengths.size] i;
-      
-      //calculate values for the segmentedstring
-      var finalValues = makeDistArray((+ reduce encodeLengths)+encodeLengths.size, uint(8));
-      forall (s, o) in zip(encodeArr, encodeOffsets) with (var agg = newDstAggregator(uint(8))) {
-        for (j, c) in zip(0.., s.chpl_bytes()) {
-          agg.copy(finalValues[j+o], c);
-        }
-      }
-      return (encodeOffsets, finalValues);
-    }
-
     proc findSubstringInBytes(const substr: string) {
       // Find the start position of every occurence of substr in the flat bytes array
       // Start by making a right-truncated subdomain representing all valid starting positions for substr of given length

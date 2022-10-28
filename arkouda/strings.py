@@ -357,12 +357,12 @@ class Strings:
             generic_msg(cmd="segmentLengths", args={"objType": self.objtype, "obj": self.entry})
         )
 
-    def idna_encode(self):
-        rep_msg = generic_msg(cmd="encode", args={"encoding": "idna", "obj": self.entry})
+    def encode(self, encoding="idna"):
+        rep_msg = generic_msg(cmd="encode", args={"encoding": encoding, "obj": self.entry})
         return Strings.from_return_msg(rep_msg)
 
-    def idna_decode(self):
-        rep_msg = generic_msg(cmd="decode", args={"encoding": "idna", "obj": self.entry})
+    def decode(self, encoding="idna"):
+        rep_msg = generic_msg(cmd="decode", args={"encoding": encoding, "obj": self.entry})
         return Strings.from_return_msg(rep_msg)
 
     @typechecked

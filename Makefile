@@ -30,6 +30,8 @@ CHPL_FLAGS += -smemTrack=true -smemThreshold=1048576
 # We have seen segfaults with cache remote at some node counts
 CHPL_FLAGS += --no-cache-remote
 
+CHPL_FLAGS += -lidn2 -liconv
+
 # For configs that use a fixed heap, but still have first-touch semantics
 # (gasnet-ibv-large) interleave large allocations to reduce the performance hit
 # from getting progressively worse NUMA affinity due to memory reuse.

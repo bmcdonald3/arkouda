@@ -23,12 +23,20 @@ module EncodingMsg {
 
       var stringsObj = getSegString(msgArgs.getValueOf("obj"), st);
 
-      var (offsets, vals) = encodeDecode(stringsObj, cmd, encoding);
-      var encodedStrings = getSegString(offsets, vals, st);
-      repMsg = "created " + st.attrib(encodedStrings.name) + "+created bytes.size %t".format(encodedStrings.nBytes);
+      try {
+        var (offsets, vals) = encodeDecode(stringsObj, cmd, encoding);
+        var encodedStrings = getSegString(offsets, vals, st);
+        repMsg = "created " + st.attrib(encodedStrings.name) + "+created bytes.size %t".format(encodedStrings.nBytes);
 
-      emLogger.debug(getModuleName(), getRoutineName(), getLineNumber(), repMsg);
-      return new MsgTuple(repMsg, MsgType.NORMAL);
+        emLogger.debug(getModuleName(), getRoutineName(), getLineNumber(), repMsg);
+        return new MsgTuple(repMsg, MsgType.NORMAL);
+      } catch e: TaskErrors {
+        for err in e do
+          throw err;
+      } catch e {
+        throw e;
+      }
+      return new MsgTuple("error", MsgType.ERROR);
     }
     
     proc encodeDecode(stringsObj, cmd: string, encoding: string) throws {
@@ -49,11 +57,21 @@ module EncodingMsg {
 
       var encodeOrDecode = if cmd == "encode" then encodeStr else decodeStr;
 
+      // this loop throwing a `TaskErrors` that can't be caught.
+      // if explicitly wrapped, it won't error, but it will not execute
+      // the code in the try/catch. if ignored, it will crash the server
+      // and say uncaught task errors, even though it goes through 2
+      // layers of `catch`ing in other functions (where the global try/catch
+      // in `ServerDaemon.chpl` should catch all errors).
+      
+      //try {
       forall (i, off, len) in zip(0..#stringsObj.size, offs, lengths) {
         var str_entry: string = interpretAsString(origVals, off..#len);
         var encodedStr = encodeOrDecode(str_entry, encodingUpper);
         encodeArr[i] = encodedStr;
       }
+      // catch e:TaskErrors { for err in e do throw err; }
+      
       // calculate offsets and lengths
       encodeLengths = [e in encodeArr] e.numBytes;
       encodeOffsets = (+ scan encodeLengths) - encodeLengths + [i in 0..<encodeLengths.size] i;

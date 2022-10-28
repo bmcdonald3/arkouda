@@ -1,4 +1,6 @@
 module Codecs {
+  use ServerErrors;
+  use Reflection;
   use CTypes;
   use idna;
   use iconv;
@@ -8,7 +10,12 @@ module Codecs {
       var cRes: c_string;
       var rc = idn2_to_ascii_lz(obj.c_str(), cRes, 0);
       if (rc != IDNA_SUCCESS) {
-        throw new Error("Encode failed");
+        throw getErrorWithContext(
+            msg="message: idna encoding failed",
+            lineNumber=getLineNumber(),
+            routineName=getRoutineName(),
+            moduleName=getModuleName(),
+            errorClass="EncodeError");
       }
       var chplRes = cRes: string;
       idn2_free(cRes: c_void_ptr);
@@ -16,7 +23,12 @@ module Codecs {
     } else {
       var cd = libiconv_open("UTF-8":c_string, encoding.c_str());
       if cd == (-1):libiconv_t then
-        throw new Error("Unsupported encoding: " + encoding);
+        throw getErrorWithContext(
+            msg="message: unsupported encoding",
+            lineNumber=getLineNumber(),
+            routineName=getRoutineName(),
+            moduleName=getModuleName(),
+            errorClass="EncodeError");
       var inBuf = obj.c_str();
       var inSize = (obj.size+1): c_size_t;
       // TODO: how do we get this to be the correct size?
@@ -46,7 +58,12 @@ module Codecs {
       var cRes: c_string;
       var rc = idn2_to_unicode_8z8z(obj.c_str(), cRes, 0);
       if (rc != IDNA_SUCCESS) {
-        throw new Error("Decode failed");
+        throw getErrorWithContext(
+            msg="message: idna decoding failed",
+            lineNumber=getLineNumber(),
+            routineName=getRoutineName(),
+            moduleName=getModuleName(),
+            errorClass="EncodeError");
       }
       var chplRes = cRes: string;
       idn2_free(cRes: c_void_ptr);
@@ -54,6 +71,13 @@ module Codecs {
     }
     else {
       var cd = libiconv_open(encoding.c_str(), "UTF-8":c_string);
+      if cd == (-1):libiconv_t then
+        throw getErrorWithContext(
+            msg="message: unsupported encoding",
+            lineNumber=getLineNumber(),
+            routineName=getRoutineName(),
+            moduleName=getModuleName(),
+            errorClass="EncodeError");
       var inBuf = obj.c_str();
       var inSize = (obj.size+1): c_size_t;
       // TODO: how do we get this to be the correct size?
@@ -62,7 +86,12 @@ module Codecs {
       var outSize = chplRes.size: c_size_t;
       var r = libiconv(cd, inBuf, inSize, outBuf, outSize);
       if r != 0 then
-        throw new Error("Error decoding object");
+        throw getErrorWithContext(
+            msg="message: encoding failed",
+            lineNumber=getLineNumber(),
+            routineName=getRoutineName(),
+            moduleName=getModuleName(),
+            errorClass="EncodeError");
       return chplRes;
     }
   }

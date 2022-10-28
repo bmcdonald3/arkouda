@@ -568,7 +568,9 @@ module ServerDaemon {
                     userMetrics.incrementPerUserRequestMetrics(user,cmd);
                     requestMetrics.increment(cmd);
                 }
-            } catch (e: ErrorWithMsg) {
+            } catch (e: TaskErrors) {
+                  writeln("caught");
+                } catch (e: ErrorWithMsg) {
                 // Generate a ReplyMsg of type ERROR and serialize to a JSON-formatted string
                 sendRepMsg(serialize(msg=e.msg,msgType=MsgType.ERROR, msgFormat=MsgFormat.STRING, 
                                                         user=user));

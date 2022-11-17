@@ -11,7 +11,7 @@ TYPES = ("string")
 ENCODINGS = ("idna", "ascii")
 
 def time_ak_encode(N_per_locale, trials, seed):
-    print(">>> arkouda {} encode".format(dtype))
+    print(">>> arkouda string encode")
     cfg = ak.get_config()
     N = N_per_locale * cfg["numLocales"]
     print("numLocales = {}, N = {:,}".format(cfg["numLocales"], N))

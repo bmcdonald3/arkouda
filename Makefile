@@ -392,7 +392,7 @@ check:
 #### Test.mk ####
 #################
 
-TEST_SOURCE_DIR := test
+TEST_SOURCE_DIR := tests/server
 TEST_SOURCES := $(wildcard $(TEST_SOURCE_DIR)/*.chpl)
 TEST_MODULES := $(basename $(notdir $(TEST_SOURCES)))
 
@@ -419,7 +419,7 @@ test: test-python
 
 .PHONY: test-chapel
 test-chapel:
-	start_test $(TEST_SOURCE_DIR)
+	start_test $(TEST_SOURCE_DIR) -compopts "-M $(ARKOUDA_SOURCE_DIR) $(ARKOUDA_COMPAT_MODULES) $(TEST_CHPL_FLAGS)"
 
 .PHONY: test-all
 test-all: test-python test-chapel

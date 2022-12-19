@@ -1486,7 +1486,7 @@ class DataFrame(UserDict):
         data = self._prep_data(index=index, columns=columns)
         to_hdf(data, prefix_path=path, file_type=file_type)
 
-    def to_parquet(self, path, index=False, columns=None):
+    def to_parquet(self, path, index=False, columns=None, old=False):
         """
         Save DataFrame to disk as parquet, preserving column names.
 
@@ -1510,7 +1510,10 @@ class DataFrame(UserDict):
         """
         from arkouda.io import to_parquet
         data = self._prep_data(index=index, columns=columns)
-        to_parquet(data, prefix_path=path)
+        if old:
+            to_parquet(data, prefix_path=path, mode='append')
+        else:
+            to_parquet(data, prefix_path=path)
 
     def save(self, path, index=False, columns=None, file_format="HDF5"):
         """

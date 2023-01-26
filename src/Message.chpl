@@ -12,6 +12,14 @@ module Message {
     enum MsgFormat {STRING,BINARY}
     enum ObjectType {PDARRAY, SEGSTRING, LIST, DICT, VALUE, DATETIME, TIMEDELTA}
 
+
+    proc MsgType.writeThis(f) throws {
+      f.writeObject(this);
+    }
+
+    proc MsgFormat.writeThis(f) throws {
+      f.writeObject(this);
+    }
     /*
      * Encapsulates the message string and message type.
      */
@@ -29,6 +37,10 @@ module Message {
         var msgType: MsgType;
         var msgFormat: MsgFormat;
         var user: string;
+
+        override proc writeThis(f) throws {
+          f.writeObject(this);
+        }
     }
 
     /*

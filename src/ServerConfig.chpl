@@ -134,6 +134,9 @@ module ServerConfig
             const numPUs: int;
             const maxTaskPar: int;
             const physicalMemory: int;
+            override proc writeThis(f) throws {
+              f.writeObject(this);
+            }
 
             proc init(id: int) {
                 on Locales[id] {
@@ -166,6 +169,10 @@ module ServerConfig
             const byteorder: string;
             const autoShutdown: bool;
             const serverInfoNoSplash: bool;
+
+            override proc writeThis(f) throws {
+              f.writeObject(this);
+            }
         }
 
         var (Zmajor, Zminor, Zmicro) = ZMQ.version;

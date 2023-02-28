@@ -696,11 +696,11 @@ module HDF5Msg {
      * :arg writeOffsets: boolean switch for whether or not to write offsets/segements to file
      * :type writeOffsets: bool
      */
-    private proc writeNilStringsGroupToHdf(fileId: int, group: string, writeOffsets: bool) throws {
+    private proc writeNilGroupToHdf(fileId: int, dtype, group: string, writeOffsets: bool) throws {
         var dset_id: C_HDF5.hid_t;
         var zero = 0: uint(64);
         C_HDF5.H5LTmake_dataset_WAR(fileId, "/%s/values".format(group).c_str(), 1,
-                c_ptrTo(zero), getHDF5Type(uint(8)), nil);
+                c_ptrTo(zero), dtype, nil);
 
         dset_id = C_HDF5.H5Dopen(fileId, "/%s/values".format(group).c_str(), C_HDF5.H5P_DEFAULT);
 
@@ -836,7 +836,7 @@ module HDF5Msg {
                         h5Logger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                             "write1DDistStringsAggregators: locale.id %i has empty locDom.size %i, will get empty dataset."
                             .format(loc.id, locDom.size));
-                        writeNilStringsGroupToHdf(file_id, group, writeOffsets);
+                        writeNilGroupToHdf(file_id, getHDF5Type(uint(8)), group, writeOffsets);
                         // write attributes for arkouda meta info
                         writeArkoudaMetaData(file_id, group, objType, getHDF5Type(uint(8)));
                     } else {
@@ -925,7 +925,7 @@ module HDF5Msg {
               h5Logger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                             "writeSegmentedDistDset: locale.id %i has empty locDom.size %i, will get empty dataset."
                             .format(loc.id, locDom.size));
-              writeNilStringsGroupToHdf(file_id, group, true);
+              writeNilGroupToHdf(file_id, getDataType(t), group, true);
               // write attributes for arkouda meta info
               writeArkoudaMetaData(file_id, group, objType, getDataType(t));
             } else {

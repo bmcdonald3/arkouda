@@ -927,7 +927,7 @@ module HDF5Msg {
                             .format(loc.id, locDom.size));
               writeNilStringsGroupToHdf(file_id, group, false);
               // write attributes for arkouda meta info
-              writeArkoudaMetaData(file_id, group, objType, getHDF5Type(values.eltType));
+              writeArkoudaMetaData(file_id, group, objType, getHDF5Type(int));
             }
 
             var localSegs = segments[locDom];

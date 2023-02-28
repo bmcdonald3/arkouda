@@ -927,26 +927,26 @@ module HDF5Msg {
                             .format(loc.id, locDom.size));
               writeNilStringsGroupToHdf(file_id, group, false);
               // write attributes for arkouda meta info
-              writeArkoudaMetaData(file_id, group, objType, getHDF5Type(int));
-            }
+              writeArkoudaMetaData(file_id, group, objType, getDataType(t));
+            } else {
+              var localSegs = segments[locDom];
+              var startValIdx = localSegs[locDom.low];
+              var endValIdx = if (lastSegIdx == locDom.high) then lastValIdx else segments[locDom.high + 1] - 1;
+              var valIdxRange = startValIdx..endValIdx;
 
-            var localSegs = segments[locDom];
-            var startValIdx = localSegs[locDom.low];
-            var endValIdx = if (lastSegIdx == locDom.high) then lastValIdx else segments[locDom.high + 1] - 1;
-            var valIdxRange = startValIdx..endValIdx;
+              var localVals: [valIdxRange] t;
 
-            var localVals: [valIdxRange] t;
-
-            forall (localVal, valIdx) in zip(localVals, valIdxRange) with (var agg = newSrcAggregator(t)) {
+              forall (localVal, valIdx) in zip(localVals, valIdxRange) with (var agg = newSrcAggregator(t)) {
                 // Copy the remote value at index position valIdx to our local array
                 agg.copy(localVal, values[valIdx]); // in SrcAgg, the Right Hand Side is REMOTE
+              }
+
+              writeSegmentedComponentToHdf(file_id, group, SEGMENTED_VALUE_NAME, localVals);
+              localSegs = localSegs - startValIdx;
+              writeSegmentedComponentToHdf(file_id, group, SEGMENTED_OFFSET_NAME, localSegs);
+
+              writeArkoudaMetaData(file_id, group, objType, getDataType(t));
             }
-
-            writeSegmentedComponentToHdf(file_id, group, SEGMENTED_VALUE_NAME, localVals);
-            localSegs = localSegs - startValIdx;
-            writeSegmentedComponentToHdf(file_id, group, SEGMENTED_OFFSET_NAME, localSegs);
-
-            writeArkoudaMetaData(file_id, group, objType, getDataType(t));
         }
     }
 

@@ -913,13 +913,22 @@ module HDF5Msg {
                 C_HDF5.H5Fclose(file_id);
             }
 
-            // create the group
-            validateGroup(file_id, localeFilename, group);
-
-            // write the segments
             const locDom = segments.localSubdomain();
             var dims: [0..#1] C_HDF5.hsize_t;
             dims[0] = locDom.size: C_HDF5.hsize_t;
+            
+            // create the group
+            validateGroup(file_id, localeFilename, group);
+
+            if (locDom.isEmpty() || locDom.size <= 0) { // shouldn't need the second clause, but in case negative number is returned
+              // Case where num_elements < num_locales, we need to write a nil into this locale's file
+              h5Logger.debug(getModuleName(),getRoutineName(),getLineNumber(),
+                            "writeSegmentedDistDset: locale.id %i has empty locDom.size %i, will get empty dataset."
+                            .format(loc.id, locDom.size));
+              writeNilStringsGroupToHdf(file_id, group, false);
+              // write attributes for arkouda meta info
+              writeArkoudaMetaData(file_id, group, objType, getHDF5Type(values.eltType));
+            }
 
             var localSegs = segments[locDom];
             var startValIdx = localSegs[locDom.low];

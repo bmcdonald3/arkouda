@@ -925,7 +925,7 @@ module HDF5Msg {
               h5Logger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                             "writeSegmentedDistDset: locale.id %i has empty locDom.size %i, will get empty dataset."
                             .format(loc.id, locDom.size));
-              writeNilStringsGroupToHdf(file_id, group, false);
+              writeNilStringsGroupToHdf(file_id, group, true);
               // write attributes for arkouda meta info
               writeArkoudaMetaData(file_id, group, objType, getDataType(t));
             } else {

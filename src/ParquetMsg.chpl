@@ -454,7 +454,7 @@ module ParquetMsg {
                                         errMsg): int;
     // var filenames: [0..#A.targetLocales().size] string;
     var dtypeRep = toCDtype(dtype);
-    var doParallel = if A.size > parallelWriteThreshold then true else false;
+    var doParallel = A.size > parallelWriteThreshold;
     // for i in 0..#A.targetLocales().size {
     //   var suffix = '%04i'.format(i): string;
     //   filenames[i] = filename + "_LOCALE" + suffix + ".parquet";

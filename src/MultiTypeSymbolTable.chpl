@@ -12,6 +12,9 @@ module MultiTypeSymbolTable
     use MultiTypeSymEntry;
     use Map;
     use IO;
+
+    use ArkoudaMapCompat;
+    use ArkoudaRegexCompat;
     
     private config const logLevel = ServerConfig.logLevel;
     private config const logChannel = ServerConfig.logChannel;
@@ -118,7 +121,7 @@ module MultiTypeSymbolTable
             entry.setName(name);
             // When we retrieve from table, it comes back as AbstractSymEntry so we need to cast it
             // back to the original type. Since we know it already we can skip isAssignableTo check
-            return (tab[name]:borrowed GenSymEntry).toSymEntry(t);
+            return (tab[name,true]:borrowed GenSymEntry).toSymEntry(t);
         }
 
         /*
@@ -152,7 +155,7 @@ module MultiTypeSymbolTable
 
             tab.addOrSet(name, entry);
             entry.setName(name);
-            return tab[name];
+            return tab[name,true];
         }
 
         /*
@@ -229,7 +232,7 @@ module MultiTypeSymbolTable
          */
         proc lookup(name: string): borrowed AbstractSymEntry throws {
             checkTable(name, "lookup");
-            return tab[name];
+            return tab[name,true];
         }
 
         /**
@@ -343,7 +346,7 @@ module MultiTypeSymbolTable
             for name in infoList {
                 i+=1;
                 checkTable(name);
-                entries[i] = formatEntry(name, tab[name]);
+                entries[i] = formatEntry(name, tab[name,true]);
             }
             return entries;
         }
@@ -362,7 +365,7 @@ module MultiTypeSymbolTable
             for name in infoList.keys() {
                 i+=1;
                 checkTable(name);
-                entries[i] = formatEntry(name, tab[name]);
+                entries[i] = formatEntry(name, tab[name,true]);
             }
             return entries;
         }
@@ -407,7 +410,7 @@ module MultiTypeSymbolTable
         proc attrib(name:string):string throws {
             checkTable(name, "attrib");
 
-            var entry = tab[name];
+            var entry = tab[name,true];
             if entry.isAssignableTo(SymbolEntryType.TypedArraySymEntry){ //Anything considered a GenSymEntry
                 var g:GenSymEntry = toGenSymEntry(entry);
                 return "%s %s %t %t %t %t".format(name, dtype2str(g.dtype), g.size, g.ndim, g.shape, g.itemsize);
@@ -436,7 +439,7 @@ module MultiTypeSymbolTable
         */
         proc datastr(name: string, thresh:int): string throws {
             checkTable(name, "datastr");
-            var u: borrowed AbstractSymEntry = tab[name];
+            var u: borrowed AbstractSymEntry = tab[name,true];
 
             // I don't think we need to do this check, but I'm keeping the code around for now.
             // if (u.dtype == DType.UNDEF || u.dtype == DType.UInt8) {
@@ -464,7 +467,7 @@ module MultiTypeSymbolTable
         */
         proc datarepr(name: string, thresh:int): string throws {
             checkTable(name, "datarepr");
-            var entry = tab[name];
+            var entry = tab[name,true];
             if entry.isAssignableTo(SymbolEntryType.TypedArraySymEntry) {
                 var u: borrowed GenSymEntry = toGenSymEntry(entry);
                 if (u.dtype == DType.UNDEF || u.dtype == DType.UInt8) {
@@ -508,7 +511,7 @@ module MultiTypeSymbolTable
         :returns: string array containing matching entry names
         */
         proc findAll(pattern: string): [] string throws {
-            var rg = new regex(pattern);
+            var rg = new regexCompat(pattern);
             var infoStr = "";
             forall name in tab.keysToArray() with (+ reduce infoStr) {
                 var match = rg.match(name);

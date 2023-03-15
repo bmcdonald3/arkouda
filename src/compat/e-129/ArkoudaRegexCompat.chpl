@@ -1,7 +1,9 @@
 module ArkoudaRegexCompat {
-  use Regex;
+  import Regex.regex as chapelRegex;
+  import Regex.regexMatch;
+  import Regex.compile;
 
-  record regexCompat {
+  record regex {
     type eltType;
     const pattern: eltType;
     const cp = compile(pattern);

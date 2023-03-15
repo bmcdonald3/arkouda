@@ -5,7 +5,6 @@ module MetricsMsg {
     use Logging;    
     use List;
     use IO;
-    use Map;
     use MultiTypeSymbolTable;
     use MultiTypeSymEntry;
     use Message;
@@ -111,11 +110,11 @@ module MetricsMsg {
 
         proc getUserMetrics(user: User) {
             if this.metrics.contains(user: User) {
-              return try! this.metrics[user,true];
+              return try! this.metrics[user];
             } else {
                 var userMetrics = new shared CounterTable();
                 this.metrics.add(user, userMetrics);
-                return try! this.metrics[user,true];
+                return try! this.metrics[user];
             }
         }
 

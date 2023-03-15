@@ -1,6 +1,5 @@
 module CSVMsg {
     use CommAggregation;
-    use IO;
     use GenSymIO;
     use List;
     use Reflection;

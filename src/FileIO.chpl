@@ -4,7 +4,6 @@ module FileIO {
     use IO;
     use GenSymIO;
     use FileSystem;
-    use Map;
     use Path;
     use Reflection;
     use Message;
@@ -14,6 +13,7 @@ module FileIO {
     use Sort;
 
     use ArkoudaFileCompat;
+    use ArkoudaMapCompat;
 
     use ServerConfig, Logging, CommandMap;
     private config const logLevel = ServerConfig.logLevel;
@@ -94,8 +94,8 @@ module FileIO {
     }
 
     proc delimitedFileToMap(filePath : string, delimiter : string=',') : map {
-        var fileMap : map(keyType=string, valType=string, parSafe=false) = 
-                         new map(keyType=string,valType=string,parSafe=false);
+        var fileMap : map(keyType=string, valType=string) = 
+                         new map(keyType=string,valType=string);
         var aFile = try! open(filePath, ioMode.rw);
         var lines = try! aFile.lines();
         var line : string;

@@ -19,6 +19,8 @@ module IndexingMsg
 
     use Map;
 
+    use ArkoudaFileCompat;
+
     private config const logLevel = ServerConfig.logLevel;
     private config const logChannel = ServerConfig.logChannel;
     const imLogger = new Logger(logLevel, logChannel);

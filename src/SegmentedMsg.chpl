@@ -16,6 +16,8 @@ module SegmentedMsg {
   use GenSymIO;
   use BigInteger;
 
+  use ArkoudaMapCompat;
+
   private config const logLevel = ServerConfig.logLevel;
   private config const logChannel = ServerConfig.logChannel;
   const smLogger = new Logger(logLevel, logChannel);
@@ -34,7 +36,7 @@ module SegmentedMsg {
 
     var rtnmap: map(string, string) = new map(string, string);
 
-    var valEntry = st.tab[valName];
+    var valEntry = st.tab[valName, true];
     if valEntry.isAssignableTo(SymbolEntryType.SegStringSymEntry){ //SegString
       var vals = getSegString(valName, st);
       var segArray = getSegArray(segs.a, vals.values.a, st);
@@ -85,7 +87,7 @@ module SegmentedMsg {
   proc getSANonEmptyMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {
     var repMsg: string = "";
     var name = msgArgs.getValueOf("name"): string;
-    var entry = st.tab[name];
+    var entry = st.tab[name,true];
     var genEntry: GenSymEntry = toGenSymEntry(entry);
     var neName = st.nextName();
     select genEntry.dtype {

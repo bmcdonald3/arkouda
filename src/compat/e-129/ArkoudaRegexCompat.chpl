@@ -2,8 +2,14 @@ module ArkoudaRegexCompat {
   use Regex;
 
   record regexCompat {
-    const pattern: string;
+    type eltType;
+    const pattern: eltType;
     const cp = compile(pattern);
+
+    proc init(pat: ?t) {
+      eltType = t;
+      pattern = pat;
+    }
     
     proc match(name) {
       return cp.match(name);

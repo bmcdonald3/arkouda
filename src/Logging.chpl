@@ -2,9 +2,11 @@ module Logging {
     use Set;
     use IO;
     use FileSystem;
-    use ArkoudaDateTimeCompat;
     use Reflection;
     use ServerErrors;
+    use Time;
+
+    use ArkoudaFileCompat;
 
     /*
      * The LogLevel enum is used to provide a strongly-typed means of

@@ -13,6 +13,8 @@ module FileIO {
     use ServerErrors;
     use Sort;
 
+    use ArkoudaFileCompat;
+
     use ServerConfig, Logging, CommandMap;
     private config const logLevel = ServerConfig.logLevel;
     private config const logChannel = ServerConfig.logChannel;
@@ -23,7 +25,6 @@ module FileIO {
     proc appendFile(filePath : string, line : string) throws {
         var writer;
         if exists(filePath) {
-            use ArkoudaFileCompat;
             var aFile = open(filePath, ioMode.rw);
             writer = aFile.appendWriter();
         } else {

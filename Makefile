@@ -323,8 +323,8 @@ ifeq ($(shell expr $(CHPL_MINOR) \= 27),1)
 	CHPL_FLAGS += --instantiate-max 512
 endif
 
-ifeq ($(shell expr $(CHPL_MINOR) \>= 28),1)
-	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/ge-128
+ifeq ($(shell expr $(CHPL_MINOR) \>= 29),1)
+	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-129
 endif
 
 

@@ -8,6 +8,8 @@ module Message {
     use List;
     use BigInteger;
 
+    use ArkoudaFileCompat;
+
     enum MsgType {NORMAL,WARNING,ERROR}
     enum MsgFormat {STRING,BINARY}
     enum ObjectType {PDARRAY, SEGSTRING, LIST, DICT, VALUE, DATETIME, TIMEDELTA}

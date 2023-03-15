@@ -18,6 +18,8 @@ module CSVMsg {
     use FileIO;
     use Set;
 
+    use ArkoudaFileCompat;
+
     const CSV_HEADER_OPEN = "**HEADER**";
     const CSV_HEADER_CLOSE = "*/HEADER/*";
     const LINE_DELIM = "\n"; // currently assumed all files are newline delimited. 

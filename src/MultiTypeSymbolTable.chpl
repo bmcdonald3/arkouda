@@ -13,6 +13,7 @@ module MultiTypeSymbolTable
 
     use ArkoudaMapCompat;
     use ArkoudaRegexCompat;
+    use ArkoudaFileCompat;
     
     private config const logLevel = ServerConfig.logLevel;
     private config const logChannel = ServerConfig.logChannel;

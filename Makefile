@@ -316,14 +316,10 @@ ARKOUDA_MAIN_SOURCE := $(ARKOUDA_SOURCE_DIR)/$(ARKOUDA_MAIN_MODULE).chpl
 
 ifeq ($(shell expr $(CHPL_MINOR) \= 30),1)
 	CHPL_FLAGS += -sbigintInitThrows=true
+	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-130
 endif
 
-ifeq ($(shell expr $(CHPL_MINOR) \= 27),1)
-	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-127
-	CHPL_FLAGS += --instantiate-max 512
-endif
-
-ifeq ($(shell expr $(CHPL_MINOR) \>= 29),1)
+ifeq ($(shell expr $(CHPL_MINOR) \= 29),1)
 	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-129
 endif
 

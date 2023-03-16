@@ -1,3 +1,2 @@
 module ArkoudaTimeCompat {
-  use Time;
 }

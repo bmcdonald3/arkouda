@@ -1,5 +1,6 @@
 module ArkoudaMapCompat {
   import Map.map as chapelMap;
+  import IO.fileWriter;
 
   record map {
     type keyType;
@@ -14,6 +15,10 @@ module ArkoudaMapCompat {
 
     proc this(k) where isClass(valType) {
       return m.getBorrowed(k);
+    }
+
+    proc const writeThis(ch: fileWriter) throws {
+      m.writeThis(ch);
     }
   }
 }

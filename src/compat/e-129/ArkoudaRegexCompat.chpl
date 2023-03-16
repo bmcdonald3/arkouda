@@ -6,20 +6,22 @@ module ArkoudaRegexCompat {
   record regex {
     type eltType;
     const pattern: eltType;
-    const cp = compile(pattern);
 
     proc init(pat: ?t) {
       eltType = t;
       pattern = pat;
     }
     
-    proc match(name) {
+    proc match(name) throws {
+      const cp = compile(pattern);
       return cp.match(name);
     }
-    proc search(text):regexMatch {
+    proc search(text):regexMatch throws {
+      const cp = compile(pattern);
       return cp.search(text);
     }
-    iter matches(text, param captures=0) {
+    iter matches(text, param captures=0) throws {
+      const cp = compile(pattern);
       for match in cp.matches(text, captures) {
         yield match;
       }

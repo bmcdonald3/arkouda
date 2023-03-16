@@ -201,15 +201,15 @@ $(ARROW_O): $(ARROW_CPP) $(ARROW_H)
 	make compile-arrow-cpp
 
 CHPL_MINOR := $(shell $(CHPL) --version | sed -n "s/chpl version 1\.\([0-9]*\).*/\1/p")
-CHPL_VERSION_OK := $(shell test $(CHPL_MINOR) -ge 27 && echo yes)
-CHPL_VERSION_WARN := $(shell test $(CHPL_MINOR) -le 28 && echo yes)
+CHPL_VERSION_OK := $(shell test $(CHPL_MINOR) -ge 28 && echo yes)
+CHPL_VERSION_WARN := $(shell test $(CHPL_MINOR) -le 29 && echo yes)
 .PHONY: check-chpl
 check-chpl:
 ifneq ($(CHPL_VERSION_OK),yes)
-	$(error Chapel 1.27.0 or newer is required)
+	$(error Chapel 1.28.0 or newer is required)
 endif
 ifeq ($(CHPL_VERSION_WARN),yes)
-	$(warning Chapel 1.29.0 or newer is recommended)
+	$(warning Chapel 1.30.0 or newer is recommended)
 endif
 
 ZMQ_CHECK = $(DEP_INSTALL_DIR)/checkZMQ.chpl
@@ -319,7 +319,7 @@ ifeq ($(shell expr $(CHPL_MINOR) \= 30),1)
 	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-130
 endif
 
-ifeq ($(shell expr $(CHPL_MINOR) \= 29),1)
+ifeq ($(shell expr $(CHPL_MINOR) \<= 29),1)
 	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-129
 endif
 

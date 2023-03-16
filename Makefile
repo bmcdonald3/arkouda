@@ -209,7 +209,7 @@ ifneq ($(CHPL_VERSION_OK),yes)
 	$(error Chapel 1.28.0 or newer is required)
 endif
 ifeq ($(CHPL_VERSION_WARN),yes)
-	$(warning Chapel 1.30.0 or newer is recommended)
+	$(warning Chapel 1.29.0 or newer is recommended)
 endif
 
 ZMQ_CHECK = $(DEP_INSTALL_DIR)/checkZMQ.chpl
@@ -319,8 +319,12 @@ ifeq ($(shell expr $(CHPL_MINOR) \= 30),1)
 	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-130
 endif
 
-ifeq ($(shell expr $(CHPL_MINOR) \<= 29),1)
+ifeq ($(shell expr $(CHPL_MINOR) \= 29),1)
 	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-129
+endif
+
+ifeq ($(shell expr $(CHPL_MINOR) \= 28),1)
+	ARKOUDA_COMPAT_MODULES += -M $(ARKOUDA_SOURCE_DIR)/compat/e-128
 endif
 
 

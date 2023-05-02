@@ -121,8 +121,8 @@ module MultiTypeSymEntry
         :arg etype: type for gse to be cast to
         :type etype: type
        */
-    inline proc toSymEntry(gse: borrowed GenSymEntry, type etype) {
-        return gse.toSymEntry(etype);
+    inline proc toSymEntry(gse: borrowed GenSymEntry, type etype, param ndims=1) {
+        return gse.toSymEntry(etype, ndims);
     }
 
     /* 
@@ -137,8 +137,6 @@ module MultiTypeSymEntry
         var dtype: DType; // answer to numpy dtype
         var itemsize: int; // answer to numpy itemsize = num bytes per elt
         var size: int = 0; // answer to numpy size == num elts
-        var ndim: int = 1; // answer to numpy ndim == 1-axis for now
-        var shape: 1*int = (0,); // answer to numpy shape == 1*int tuple
         
         // not sure yet how to implement numpy data() function
 
@@ -148,7 +146,6 @@ module MultiTypeSymEntry
             this.dtype = whichDtype(etype);
             this.itemsize = dtypeSize(this.dtype);
             this.size = len;
-            this.shape = (len,);
         }
 
         override proc getSizeEstimate(): int {
@@ -162,8 +159,8 @@ module MultiTypeSymEntry
            :arg etype: `SymEntry` type parameter
            :type etype: type
          */
-        inline proc toSymEntry(type etype) {
-            return try! this :borrowed SymEntry(etype);
+        inline proc toSymEntry(type etype, param ndims) {
+            return try! this :borrowed SymEntry(etype, ndims);
         }
 
         /* 
@@ -202,11 +199,13 @@ module MultiTypeSymEntry
         */
         type etype;
 
+        param ndim;
+
         /*
         'a' is the distributed array whose value and type are defined by
         makeDist{Dom,Array}() to support varying distributions
         */
-        var a = makeDistArray(size, etype);
+        var a = makeDistArray(size, etype, ndim);
         /* Removed domain accessor, use `a.domain` instead */
         proc aD { compilerError("SymEntry.aD has been removed, use SymEntry.a.domain instead"); }
         /* only used with bigint pdarrays */
@@ -221,13 +220,14 @@ module MultiTypeSymEntry
         :arg etype: type to be instantiated
         :type etype: type
         */
-        proc init(len: int, type etype) {
+        proc init(len: int, type etype, param ndims=1) {
             super.init(etype, len);
             this.entryType = SymbolEntryType.PrimitiveTypedArraySymEntry;
             assignableTypes.add(this.entryType);
 
             this.etype = etype;
-            this.a = makeDistArray(size, etype);
+            this.ndim = ndims;
+            this.a = makeDistArray(size, etype, ndims);
         }
 
         /*
@@ -236,12 +236,13 @@ module MultiTypeSymEntry
         :arg a: array
         :type a: [] ?etype
         */
-        proc init(in a: [?D] ?etype, max_bits=-1) {
+        proc init(in a: [?D] ?etype, max_bits=-1, param ndims=1) {
             super.init(etype, D.size);
             this.entryType = SymbolEntryType.PrimitiveTypedArraySymEntry;
             assignableTypes.add(this.entryType);
 
             this.etype = etype;
+            this.ndim = ndims;
             this.a = a;
             this.max_bits=max_bits;
         }
@@ -363,8 +364,8 @@ module MultiTypeSymEntry
     class SegStringSymEntry:GenSymEntry {
         type etype = string;
 
-        var offsetsEntry: shared SymEntry(int);
-        var bytesEntry: shared SymEntry(uint(8));
+        var offsetsEntry: shared SymEntry(int, 1);
+        var bytesEntry: shared SymEntry(uint(8), 1);
 
         proc init(offsetsSymEntry: shared SymEntry, bytesSymEntry: shared SymEntry, type etype) {
             super.init(etype, bytesSymEntry.size);
@@ -377,8 +378,6 @@ module MultiTypeSymEntry
             this.dtype = whichDtype(etype);
             this.itemsize = this.bytesEntry.itemsize;
             this.size = this.offsetsEntry.size;
-            this.ndim = this.offsetsEntry.ndim;
-            this.shape = this.offsetsEntry.shape;
         }
 
         override proc getSizeEstimate(): int {
@@ -435,8 +434,6 @@ module MultiTypeSymEntry
             this.dtype = whichDtype(etype);
             this.itemsize = this.valuesEntry.itemsize;
             this.size = this.segmentsEntry.size;
-            this.ndim = this.segmentsEntry.ndim;
-            this.shape = this.segmentsEntry.shape;
         }
 
         override proc getSizeEstimate(): int {
@@ -465,8 +462,6 @@ module MultiTypeSymEntry
             this.segmentsEntry = segmentsSymEntry;
             this.permEntry = permSymEntry;
             this.ukIndEntry = ukIndSymEntry;
-
-            this.ndim = this.segmentsEntry.size; // used as the number of groups
         }
 
         override proc getSizeEstimate(): int {

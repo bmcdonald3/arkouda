@@ -5,7 +5,7 @@ module Logging {
     use ServerErrors;
     use ArkoudaTimeCompat as Time;
 
-    import IO.{format, stdout, file};
+    import IO.{stdout, file};
     use ArkoudaFileCompat;
 
     /*

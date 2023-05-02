@@ -31,12 +31,7 @@ module AryUtil
       :arg A: array to be printed
     */
     proc formatAry(A):string throws {
-        if A.size <= printThresh {
             return "%t".format(A);
-        } else {
-            return "%t ... %t".format(A[A.domain.low..A.domain.low+2],
-                                      A[A.domain.high-2..A.domain.high]);
-        }
     }
 
     proc printAry(name:string, A) {

@@ -103,13 +103,13 @@ module MultiTypeSymbolTable
 
             :returns: borrow of newly created `SymEntry(t)`
         */
-        proc addEntry(name: string, len: int, type t): borrowed SymEntry(t) throws {
+      proc addEntry(name: string, len: int, type t, param ndims=1): borrowed SymEntry(t, ndims) throws {
             // check and throw if memory limit would be exceeded
             // TODO figure out a way to do memory checking for bigint
             if t != bigint {
                 if t == bool {overMemLimit(len);} else {overMemLimit(len*numBytes(t));}
             }
-            var entry = new shared SymEntry(len, t);
+            var entry = new shared SymEntry(len, t, ndims);
             if (tab.contains(name)) {
                 mtLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                                         "redefined symbol: %s ".format(name));
@@ -122,7 +122,7 @@ module MultiTypeSymbolTable
             entry.setName(name);
             // When we retrieve from table, it comes back as AbstractSymEntry so we need to cast it
             // back to the original type. Since we know it already we can skip isAssignableTo check
-            return (tab[name]:borrowed GenSymEntry).toSymEntry(t);
+            return (tab[name]:borrowed GenSymEntry).toSymEntry(t, ndims);
         }
 
         /*
@@ -136,7 +136,7 @@ module MultiTypeSymbolTable
 
         :returns: borrow of newly created AbstractSymEntry
         */
-        proc addEntry(name: string, in entry: shared AbstractSymEntry): borrowed AbstractSymEntry throws {
+      proc addEntry(name: string, in entry: shared AbstractSymEntry): borrowed AbstractSymEntry throws {
             // check and throw if memory limit would be exceeded
             if entry.isAssignableTo(SymbolEntryType.TypedArraySymEntry) {
                 overMemLimit( (entry:GenSymEntry).size * (entry:GenSymEntry).itemsize);
@@ -385,13 +385,13 @@ module MultiTypeSymbolTable
         proc formatEntry(name:string, abstractEntry:borrowed AbstractSymEntry): string throws {
             if abstractEntry.isAssignableTo(SymbolEntryType.TypedArraySymEntry) {
                 var item:borrowed GenSymEntry = toGenSymEntry(abstractEntry);
-                return '{"name":%jt, "dtype":%jt, "size":%jt, "ndim":%jt, "shape":%jt, "itemsize":%jt, "registered":%jt}'.format(name,
-                              dtype2str(item.dtype), item.size, item.ndim, item.shape, item.itemsize, registry.contains(name));
+                return '{"name":%jt, "dtype":%jt, "size":%jt, "itemsize":%jt, "registered":%jt}'.format(name,
+                              dtype2str(item.dtype), item.size, item.itemsize, registry.contains(name));
 
             } else if abstractEntry.isAssignableTo(SymbolEntryType.SegStringSymEntry) {
                 var item:borrowed SegStringSymEntry = toSegStringSymEntry(abstractEntry);
-                return '{"name":%jt, "dtype":%jt, "size":%jt, "ndim":%jt, "shape":%jt, "itemsize":%jt, "registered":%jt}'.format(name,
-                              dtype2str(item.dtype), item.size, item.ndim, item.shape, item.itemsize, registry.contains(name));
+                return '{"name":%jt, "dtype":%jt, "size":%jt, "itemsize":%jt, "registered":%jt}'.format(name,
+                              dtype2str(item.dtype), item.size, item.itemsize, registry.contains(name));
                               
             } else {
                 return '{"name":%jt, "dtype":%jt, "size":%jt, "ndim":%jt, "shape":%jt, "itemsize":%jt, "registered":%jt}'.format(name,
@@ -414,11 +414,11 @@ module MultiTypeSymbolTable
             var entry = tab[name];
             if entry.isAssignableTo(SymbolEntryType.TypedArraySymEntry){ //Anything considered a GenSymEntry
                 var g:GenSymEntry = toGenSymEntry(entry);
-                return "%s %s %t %t %t %t".format(name, dtype2str(g.dtype), g.size, g.ndim, g.shape, g.itemsize);
+                return "%s %s %t %t".format(name, dtype2str(g.dtype), g.size, g.itemsize);
             }
             else if entry.isAssignableTo(SymbolEntryType.CompositeSymEntry) { //CompositeSymEntry
                 var c: CompositeSymEntry = toCompositeSymEntry(entry);
-                return "%s %t %t".format(name, c.size, c.ndim);
+                return "%s %t".format(name, c.size);
             }
             
             throw new Error("attrib - Unsupported Entry Type %s".format(entry.entryType));

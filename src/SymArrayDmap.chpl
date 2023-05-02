@@ -24,23 +24,11 @@ module SymArrayDmap
     :arg size: size of domain
     :type size: int
     */
-    proc makeDistDom(size:int) {
-        select MyDmap
-        {
-            when Dmap.defaultRectangular {
-                return {0..#size};
-            }
-            when Dmap.blockDist {
-                if size > 0 {
-                    return {0..#size} dmapped Block(boundingBox={0..#size});
-                }
-                // fix the annoyance about boundingBox being enpty
-                else {return {0..#0} dmapped Block(boundingBox={0..0});}
-            }
-            otherwise {
-                halt("Unsupported distribution " + MyDmap:string);
-            }
-        }
+    proc makeDistDom(size:int, param ndims=1) {
+      if ndims == 1 then
+        return {0..#size};
+      else
+        return {0..#size, 0..#size};
     }
     
     /* 
@@ -54,8 +42,8 @@ module SymArrayDmap
 
     :returns: [] ?etype
     */
-    proc makeDistArray(size:int, type etype) {
-        var a: [makeDistDom(size)] etype;
+    proc makeDistArray(size:int, type etype, param ndims=1) {
+        var a: [makeDistDom(size, ndims)] etype;
         return a;
     }
 

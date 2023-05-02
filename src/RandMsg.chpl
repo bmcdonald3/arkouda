@@ -47,7 +47,7 @@ module RandMsg
                 var aMin = low.getIntValue();
                 var aMax = high.getIntValue();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, int);
+                var e = st.addEntry(rname, len, int, 2);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                    "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -61,7 +61,7 @@ module RandMsg
                 var aMin = low.getUInt8Value();
                 var aMax = high.getUInt8Value();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, uint(8));
+                var e = st.addEntry(rname, len, uint(8),2);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                      "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -75,7 +75,7 @@ module RandMsg
                 var aMin = low.getUIntValue();
                 var aMax = high.getUIntValue();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, uint);
+                var e = st.addEntry(rname, len, uint,2);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                      "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -89,7 +89,7 @@ module RandMsg
                 var aMin = low.getRealValue();
                 var aMax = high.getRealValue();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, real);
+                var e = st.addEntry(rname, len, real,2);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                          "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -101,7 +101,7 @@ module RandMsg
             when (DType.Bool) {
                 overMemLimit(len);
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, bool);
+                var e = st.addEntry(rname, len, bool,2);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                   "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 

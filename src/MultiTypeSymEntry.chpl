@@ -307,6 +307,11 @@ module MultiTypeSymEntry
             :returns: s (string) containing the array data
         */
         override proc __str__(thresh:int=6, prefix:string = "[", suffix:string = "]", baseFormat:string = "%t"): string throws {
+          if ndim == 2 {
+            var s: string = "";
+            s += a:string;
+            return s;
+          } else {
             var s:string = "";
             if (this.size == 0) {
                 s =  ""; // Unnecessary, but left for clarity
@@ -328,6 +333,7 @@ module MultiTypeSymEntry
 
             return prefix + s + suffix;
         }
+          }
     }
 
     /*

@@ -24,7 +24,11 @@ module RandMsg
 
     :arg reqMsg: message to process (contains cmd,aMin,aMax,len,dtype)
     */
-    proc randintMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {
+    proc randintMsg1D(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {
+      return randintMsg(cmd, msgArgs, st, 1);
+    }
+    
+    proc randintMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab, param ndim=1): MsgTuple throws {
         param pn = Reflection.getRoutineName();
         var repMsg: string; // response message
         
@@ -47,7 +51,7 @@ module RandMsg
                 var aMin = low.getIntValue();
                 var aMax = high.getIntValue();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, int, 2);
+                var e = st.addEntry(rname, len, int, ndim);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                    "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -61,7 +65,7 @@ module RandMsg
                 var aMin = low.getUInt8Value();
                 var aMax = high.getUInt8Value();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, uint(8),2);
+                var e = st.addEntry(rname, len, uint(8),ndim);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                      "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -75,7 +79,7 @@ module RandMsg
                 var aMin = low.getUIntValue();
                 var aMax = high.getUIntValue();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, uint,2);
+                var e = st.addEntry(rname, len, uint,ndim);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                      "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -89,7 +93,7 @@ module RandMsg
                 var aMin = low.getRealValue();
                 var aMax = high.getRealValue();
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, real,2);
+                var e = st.addEntry(rname, len, real,ndim);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                          "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -101,7 +105,7 @@ module RandMsg
             when (DType.Bool) {
                 overMemLimit(len);
                 var t1 = Time.timeSinceEpoch().totalSeconds();
-                var e = st.addEntry(rname, len, bool,2);
+                var e = st.addEntry(rname, len, bool,ndim);
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                   "alloc time = %i sec".format(Time.timeSinceEpoch().totalSeconds() - t1));
                 
@@ -138,6 +142,6 @@ module RandMsg
     }
     
     use CommandMap;
-    registerFunction("randint", randintMsg, getModuleName());
+    registerFunction("randint1D", randintMsg1D, getModuleName());
     registerFunction("randomNormal", randomNormalMsg, getModuleName());
 }

@@ -856,7 +856,7 @@ def linspace(start: numeric_scalars, stop: numeric_scalars, length: int_scalars)
 
 @typechecked
 def randint(
-    low: numeric_scalars, high: numeric_scalars, size: int_scalars, dtype=int64, seed: int_scalars = None
+        low: numeric_scalars, high: numeric_scalars, size: int_scalars, ndims: int_scalars, dtype=int64, seed: int_scalars = None
 ) -> pdarray:
     """
     Generate a pdarray of randomized int, float, or bool values in a
@@ -924,16 +924,28 @@ def randint(
     if dtype.name not in DTypes:
         raise TypeError(f"unsupported dtype {dtype}")
 
-    repMsg = generic_msg(
-        cmd="randint",
-        args={
-            "size": NUMBER_FORMAT_STRINGS["int64"].format(size),
-            "dtype": dtype.name,
-            "low": NUMBER_FORMAT_STRINGS[dtype.name].format(low),
-            "high": NUMBER_FORMAT_STRINGS[dtype.name].format(high),
-            "seed": seed,
-        },
-    )
+    if ndims == 1:
+        repMsg = generic_msg(
+            cmd="randint1D",
+            args={
+                "size": NUMBER_FORMAT_STRINGS["int64"].format(size),
+                "dtype": dtype.name,
+                "low": NUMBER_FORMAT_STRINGS[dtype.name].format(low),
+                "high": NUMBER_FORMAT_STRINGS[dtype.name].format(high),
+                "seed": seed,
+            },
+        )
+    elif ndims == 2:
+        repMsg = generic_msg(
+            cmd="randint2D",
+            args={
+                "size": NUMBER_FORMAT_STRINGS["int64"].format(size),
+                "dtype": dtype.name,
+                "low": NUMBER_FORMAT_STRINGS[dtype.name].format(low),
+                "high": NUMBER_FORMAT_STRINGS[dtype.name].format(high),
+                "seed": seed,
+            },
+        )
     return create_pdarray(repMsg)
 
 

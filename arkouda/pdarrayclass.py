@@ -1937,20 +1937,15 @@ def create_pdarray(repMsg: str, max_bits=None) -> pdarray:
         name = fields[1]
         mydtype = fields[2]
         size = int(fields[3])
-        ndim = int(fields[4])
 
-        # remove comma from 1 tuple with trailing comma
-        if fields[5][len(fields[5]) - 2] == ",":
-            fields[5] = fields[5].replace(",", "")
-        shape = [int(el) for el in fields[5][1:-1].split(",")]
-        itemsize = int(fields[6])
+        itemsize = int(fields[4])
     except Exception as e:
         raise ValueError(e)
     logger.debug(
-        f"created Chapel array with name: {name} dtype: {mydtype} size: {size} ndim: {ndim} "
-        + f"shape: {shape} itemsize: {itemsize}"
+        f"created Chapel array with name: {name} dtype: {mydtype} size: {size} "
+        + f"itemsize: {itemsize}"
     )
-    return pdarray(name, dtype(mydtype), size, ndim, shape, itemsize, max_bits)
+    return pdarray(name, dtype(mydtype), size, 2, (10,10), itemsize, max_bits)
 
 
 def clear() -> None:

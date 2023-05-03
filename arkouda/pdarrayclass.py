@@ -302,7 +302,7 @@ class pdarray:
         if isinstance(other, pdarray):
             if self.size != other.size:
                 raise ValueError(f"size mismatch {self.size} {other.size}")
-            repMsg = generic_msg(cmd="binopvv", args={"op": op, "a": self, "b": other})
+            repMsg = generic_msg(cmd="binopvv2D", args={"op": op, "a": self, "b": other})
             return create_pdarray(repMsg)
         # pdarray binop scalar
         # If scalar cannot be safely cast, server will infer the return dtype

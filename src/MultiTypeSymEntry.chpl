@@ -254,8 +254,8 @@ module MultiTypeSymEntry
         :arg a: array
         :type a: [] ?etype
         */
-        proc init(a: [?D] ?etype) where MyDmap != Dmap.defaultRectangular && a.isDefaultRectangular() {
-            this.init(D.size, etype);
+        proc init(a: [?D] ?etype, param ndims=1) where MyDmap != Dmap.defaultRectangular && a.isDefaultRectangular() {
+            this.init(D.size, etype, ndims);
             this.a = a;
         }
 

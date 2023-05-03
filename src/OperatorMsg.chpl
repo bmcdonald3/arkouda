@@ -37,7 +37,11 @@ module OperatorMsg
       :returns: (MsgTuple) 
       :throws: `UndefinedSymbolError(name)`
     */
-    proc binopvvMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {       
+    proc binopvvMsg1D(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {
+      return binopvvMsg(cmd, msgArgs, st, 1);
+    }
+    
+    proc binopvvMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab, param ndim=1): MsgTuple throws {       
         param pn = Reflection.getRoutineName();
         var repMsg: string; // response message
         
@@ -67,288 +71,288 @@ module OperatorMsg
 
         select (left.dtype, right.dtype) {
           when (DType.Int64, DType.Int64) {
-            var l = toSymEntry(left,int);
-            var r = toSymEntry(right,int);
+            var l = toSymEntry(left,int,ndim);
+            var r = toSymEntry(right,int,ndim);
             
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             } else if op == "/" {
               // True division is the only case in this int, int case
               // that results in a `real` symbol table entry.
-              var e = st.addEntry(rname, l.size, real);
+              var e = st.addEntry(rname, l.size, real,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, int);
+            var e = st.addEntry(rname, l.size, int,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Int64, DType.Float64) {
-            var l = toSymEntry(left,int);
-            var r = toSymEntry(right,real);
+            var l = toSymEntry(left,int,ndim);
+            var r = toSymEntry(right,real,ndim);
             // Only two possible resultant types are `bool` and `real`
             // for this case
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, real);
+            var e = st.addEntry(rname, l.size, real,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Float64, DType.Int64) {
-            var l = toSymEntry(left,real);
-            var r = toSymEntry(right,int);
+            var l = toSymEntry(left,real,ndim);
+            var r = toSymEntry(right,int,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, real);
+            var e = st.addEntry(rname, l.size, real,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.UInt64, DType.Float64) {
-            var l = toSymEntry(left,uint);
-            var r = toSymEntry(right,real);
+            var l = toSymEntry(left,uint,ndim);
+            var r = toSymEntry(right,real,ndim);
             // Only two possible resultant types are `bool` and `real`
             // for this case
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, real);
+            var e = st.addEntry(rname, l.size, real,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Float64, DType.UInt64) {
-            var l = toSymEntry(left,real);
-            var r = toSymEntry(right,uint);
+            var l = toSymEntry(left,real,ndim);
+            var r = toSymEntry(right,uint,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, real);
+            var e = st.addEntry(rname, l.size, real,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Float64, DType.Float64) {
-            var l = toSymEntry(left,real);
-            var r = toSymEntry(right,real);
+            var l = toSymEntry(left,real,ndim);
+            var r = toSymEntry(right,real,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, real);
+            var e = st.addEntry(rname, l.size, real,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           // For cases where a boolean operand is involved, the only
           // possible resultant type is `bool`
           when (DType.Bool, DType.Bool) {
-            var l = toSymEntry(left,bool);
-            var r = toSymEntry(right,bool);
-            var e = st.addEntry(rname, l.size, bool);
+            var l = toSymEntry(left,bool,ndim);
+            var r = toSymEntry(right,bool,ndim);
+            var e = st.addEntry(rname, l.size, bool,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Bool, DType.Int64) {
-            var l = toSymEntry(left,bool);
-            var r = toSymEntry(right,int);
+            var l = toSymEntry(left,bool,ndim);
+            var r = toSymEntry(right,int,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, int);
+            var e = st.addEntry(rname, l.size, int,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Int64, DType.Bool) {
-            var l = toSymEntry(left,int);
-            var r = toSymEntry(right,bool);
+            var l = toSymEntry(left,int,ndim);
+            var r = toSymEntry(right,bool,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, int);
+            var e = st.addEntry(rname, l.size, int,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Bool, DType.Float64) {
-            var l = toSymEntry(left,bool);
-            var r = toSymEntry(right,real);
+            var l = toSymEntry(left,bool,ndim);
+            var r = toSymEntry(right,real,ndim);
            if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, real);
+            var e = st.addEntry(rname, l.size, real,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Float64, DType.Bool) {
-            var l = toSymEntry(left,real);
-            var r = toSymEntry(right,bool);
+            var l = toSymEntry(left,real,ndim);
+            var r = toSymEntry(right,bool,ndim);
            if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, real);
+            var e = st.addEntry(rname, l.size, real,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.Bool, DType.UInt64) {
-            var l = toSymEntry(left,bool);
-            var r = toSymEntry(right,uint);
+            var l = toSymEntry(left,bool,ndim);
+            var r = toSymEntry(right,uint,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, uint);
+            var e = st.addEntry(rname, l.size, uint,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.UInt64, DType.Bool) {
-            var l = toSymEntry(left,uint);
-            var r = toSymEntry(right,bool);
+            var l = toSymEntry(left,uint,ndim);
+            var r = toSymEntry(right,bool,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, uint);
+            var e = st.addEntry(rname, l.size, uint,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.UInt64, DType.UInt64) {
-            var l = toSymEntry(left,uint);
-            var r = toSymEntry(right,uint);
+            var l = toSymEntry(left,uint,ndim);
+            var r = toSymEntry(right,uint,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
-            var e = st.addEntry(rname, l.size, uint);
+            var e = st.addEntry(rname, l.size, uint,ndim);
             return doBinOpvv(l, r, e, op, rname, pn, st);
           }
           when (DType.UInt64, DType.Int64) {
-            var l = toSymEntry(left,uint);
-            var r = toSymEntry(right,int);
+            var l = toSymEntry(left,uint,ndim);
+            var r = toSymEntry(right,int,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
             // + and - both result in real outputs to match NumPy
             if op == "+" || op == "-" {
-              var e = st.addEntry(rname, l.size, real);
+              var e = st.addEntry(rname, l.size, real,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             } else {
               // isn't + or -, so we can use LHS to determine type
-              var e = st.addEntry(rname, l.size, uint);
+              var e = st.addEntry(rname, l.size, uint,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
           }
           when (DType.Int64, DType.UInt64) {
-            var l = toSymEntry(left,int);
-            var r = toSymEntry(right,uint);
+            var l = toSymEntry(left,int,ndim);
+            var r = toSymEntry(right,uint,ndim);
             if boolOps.contains(op) {
-              var e = st.addEntry(rname, l.size, bool);
+              var e = st.addEntry(rname, l.size, bool,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
             if op == "+" || op == "-" {
-              var e = st.addEntry(rname, l.size, real);
+              var e = st.addEntry(rname, l.size, real,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             } else {
               // isn't + or -, so we can use LHS to determine type
-              var e = st.addEntry(rname, l.size, int);
+              var e = st.addEntry(rname, l.size, int,ndim);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
           }
           when (DType.BigInt, DType.BigInt) {
-            var l = toSymEntry(left,bigint);
-            var r = toSymEntry(right,bigint);
+            var l = toSymEntry(left,bigint,ndim);
+            var r = toSymEntry(right,bigint,ndim);
             if boolOps.contains(op) {
               // call bigint specific func which returns distr bool array
-              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op),-1,ndim));
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
             // call bigint specific func which returns dist bigint array
             var (tmp, max_bits) = doBigIntBinOpvv(l, r, op);
-            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits));
+            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits,ndim));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
           }
           when (DType.BigInt, DType.Int64) {
-            var l = toSymEntry(left,bigint);
-            var r = toSymEntry(right,int);
+            var l = toSymEntry(left,bigint,ndim);
+            var r = toSymEntry(right,int,ndim);
             if boolOps.contains(op) {
               // call bigint specific func which returns distr bool array
-              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op),-1,ndim));
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
             // call bigint specific func which returns dist bigint array
             var (tmp, max_bits) = doBigIntBinOpvv(l, r, op);
-            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits));
+            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits,ndim));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
           }
           when (DType.BigInt, DType.UInt64) {
-            var l = toSymEntry(left,bigint);
-            var r = toSymEntry(right,uint);
+            var l = toSymEntry(left,bigint,ndim);
+            var r = toSymEntry(right,uint,ndim);
             if boolOps.contains(op) {
               // call bigint specific func which returns distr bool array
-              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op),-1,ndim));
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
             // call bigint specific func which returns dist bigint array
             var (tmp, max_bits) = doBigIntBinOpvv(l, r, op);
-            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits));
+            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits,ndim));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
           }
           when (DType.BigInt, DType.Bool) {
-            var l = toSymEntry(left,bigint);
-            var r = toSymEntry(right,bool);
+            var l = toSymEntry(left,bigint,ndim);
+            var r = toSymEntry(right,bool,ndim);
             if boolOps.contains(op) {
               // call bigint specific func which returns distr bool array
-              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op),-1,ndim));
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
             // call bigint specific func which returns dist bigint array
             var (tmp, max_bits) = doBigIntBinOpvv(l, r, op);
-            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits));
+            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits,ndim));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
           }
           when (DType.Int64, DType.BigInt) {
-            var l = toSymEntry(left,int);
-            var r = toSymEntry(right,bigint);
+            var l = toSymEntry(left,int,ndim);
+            var r = toSymEntry(right,bigint,ndim);
             if boolOps.contains(op) {
               // call bigint specific func which returns distr bool array
-              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op),-1,ndim));
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
             // call bigint specific func which returns dist bigint array
             var (tmp, max_bits) = doBigIntBinOpvv(l, r, op);
-            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits));
+            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits,ndim));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
           }
           when (DType.UInt64, DType.BigInt) {
-            var l = toSymEntry(left,uint);
-            var r = toSymEntry(right,bigint);
+            var l = toSymEntry(left,uint,ndim);
+            var r = toSymEntry(right,bigint,ndim);
             if boolOps.contains(op) {
               // call bigint specific func which returns distr bool array
-              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op),-1,ndim));
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
             // call bigint specific func which returns dist bigint array
             var (tmp, max_bits) = doBigIntBinOpvv(l, r, op);
-            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits));
+            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits,ndim));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
           }
           when (DType.Bool, DType.BigInt) {
-            var l = toSymEntry(left,bool);
-            var r = toSymEntry(right,bigint);
+            var l = toSymEntry(left,bool,ndim);
+            var r = toSymEntry(right,bigint,ndim);
             if boolOps.contains(op) {
               // call bigint specific func which returns distr bool array
-              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op),-1,ndim));
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
             // call bigint specific func which returns dist bigint array
             var (tmp, max_bits) = doBigIntBinOpvv(l, r, op);
-            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits));
+            var e = st.addEntry(rname, new shared SymEntry(tmp, max_bits,ndim));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
           }
@@ -2129,7 +2133,7 @@ module OperatorMsg
     }
 
     use CommandMap;
-    registerFunction("binopvv", binopvvMsg, getModuleName());
+    registerFunction("binopvv1D", binopvvMsg1D, getModuleName());
     registerFunction("binopvs", binopvsMsg, getModuleName());
     registerFunction("binopsv", binopsvMsg, getModuleName());
     registerFunction("opeqvv", opeqvvMsg, getModuleName());

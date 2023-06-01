@@ -442,11 +442,12 @@ module ParquetMsg {
     }
     
     coforall (loc, idx) in zip(A.targetLocales(), filenames.domain) do on loc {
-        var pqErr = new parquetErrorMsg();
-        const myFilename = filenames[idx];
+      var pqErr = new parquetErrorMsg();
+      const myFilename = filenames[idx];
 
-        var locDom = A.localSubdomain();
-        var locArr = A[locDom];
+      var locDom = A.localSubdomain();
+      var locArr = A[locDom];
+      if locDom.size > 0 {
         if mode == TRUNCATE || !filesExist {
           if c_writeColumnToParquet(myFilename.localize().c_str(), c_ptrTo(locArr), 0,
                                     dsetname.localize().c_str(), locDom.size, rowGroupSize,
@@ -461,6 +462,7 @@ module ParquetMsg {
           }
         }
       }
+    }
     // Only warn when files are being overwritten in truncate mode
     return filesExist && mode == TRUNCATE;
   }

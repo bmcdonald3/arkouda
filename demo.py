@@ -33,7 +33,7 @@ if __name__ == "__main__":
     b = ak.randint(0,2**32,args.size)
 
     # sort array and print first 10 elements
-    a.sort()
+    ak.sort(a)
     print(a[0:10])
 
     # write array to Parquet file and read it back in

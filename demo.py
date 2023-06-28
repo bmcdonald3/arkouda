@@ -5,7 +5,7 @@ import arkouda as ak
 def build_df(columns):
     d = {}
     for (i,col) in enumerate(columns):
-        d[i] = col
+        d[str(i)] = col
     return ak.DataFrame(d)
 
 def create_parser():
@@ -37,21 +37,21 @@ if __name__ == "__main__":
     print(a[0:10])
 
     # write array to Parquet file and read it back in
-    a.to_parquet('example')
-    c = ak.read_parquet('example*')
+    a.to_parquet('test-file')
+    c = ak.read_parquet('test-file*')
     print(c[0:10])
     
     akdf = build_df([a, b, c])
 
-    gb = akdf.GroupBy("partition")
+    gb = akdf.GroupBy("1")
     keys, count = gb.count()
     print("Unique keys: ", keys)
     print("Count: ", count)
 
-    argsort_res = my_df.argsort(key="partition")
+    argsort_res = akdf.argsort(key="1")
     print(argsort_res)
 
     # downselect data
     # convert a slice of 100 elements to a numpy array
-    nparr = df[1][0:100].to_ndarray()
+    nparr = akdf['1'][0:100].to_ndarray()
     print(nparr)

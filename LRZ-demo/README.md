@@ -28,11 +28,11 @@ b = ak.randint(0,2**32,2**10)
 - in the real world, you would likely be reading in a huge dataset from a file, rather than generating random data
 
 ### Sort the array and print the first 10 elements to confirm:
-- the Arkouda library call `ak.sort` sends a message to the server to sort the data on the server side
 ```python3
 ak.sort(a)
 a[0:10]
 ```
+- the Arkouda library call `ak.sort` sends a message to the server to sort the data on the server side
 - the server sends a response message to indicate completion, but the data still only lives on the server side and all computation is done with the Chapel server
 
 ### Write the results to Parquet and read it back in

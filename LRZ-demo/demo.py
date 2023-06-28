@@ -3,9 +3,7 @@ import numpy as np
 import arkouda as ak
 
 def build_df(columns):
-    d = {}
-    for (i,col) in enumerate(columns):
-        d[str(i)] = col
+
     return ak.DataFrame(d)
 
 def create_parser():
@@ -29,19 +27,24 @@ if __name__ == "__main__":
     # create random pdarrays
     # "pdarray" = parallel, distributed array
     # this is Arkouda's array type
-    a = ak.randint(0,2**32,args.size)
+    a = ak.randint(0,10,args.size)
     b = ak.randint(0,2**32,args.size)
 
     # sort array and print first 10 elements
-    ak.sort(a)
+    c = ak.sort(a)
     print(a[0:10])
 
     # write array to Parquet file and read it back in
+    # CSV and HDF5 also supported
+    # TODO: writes locale per file
     a.to_parquet('test-file')
-    c = ak.read_parquet('test-file*')
+    d = ak.read('test-file*')
     print(c[0:10])
-    
-    akdf = build_df([a, b, c])
+
+    cols = {}
+    for (i,col) in enumerate([a,b,c]):
+        cols[str(i)] = col
+        akdf = ak.DataFrame(cols)
 
     gb = akdf.GroupBy("1")
     keys, count = gb.count()

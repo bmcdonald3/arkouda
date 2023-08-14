@@ -251,7 +251,6 @@ module ArgSortMsg
 
           // check mem limit for merged array and sort on merged array
           const itemsize = numDigits * bitsPerDigit / 8;
-          overMemLimit(arrSize*itemsize + radixSortLSD_memEst(arrSize, itemsize));
 
           var ivname = st.nextName();
           var merged = mergeNumericArrays(numDigits, arrSize, totalDigits, bitWidths, negs, names, st);
@@ -273,7 +272,6 @@ module ArgSortMsg
 
       // check mem limit for permutation vectors and sort
       const itemsize = numBytes(int);
-      overMemLimit(2*arrSize*itemsize + radixSortLSD_memEst(arrSize, itemsize));
       
       // Initialize the permutation vector in the symbol table with the identity perm
       var rname = st.nextName();
@@ -299,7 +297,7 @@ module ArgSortMsg
     
     proc argsortDefault(A:[?D] ?t, algorithm:SortingAlgorithm=defaultSortAlgorithm):[D] int throws {
       var t1 = Time.timeSinceEpoch().totalSeconds();
-      var iv: [D] int;
+      var iv = D.tryCreateArray(int);
       select algorithm {
         when SortingAlgorithm.TwoArrayRadixSort {
           var AI = [(a, i) in zip(A, D)] (a, i);
@@ -354,7 +352,6 @@ module ArgSortMsg
           when ObjType.PDARRAY {
             var gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(name, st);
             // check and throw if over memory limit
-            overMemLimit(radixSortLSD_memEst(gEnt.size, gEnt.itemsize));
         
             select (gEnt.dtype) {
                 when (DType.Int64) {
@@ -382,8 +379,6 @@ module ArgSortMsg
           when ObjType.STRINGS {
             var strings = getSegString(name, st);
             // check and throw if over memory limit
-            overMemLimit((8 * strings.size * 8)
-                         + (2 * here.maxTaskPar * numLocales * 2**16 * 8));
             var iv = strings.argsort();
             st.addEntry(ivname, new shared SymEntry(iv));
           }

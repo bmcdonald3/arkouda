@@ -112,8 +112,7 @@ module RadixSortLSD
             }//coforall loc
             
             // scan globalCounts to get bucket ends on each locale/task
-            var globalStarts = globalCounts.domain.tryCreateArray(int);
-            globalStarts = + scan globalCounts;
+            var globalStarts = + scan globalCounts;
             globalStarts -= globalCounts;
             
             if vv {printAry("globalCounts =",globalCounts);try! stdout.flush();}

@@ -285,7 +285,7 @@ module StatsMsg {
         for (col, d1, i) in zip(columns, dataNames, 0..) {
             var corrPdarray = makeDistArray(size, real);
             var d1gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(d1, st);
-            forall (d2, j) in zip(dataNames, 0..) {
+            forall (d2, j) in zip(dataNames, 0..) with (ref corrPdarray) {
                 var d2gEnt: borrowed GenSymEntry = getGenericTypedArrayEntry(d2, st);
                 corrPdarray[j] = corrHelper(d1gEnt, d2gEnt);
             }

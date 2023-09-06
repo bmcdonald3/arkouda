@@ -1079,7 +1079,7 @@ module SegmentedMsg {
     var size = strings.size;
     var rtn: [0..#size] string;
 
-    forall i in 0..#size {
+    forall i in 0..#size with (ref rtn) {
       rtn[i] = strings[i];
     }
 

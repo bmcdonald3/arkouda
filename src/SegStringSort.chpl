@@ -56,8 +56,8 @@ module SegStringSort {
     var longLocs = + scan isLong;
     locs -= longLocs;
     var gatherInds: [ss.offsets.a.domain] int;
-    forall (i, l, ll, t) in zip(ss.offsets.a.domain, locs, longLocs, isLong) 
-      with (var agg = newDstAggregator(int)) {
+    forall (i, l, ll, t) in zip(ss.offsets.a.domain, locs, longLocs, isLong)
+      with (var agg = newDstAggregator(int), ref gatherInds) {
       if !t {
         agg.copy(gatherInds[l], i);
       } else {
@@ -108,12 +108,12 @@ module SegStringSort {
       const NBINS = 2**16;
       const BINDOM = {0..#NBINS};
       var pBins: [PrivateSpace][BINDOM] int;
-      coforall loc in Locales {
+      coforall loc in Locales with (ref pBins) {
         on loc {
           const lD = D.localSubdomain();
           ref locLengths = lengths.localSlice[lD];
           var locBins: [0..#numTasks][BINDOM] int;
-          coforall task in 0..#numTasks {
+          coforall task in 0..#numTasks with (ref locBins) {
             const tD = calcBlock(task, lD.low, lD.high);
             for i in tD {
               var bin = min(locLengths[i], NBINS-1);
@@ -233,9 +233,9 @@ module SegStringSort {
     for rshift in {2..#pivot by 2} {
       ssLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),"rshift = %?".doFormat(rshift));
       // count digits
-      coforall loc in Locales {
+      coforall loc in Locales with (ref globalCounts) {
         on loc {
-          coforall task in 0..#numTasks {
+          coforall task in 0..#numTasks with (ref globalCounts) {
             // bucket domain
             var bD = {0..#numBuckets};
             // allocate counts
@@ -270,7 +270,7 @@ module SegStringSort {
       // calc new positions and permute
       coforall loc in Locales {
         on loc {
-          coforall task in 0..#numTasks {
+          coforall task in 0..#numTasks with (ref kr0, ref kr1) {
             // bucket domain
             var bD = {0..#numBuckets};
             // allocate counts

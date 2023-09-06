@@ -89,7 +89,7 @@ module CSVMsg {
 
         var targetSize: int = A.targetLocales().size;
         var filenames: [0..#targetSize] string;
-        forall i in 0..#targetSize {
+        forall i in 0..#targetSize with (ref filenames) {
             filenames[i] = generateFilename(prefix, extension, i);
         }
 
@@ -219,7 +219,7 @@ module CSVMsg {
 
             for r in localSubdomain {
                 var row: [0..#ndsets] string;
-                forall (i, cname) in zip(0..#ndsets, datasets) {
+                forall (i, cname) in zip(0..#ndsets, datasets) with (ref row) {
                     var col_gen: borrowed GenSymEntry = getGenericTypedArrayEntry(cname, st);
                     select col_gen.dtype {
                         when DType.Int64 {
@@ -304,7 +304,7 @@ module CSVMsg {
         csvFile.close();
 
         var dtypes: [0..#datasets.size] string;
-        forall (i, dset) in zip(0..#datasets.size, datasets) {
+        forall (i, dset) in zip(0..#datasets.size, datasets) with (ref dtypes) {
             var idx: int;
             var col_exists = columns.find(dset, idx);
             csvLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "Column: %s, Exists: ".doFormat(dset)+formatJson(col_exists)+", IDX: %i".doFormat(idx));
@@ -323,9 +323,9 @@ module CSVMsg {
         return (row_ct, hasHeader, new list(dtypes));
     }
 
-    proc read_files_into_dist_array(A: [?D] ?t, dset: string, filenames: [] string, filedomains: [] domain(1), skips: set(string), hasHeaders: bool, col_delim: string, offsets: [] int) throws {
+    proc read_files_into_dist_array(ref A: [?D] ?t, dset: string, filenames: [] string, filedomains: [] domain(1), skips: set(string), hasHeaders: bool, col_delim: string, offsets: [] int) throws {
 
-        coforall loc in A.targetLocales() do on loc {
+        coforall loc in A.targetLocales() with (ref A) do on loc {
             // Create local copies of args
             var locFiles = filenames;
             var locFiledoms = filedomains;
@@ -359,7 +359,7 @@ module CSVMsg {
                     for locdom in A.localSubdomains() {
                         const intersection = domain_intersection(locdom, filedom);
                         if intersection.size > 0 {
-                            forall x in intersection {
+                            forall x in intersection with (ref A) {
                                 var row = lines[x-offsets[file_idx]+data_offset].split(col_delim);
                                 A[x] = row[colidx]: t;
                             }
@@ -433,7 +433,7 @@ module CSVMsg {
                     var a = makeDistArray(record_count, string);
                     read_files_into_dist_array(a, dset, filenames, subdoms, skips, true, col_delim, offsets);
                     var col_lens = makeDistArray(record_count, int);
-                    forall (i, v) in zip(0..#a.size, a) {
+                    forall (i, v) in zip(0..#a.size, a) with (ref col_lens) {
                         var tmp_str = v + "\x00";
                         var vbytes = tmp_str.bytes();
                         col_lens[i] = vbytes.size;
@@ -441,7 +441,7 @@ module CSVMsg {
                     var str_offsets = (+ scan col_lens) - col_lens;
                     var value_size: int = + reduce col_lens;
                     var data = makeDistArray(value_size, uint(8));
-                    forall (i, v) in zip(0..#a.size, a) {
+                    forall (i, v) in zip(0..#a.size, a) with (ref str_offsets) {
                         var tmp_str = v + "\x00";
                         var vbytes = tmp_str.bytes();
                         ref low = str_offsets[i];
@@ -475,7 +475,7 @@ module CSVMsg {
             var a = makeDistArray(record_count, string);
             read_files_into_dist_array(a, dset, filenames, subdoms, skips, false, col_delim, offsets);
             var col_lens = makeDistArray(record_count, int);
-            forall (i, v) in zip(0..#a.size, a) {
+            forall (i, v) in zip(0..#a.size, a) with (ref col_lens) {
                 var tmp_str = v + "\x00";
                 var vbytes = tmp_str.bytes();
                 col_lens[i] = vbytes.size;
@@ -483,7 +483,7 @@ module CSVMsg {
             var str_offsets = (+ scan col_lens) - col_lens;
             var value_size: int = + reduce col_lens;
             var data = makeDistArray(value_size, uint(8));
-            forall (i, v) in zip(0..#a.size, a) {
+            forall (i, v) in zip(0..#a.size, a) with (ref str_offsets) {
                 var tmp_str = v + "\x00";
                 var vbytes = tmp_str.bytes();
                 ref low = str_offsets[i];

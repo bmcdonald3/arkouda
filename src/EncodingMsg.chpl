@@ -55,7 +55,7 @@ module EncodingMsg {
       return (encodeOffsets, encodedValues);
     }
 
-    proc getBufLengths(segments: [?D] int, values: [?vD] ?t, toEncoding: string, fromEncoding: string) throws {
+    proc getBufLengths(segments: [?D] int, ref values: [?vD] ?t, toEncoding: string, fromEncoding: string) throws {
       var res: [D] int;
       if (D.size == 0) {
         return res;
@@ -64,7 +64,7 @@ module EncodingMsg {
       const (startSegInds, numSegs, lengths) = computeSegmentOwnership(segments, vD);
     
       // Start task parallelism
-      coforall loc in Locales {
+      coforall loc in Locales with (ref values, ref res) {
         on loc {
           const locTo = toEncoding;
           const locFrom = fromEncoding;
@@ -75,12 +75,12 @@ module EncodingMsg {
           // Segment offsets whose bytes are owned by loc
           // Lengths of segments whose bytes are owned by loc
           var mySegs, myLens: [mySegInds] int;
-          forall i in mySegInds with (var agg = new SrcAggregator(int)) {
+          forall i in mySegInds with (var agg = new SrcAggregator(int), ref mySegs, ref myLens) {
             agg.copy(mySegs[i], segments[i]);
             agg.copy(myLens[i], lengths[i]);
           }
           try {
-            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(int)) {
+            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(int), ref values, ref res) {
               var slice = new lowLevelLocalizingSlice(values, start..#len);
               agg.copy(res[i], getBufLength(slice.ptr: c_ptr(uint(8)), len, locTo, locFrom));
             }
@@ -96,7 +96,7 @@ module EncodingMsg {
       return res;
     }
 
-    proc encodeSegments(segments: [?D] int, values: [?vD] uint(8), encodeOffsets: [D] int, encodeLengths: [D] int, toEncoding: string, fromEncoding: string) throws {
+    proc encodeSegments(segments: [?D] int, ref values: [?vD] uint(8), encodeOffsets: [D] int, encodeLengths: [D] int, toEncoding: string, fromEncoding: string) throws {
       var res = makeDistArray(+ reduce encodeLengths, uint(8));
       if (D.size == 0) {
         return res;
@@ -106,7 +106,7 @@ module EncodingMsg {
       const (eStartSegInds, eNumSegs, eLengths) = computeSegmentOwnership(encodeOffsets, res.domain);
     
       // Start task parallelism
-      coforall loc in Locales {
+      coforall loc in Locales with (ref values, ref res) {
         on loc {
           const locTo = toEncoding;
           const locFrom = fromEncoding;
@@ -121,14 +121,14 @@ module EncodingMsg {
           // Segment offsets whose bytes are owned by loc
           // Lengths of segments whose bytes are owned by loc
           var mySegs, myLens, myELens, myESegs: [mySegInds] int;
-          forall i in mySegInds with (var agg = new SrcAggregator(int)) {
+          forall i in mySegInds with (var agg = new SrcAggregator(int), ref mySegs, ref myLens, ref myELens, ref myESegs) {
             agg.copy(mySegs[i], segments[i]);
             agg.copy(myLens[i], lengths[i]);
             agg.copy(myELens[i], eLengths[i]);
             agg.copy(myESegs[i], encodeOffsets[i]);
           }
           try {
-            forall (start, len, i, eStart, eLen) in zip(mySegs, myLens, mySegInds, myESegs, myELens) {
+            forall (start, len, i, eStart, eLen) in zip(mySegs, myLens, mySegInds, myESegs, myELens) with (ref values, ref res) {
               var slice = new lowLevelLocalizingSlice(values, start..#len);
               var encodedStr = encodeStr(slice.ptr: c_ptr(uint(8)), len, eLen, locTo, locFrom);
               var agg = newDstAggregator(uint(8));

@@ -77,7 +77,7 @@ module Unique
         overMemLimit(numBytes(int) * c.size);
         var segs = (+ scan c) - c;
         var bcast: [aD] int;
-        forall s in segs with (var agg = newDstAggregator(int)) {
+        forall s in segs with (var agg = newDstAggregator(int), ref bcast) {
             agg.copy(bcast[s], 1);
         }
         bcast[0] = 0;
@@ -85,7 +85,7 @@ module Unique
         overMemLimit(numBytes(int) * bcast.size);
         bcast = (+ scan bcast);
         var inv: [aD] int;
-        forall (p, b) in zip(perm, bcast) with (var agg = newDstAggregator(int)) {
+        forall (p, b) in zip(perm, bcast) with (var agg = newDstAggregator(int), ref inv) {
             agg.copy(inv[p], b);
         }
         return (u, c, inv);
@@ -122,7 +122,7 @@ module Unique
         
         // segment position... 1-based needs to be converted to 0-based because of inclusive-scan
         // where ever a segment break (true value) is... that index is a segment start index
-        forall i in truth.domain with (var agg = newDstAggregator(int)) {
+        forall i in truth.domain with (var agg = newDstAggregator(int), ref segs) {
           if (truth[i] == true) {
             var idx = i; 
             agg.copy(segs[iv[i]-1], idx);
@@ -138,7 +138,7 @@ module Unique
         if (needCounts) {
             var counts = makeDistArray(pop, int);
             // calc counts of each unique key using segs
-            forall i in segs.domain {
+            forall i in segs.domain with (ref counts) {
                 if i < segs.domain.high {
                     counts[i] = segs[i+1] - segs[i];
                 }

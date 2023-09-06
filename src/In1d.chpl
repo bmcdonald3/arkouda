@@ -24,7 +24,7 @@ module In1d
        :returns truth: the distributed boolean array containing the result of ar1 being broadcast over ar2
        :type truth: [] bool
      */
-    proc in1d(ar1: [?aD1] ?t, ar2: [?aD2] t, invert: bool = false): [aD1] bool throws {
+    proc in1d(ar1: [?aD1] ?t, ref ar2: [?aD2] t, invert: bool = false): [aD1] bool throws {
         var truth = if ar2.size <= threshold then in1dAr2PerLocAssoc(ar1, ar2)
                                              else in1dSort(ar1, ar2);
         if invert then truth = !truth;
@@ -35,10 +35,10 @@ module In1d
      * localize ar2 and put it in the set, so only appropriate in terms of
      * size and space when ar2 is "small".
      */
-    proc in1dAr2PerLocAssoc(ar1: [?aD1] ?t, ar2: [?aD2] t) {
+    proc in1dAr2PerLocAssoc(ar1: [?aD1] ?t, ref ar2: [?aD2] t) {
         var truth: [aD1] bool;
         
-        coforall loc in Locales {
+        coforall loc in Locales with (ref truth, ref ar2)  {
             on loc {
                 var ar2Set: domain(t, parSafe=false); // create a set to hold ar2, parSafe modification is OFF
                 ar2Set.requestCapacity(ar2.size); // request a capacity for the initial set
@@ -51,7 +51,7 @@ module In1d
                 }
 
                 // in parallel check all elements of ar1 to see if ar2Set contains them
-                [i in truth.localSubdomain()] truth[i] = ar2Set.contains(ar1[i]);
+                [i in truth.localSubdomain() with (ref truth)] truth[i] = ar2Set.contains(ar1[i]);
             }
         }
         return truth;
@@ -77,7 +77,7 @@ module In1d
         }
         // Duplicates correspond to values in both arrays
         var flag: [D] bool;
-        forall i in D[D.low..<D.high] with (var agg = newDstAggregator(bool)) {
+        forall i in D[D.low..<D.high] with (var agg = newDstAggregator(bool), ref flag) {
             agg.copy(flag[order[i]], sar[i+1] == sar[i]);
         }
         // Use the inverse index to map from u1 domain to ar1 domain

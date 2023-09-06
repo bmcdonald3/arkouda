@@ -81,11 +81,11 @@ module Message {
             return formatJson(this);
         }
 
-        proc setKey(value: string) {
+        proc ref setKey(value: string) {
             this.key = value;
         }
 
-        proc setVal(value: string) {
+        proc ref setVal(value: string) {
             this.val = value;
         }
 
@@ -93,7 +93,7 @@ module Message {
             this.ObjectType = value;
         }
 
-        proc setDType(value: string) {
+        proc ref setDType(value: string) {
             this.dtype = value;
         }
 
@@ -346,7 +346,7 @@ module Message {
         */
         proc keys() {
             var key_list: [0..#this.size] string;
-            forall (idx, p) in zip(0..#this.size, this.param_list) {
+            forall (idx, p) in zip(0..#this.size, this.param_list) with (ref key_list) {
                 key_list[idx] = p.key;
             }
             return key_list;

@@ -57,7 +57,7 @@ module CommAggregation {
     var rBuffers: [myLocaleSpace] remoteBuffer(aggType);
     var bufferIdxs: c_ptr(int);
 
-    proc postinit() {
+    proc ref postinit() {
       lBuffers = allocate(c_ptr(aggType), numLocales);
       bufferIdxs = bufferIdxAlloc();
       for loc in myLocaleSpace {
@@ -67,7 +67,7 @@ module CommAggregation {
       }
     }
 
-    proc deinit() {
+    proc ref deinit() {
       flush();
       for loc in myLocaleSpace {
         deallocate(lBuffers[loc]);
@@ -76,14 +76,14 @@ module CommAggregation {
       deallocate(bufferIdxs);
     }
 
-    proc flush() {
+    proc ref flush() {
       for offsetLoc in myLocaleSpace + lastLocale {
         const loc = offsetLoc % numLocales;
         _flushBuffer(loc, bufferIdxs[loc], freeData=true);
       }
     }
 
-    inline proc copy(ref dst: elemType, const in srcVal: elemType) {
+    inline proc ref copy(ref dst: elemType, const in srcVal: elemType) {
       // Get the locale of dst and the local address on that locale
       const loc = dst.locale.id;
       lastLocale = loc;
@@ -110,7 +110,7 @@ module CommAggregation {
       }
     }
 
-    proc _flushBuffer(loc: int, ref bufferIdx, freeData) {
+    proc ref _flushBuffer(loc: int, ref bufferIdx, freeData) {
       const myBufferIdx = bufferIdx;
       if myBufferIdx == 0 then return;
 
@@ -175,7 +175,7 @@ module CommAggregation {
     var rSrcVals: [myLocaleSpace] remoteBuffer(elemType);
     var bufferIdxs: c_ptr(int);
 
-    proc postinit() {
+    proc ref postinit() {
       dstAddrs = allocate(c_ptr(aggType), numLocales);
       lSrcAddrs = allocate(c_ptr(aggType), numLocales);
       bufferIdxs = bufferIdxAlloc();
@@ -188,7 +188,7 @@ module CommAggregation {
       }
     }
 
-    proc deinit() {
+    proc ref deinit() {
       flush();
       for loc in myLocaleSpace {
         deallocate(dstAddrs[loc]);
@@ -199,14 +199,14 @@ module CommAggregation {
       deallocate(bufferIdxs);
     }
 
-    proc flush() {
+    proc ref flush() {
       for offsetLoc in myLocaleSpace + lastLocale {
         const loc = offsetLoc % numLocales;
         _flushBuffer(loc, bufferIdxs[loc], freeData=true);
       }
     }
 
-    inline proc copy(ref dst: elemType, const ref src: elemType) {
+    inline proc ref copy(ref dst: elemType, const ref src: elemType) {
       if boundsChecking {
         assert(dst.locale.id == here.id);
       }
@@ -232,7 +232,7 @@ module CommAggregation {
       }
     }
 
-    proc _flushBuffer(loc: int, ref bufferIdx, freeData) {
+    proc ref _flushBuffer(loc: int, ref bufferIdx, freeData) {
       const myBufferIdx = bufferIdx;
       if myBufferIdx == 0 then return;
 
@@ -302,7 +302,7 @@ module CommAggregation {
 
     // Allocate a buffer on loc if we haven't already. Return a c_ptr to the
     // remote locales buffer
-    proc cachedAlloc(): c_ptr(elemType) {
+    proc ref cachedAlloc(): c_ptr(elemType) {
       if data == nil {
         const rvf_size = size;
         on Locales[loc] do {
@@ -340,7 +340,7 @@ module CommAggregation {
 
     // After free'ing the data, need to nil out the records copy of the pointer
     // so we don't double-free on deinit
-    inline proc markFreed() {
+    inline proc ref markFreed() {
       if boundsChecking {
         assert(this.locale.id == here.id);
       }
@@ -368,7 +368,7 @@ module CommAggregation {
       CommPrimitives.PUT(data, lArr, loc, byte_size);
     }
 
-    proc GET(lArr: [] elemType, size: int) where lArr.isDefaultRectangular() {
+    proc GET(ref lArr: [] elemType, size: int) where lArr.isDefaultRectangular() {
       if boundsChecking {
         assert(size <= this.size);
         assert(this.size == lArr.size);
@@ -379,7 +379,7 @@ module CommAggregation {
       CommPrimitives.GET(c_ptrTo(lArr[0]), data, loc, byte_size);
     }
 
-    proc deinit() {
+    proc ref deinit() {
       if data != nil {
         const rvf_data=data;
         on Locales[loc] {
@@ -433,7 +433,7 @@ module CommAggregation {
       memcpy(x+size_bytes, limb_ptr, limb_bytes);
     }
 
-    proc bigint._deserializeFrom(x: c_ptr(uint(8))) {
+    proc ref bigint._deserializeFrom(x: c_ptr(uint(8))) {
       extern proc chpl_gmp_mpz_struct_limbs(from: __mpz_struct) : c_ptr(mp_limb_t);
       extern proc chpl_gmp_mpz_set_sign_size(ref dst:mpz_t, sign_size:mp_size_t);
 
@@ -466,7 +466,7 @@ module CommAggregation {
       var rBuffers: [myLocaleSpace] remoteBuffer(aggType);
       var bufferIdxs: c_ptr(int);
 
-      proc postinit() {
+      proc ref postinit() {
         lBuffers = allocate(c_ptr(aggType), numLocales);
         bufferIdxs = bufferIdxAlloc();
         for loc in myLocaleSpace {
@@ -476,7 +476,7 @@ module CommAggregation {
         }
       }
 
-      proc deinit() {
+      proc ref deinit() {
         flush();
         for loc in myLocaleSpace {
           deallocate(lBuffers[loc]);
@@ -485,14 +485,14 @@ module CommAggregation {
         deallocate(bufferIdxs);
       }
 
-      proc flush() {
+      proc ref flush() {
         for offsetLoc in myLocaleSpace + lastLocale {
           const loc = offsetLoc % numLocales;
           _flushBuffer(loc, bufferIdxs[loc], freeData=true);
         }
       }
 
-      inline proc copy(ref dst: bigint, const ref src: bigint) {
+      inline proc ref copy(ref dst: bigint, const ref src: bigint) {
         if boundsChecking { assert(src.locale.id == here.id && src.localeId == here.id); }
         // Note this is the locale of the record wrapper, and required to be
         // the same as the mpz storage itself.
@@ -535,7 +535,7 @@ module CommAggregation {
         }
       }
 
-      proc _flushBuffer(loc: int, ref bufferIdx, freeData) {
+      proc ref _flushBuffer(loc: int, ref bufferIdx, freeData) {
         const myBufferIdx = bufferIdx;
         if myBufferIdx == 0 then return;
 
@@ -587,7 +587,7 @@ module CommAggregation {
       var rSrcVals: [myLocaleSpace] remoteBuffer(uint(8));
       var bufferIdxs: c_ptr(int);
 
-      proc postinit() {
+      proc ref postinit() {
         dstAddrs = allocate(c_ptr(aggType), numLocales);
         lSrcAddrs = allocate(c_ptr(aggType), numLocales);
         bufferIdxs = bufferIdxAlloc();
@@ -600,7 +600,7 @@ module CommAggregation {
         }
       }
 
-      proc deinit() {
+      proc ref deinit() {
         flush();
         for loc in myLocaleSpace {
           deallocate(dstAddrs[loc]);
@@ -611,14 +611,14 @@ module CommAggregation {
         deallocate(bufferIdxs);
       }
 
-      proc flush() {
+      proc ref flush() {
         for offsetLoc in myLocaleSpace + lastLocale {
           const loc = offsetLoc % numLocales;
           _flushBuffer(loc, bufferIdxs[loc], freeData=true);
         }
       }
 
-      inline proc copy(ref dst: bigint, const ref src: bigint) {
+      inline proc ref copy(ref dst: bigint, const ref src: bigint) {
         if boundsChecking {
           assert(dst.locale.id == here.id);
         }
@@ -644,7 +644,7 @@ module CommAggregation {
         }
       }
 
-      proc _flushBuffer(loc: int, ref bufferIdx, freeData) {
+      proc ref _flushBuffer(loc: int, ref bufferIdx, freeData) {
         const myBufferIdx = bufferIdx;
         if myBufferIdx == 0 then return;
 

@@ -118,17 +118,17 @@ module ParquetMsg {
     return (subdoms, (+ reduce lengths));
   }
 
-  proc readFilesByName(A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
+  proc readFilesByName(ref A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
     extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, startIdx, batchSize, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
     var fileOffsets = (+ scan sizes) - sizes;
     
-    coforall loc in A.targetLocales() do on loc {
+    coforall loc in A.targetLocales() with (ref A) do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       var locOffsets = fileOffsets;
       
-      forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) {
+      forall (off, filedom, filename) in zip(locOffsets, locFiledoms, locFiles) with (ref A) {
         for locdom in A.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
 
@@ -227,11 +227,11 @@ module ParquetMsg {
 
     var listSizes: [filenames.domain] int;
     var file_offset: int = 0;
-    coforall loc in seg_sizes.targetLocales() do on loc{
+    coforall loc in seg_sizes.targetLocales() with (ref listSizes) do on loc{
       var locFiles = filenames;
       var locFiledoms = subdoms;
       
-      forall (i, filedom, filename) in zip(sizes.domain, locFiledoms, locFiles) {
+      forall (i, filedom, filename) in zip(sizes.domain, locFiledoms, locFiles) with (ref listSizes) {
         for locdom in seg_sizes.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
           if intersection.size > 0 {
@@ -250,11 +250,11 @@ module ParquetMsg {
 
     var byteSizes: [filenames.domain] int;
 
-    coforall loc in offsets.targetLocales() do on loc {
+    coforall loc in offsets.targetLocales() with (ref byteSizes) do on loc {
       var locFiles = filenames;
       var locFiledoms = subdoms;
       
-      forall (i, filedom, filename) in zip(sizes.domain, locFiledoms, locFiles) {
+      forall (i, filedom, filename) in zip(sizes.domain, locFiledoms, locFiles) with (ref byteSizes) {
         for locdom in offsets.localSubdomains() {
           const intersection = domain_intersection(locdom, filedom);
           if intersection.size > 0 {
@@ -294,7 +294,7 @@ module ParquetMsg {
     }
   }
 
-  proc getStrColSize(filename: string, dsetname: string, offsets: [] int) throws {
+  proc getStrColSize(filename: string, dsetname: string, ref offsets: [] int) throws {
     extern proc c_getStringColumnNumBytes(filename, colname, offsets, numElems, startIdx, errMsg): int;
     var pqErr = new parquetErrorMsg();
 
@@ -309,7 +309,7 @@ module ParquetMsg {
     return byteSize;
   }
 
-  proc getListColSize(filename: string, dsetname: string, seg_sizes: [] int) throws {
+  proc getListColSize(filename: string, dsetname: string, ref seg_sizes: [] int) throws {
     extern proc c_getListColumnSize(filename, colname, seg_sizes, numElems, startIdx, errMsg): int;
     var pqErr = new parquetErrorMsg();
 
@@ -559,7 +559,7 @@ module ParquetMsg {
     return filesExist && mode == TRUNCATE;
   }
 
-  private proc writeStringsComponentToParquet(filename, dsetname, values: [] uint(8), offsets: [] int, rowGroupSize, compression, mode, filesExist) throws {
+  private proc writeStringsComponentToParquet(filename, dsetname, ref values: [] uint(8), ref offsets: [] int, rowGroupSize, compression, mode, filesExist) throws {
     extern proc c_writeStrColumnToParquet(filename, chpl_arr, chpl_offsets,
                                           dsetname, numelems, rowGroupSize,
                                           dtype, compression, errMsg): int;
@@ -1303,7 +1303,7 @@ module ParquetMsg {
       var seg_sizes_int: [0..#ncols] int; // only fill in sizes for int, uint segarray columns
       var seg_sizes_real: [0..#ncols] int; // only fill in sizes for float segarray columns
       var seg_sizes_bool: [0..#ncols] int; // only fill in sizes for bool segarray columns
-      forall (i, column, ot) in zip(0..#ncols, sym_names, col_objTypes) {
+      forall (i, column, ot) in zip(0..#ncols, sym_names, col_objTypes) with (ref segment_ct, ref seg_sizes_str, ref val_sizes_str, ref seg_sizes_int, ref seg_sizes_real, ref seg_sizes_bool) {
         var x: int;
         var objType = ot.toUpper(): ObjType;
 
@@ -1397,7 +1397,7 @@ module ParquetMsg {
       var bool_idx = (+ scan seg_sizes_bool) - seg_sizes_bool;
 
       // populate data based on object and data types
-      forall (i, column, ot, si, ui, ri, bi, segidx) in zip(0..#ncols, sym_names, col_objTypes, str_idx, int_idx, real_idx, bool_idx, segment_idx) {
+      forall (i, column, ot, si, ui, ri, bi, segidx) in zip(0..#ncols, sym_names, col_objTypes, str_idx, int_idx, real_idx, bool_idx, segment_idx) with (ref ptrList, ref segmentPtr, ref datatypes, ref sizeList, ref segarray_sizes, ref c_names, ref segment_tracking, ref str_vals, ref int_vals, ref real_vals, ref bool_vals) {
         // generate the local c string list of column names
         c_names[i] = my_column_names[i].localize().c_str();
 

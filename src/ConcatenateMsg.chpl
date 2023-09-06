@@ -101,7 +101,7 @@ module ConcatenateMsg
             size += entrySize;
             if mode == "interleave" {
               const dummyDomain = makeDistDom(entrySize);
-              coforall loc in Locales {
+              coforall loc in Locales with (ref blocksizes, ref blockValSizes) {
                 on loc {
                   const mynumsegs = dummyDomain.localSubdomain().size;
                   blocksizes[here.id] += mynumsegs;
@@ -169,7 +169,7 @@ module ConcatenateMsg
                     var newSegs = thisSegs.a + valStart;
                     var thisVals = segString.values;
                     if mode == "interleave" {
-                      coforall loc in Locales {
+                      coforall loc in Locales with (ref blockstarts, ref blockValStarts) {
                         on loc {
                           // Number of strings on this locale for this input array
                           const mynsegs = thisSegs.a.domain.localSubdomain().size;
@@ -197,10 +197,10 @@ module ConcatenateMsg
                         }
                       }
                     } else {
-                      forall (i, s) in zip(newSegs.domain, newSegs) with (var agg = newDstAggregator(int)) {
+                      forall (i, s) in zip(newSegs.domain, newSegs) with (var agg = newDstAggregator(int), ref esa) {
                         agg.copy(esa[i+segStart], s);
                       }
-                      forall (i, v) in zip(thisVals.a.domain, thisVals.a) with (var agg = newDstAggregator(uint(8))) {
+                      forall (i, v) in zip(thisVals.a.domain, thisVals.a) with (var agg = newDstAggregator(uint(8)), ref eva) {
                         agg.copy(eva[i+valStart], v);
                       }
                       segStart += thisSegs.size;
@@ -227,7 +227,7 @@ module ConcatenateMsg
                             // lookup and cast operand to copy from
                             const o = toSymEntry(getGenericTypedArrayEntry(name, st), int);
                             if mode == "interleave" {
-                              coforall loc in Locales {
+                              coforall loc in Locales with (ref blockstarts) {
                                 on loc {
                                   const size = o.a.domain.localSubdomain().size;
                                   e.a[{blockstarts[here.id]..#size}] = o.a.localSlice[o.a.domain.localSubdomain()];
@@ -237,7 +237,7 @@ module ConcatenateMsg
                             } else {
                               ref ea = e.a;
                               // copy array into concatenation array
-                              forall (i, v) in zip(o.a.domain, o.a) with (var agg = newDstAggregator(int)) {
+                              forall (i, v) in zip(o.a.domain, o.a) with (var agg = newDstAggregator(int), ref ea) {
                                 agg.copy(ea[start+i], v);
                               }
                               // update new start for next array copy
@@ -256,7 +256,7 @@ module ConcatenateMsg
                             // lookup and cast operand to copy from
                             const o = toSymEntry(getGenericTypedArrayEntry(name, st), real);
                             if mode == "interleave" {
-                              coforall loc in Locales {
+                              coforall loc in Locales with (ref blockstarts) {
                                 on loc {
                                   const size = o.a.domain.localSubdomain().size;
                                   e.a[{blockstarts[here.id]..#size}] = o.a.localSlice[o.a.domain.localSubdomain()];
@@ -285,7 +285,7 @@ module ConcatenateMsg
                             // lookup and cast operand to copy from
                             const o = toSymEntry(getGenericTypedArrayEntry(name, st), bool);
                             if mode == "interleave" {
-                              coforall loc in Locales {
+                              coforall loc in Locales with (ref blockstarts) {
                                 on loc {
                                   const size = o.a.domain.localSubdomain().size;
                                   e.a[{blockstarts[here.id]..#size}] = o.a.localSlice[o.a.domain.localSubdomain()];
@@ -295,7 +295,7 @@ module ConcatenateMsg
                             } else {
                               ref ea = e.a;
                               // copy array into concatenation array
-                              forall (i, v) in zip(o.a.domain, o.a) with (var agg = newDstAggregator(bool)) {
+                              forall (i, v) in zip(o.a.domain, o.a) with (var agg = newDstAggregator(bool), ref ea) {
                                 agg.copy(ea[start+i], v);
                               }
                               // update new start for next array copy
@@ -314,7 +314,7 @@ module ConcatenateMsg
                             // lookup and cast operand to copy from
                             const o = toSymEntry(getGenericTypedArrayEntry(name, st), uint);
                             if mode == "interleave" {
-                              coforall loc in Locales {
+                              coforall loc in Locales with (ref blockstarts) {
                                 on loc {
                                   const size = o.a.domain.localSubdomain().size;
                                   e.a[{blockstarts[here.id]..#size}] = o.a.localSlice[o.a.domain.localSubdomain()];
@@ -324,7 +324,7 @@ module ConcatenateMsg
                             } else {
                               ref ea = e.a;
                               // copy array into concatenation array
-                              forall (i, v) in zip(o.a.domain, o.a) with (var agg = newDstAggregator(uint)) {
+                              forall (i, v) in zip(o.a.domain, o.a) with (var agg = newDstAggregator(uint), ref ea) {
                                 agg.copy(ea[start+i], v);
                               }
                               // update new start for next array copy
@@ -344,7 +344,7 @@ module ConcatenateMsg
                             const o = toSymEntry(getGenericTypedArrayEntry(name, st), bigint);
                             max_bits = max(max_bits, o.max_bits);
                             if mode == "interleave" {
-                              coforall loc in Locales {
+                              coforall loc in Locales with (ref blockstarts) {
                                 on loc {
                                   const size = o.a.domain.localSubdomain().size;
                                   tmp[{blockstarts[here.id]..#size}] = o.a.localSlice[o.a.domain.localSubdomain()];
@@ -354,7 +354,7 @@ module ConcatenateMsg
                             } else {
                               ref ea = tmp;
                               // copy array into concatenation array
-                              forall (i, v) in zip(o.a.domain, o.a) {
+                              forall (i, v) in zip(o.a.domain, o.a) with (ref ea) {
                                 ea[start+i] = v;
                               }
                               // update new start for next array copy

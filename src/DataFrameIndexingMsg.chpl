@@ -81,7 +81,7 @@
         var rvals: [0..#(+ reduce lens)] t;
         var rsegs = (+ scan lens) - lens;
 
-        forall(i, rs, os, l) in zip(orig_segs.domain, rsegs, orig_segs, lens){
+        forall(i, rs, os, l) in zip(orig_segs.domain, rsegs, orig_segs, lens) with (ref rvals) {
             var v = new lowLevelLocalizingSlice(values.a, os..#l);
             for j in 0..#l{
                 rvals[rs+j] = v.ptr[j];

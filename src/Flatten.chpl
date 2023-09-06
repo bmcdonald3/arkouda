@@ -44,7 +44,11 @@ module Flatten {
     forall (i, off, len) in zip(this.offsets.a.domain, origOffsets, lengths) with (var myRegex = _unsafeCompileRegex(delim.encode()),
                                                                              var writeAgg = newDstAggregator(bool),
                                                                              var nbAgg = newDstAggregator(bool),
-                                                                             var matchAgg = newDstAggregator(int)) {
+                                                                             var matchAgg = newDstAggregator(int),
+                                                                             ref origVals,
+                                                                             ref numMatches,
+                                                                             ref writeToVal,
+                                                                             ref nullByteLocations) {
       var matchessize = 0;
       // for each string, find delim matches and set the positions of matches in writeToVal to false (non-matches will be copied to flattenedVals)
       // mark the locations of null bytes (the positions before original offsets and the last character of matches)
@@ -79,7 +83,9 @@ module Flatten {
     var offsIndexTransform = (+ scan nullByteLocations) - nullByteLocations + 1;  // the plus one is to leave space for the offset 0 edge case
 
     forall (origInd, flatValInd, offInd) in zip(this.values.a.domain, valsIndexTransform, offsIndexTransform) with (var valAgg = newDstAggregator(uint(8)),
-                                                                                                              var offAgg = newDstAggregator(int)) {
+                                                                                                              var offAgg = newDstAggregator(int),
+                                                                                                              ref flattenedVals,
+                                                                                                              ref flattenedOffsets) {
       // writeToVal is true for positions to copy origVals (non-matches) and positions to write a null byte
       if writeToVal[origInd] {
         if origInd == 0 {
@@ -147,7 +153,11 @@ module Flatten {
     forall (i, off, len) in zip(this.offsets.a.domain, origOffsets, lengths) with (var myRegex = _unsafeCompileRegex(pattern.encode()),
                                                                              var writeAgg = newDstAggregator(bool),
                                                                              var nbAgg = newDstAggregator(bool),
-                                                                             var matchAgg = newDstAggregator(int)) {
+                                                                             var matchAgg = newDstAggregator(int),
+                                                                             ref origVals,
+                                                                             ref numMatches.
+                                                                             ref writeToVal,
+                                                                             ref nullByteLocations) {
       var matchessize = 0;
       // for each string, find pattern matches and set the positions of matches in writeToVal to false (non-matches will be copied to splitVals)
       // mark the locations of null bytes (the positions before original offsets and the last character of matches)
@@ -176,7 +186,9 @@ module Flatten {
     var offsIndexTransform = (+ scan nullByteLocations) - nullByteLocations + 1;
 
     forall (origInd, origVal, splitValInd, offInd) in zip(this.values.a.domain, origVals, valsIndexTransform, offsIndexTransform) with (var valAgg = newDstAggregator(uint(8)),
-                                                                                                               var offAgg = newDstAggregator(int)) {
+                                                                                                               var offAgg = newDstAggregator(int),
+                                                                                                               ref splitVals,
+                                                                                                               ref splitOffsets) {
       // writeToVal is true for positions to copy origVals (non-matches) and positions to write a null byte
       if writeToVal[origInd] {
         if origInd == 0 {
@@ -247,7 +259,7 @@ module Flatten {
     // Need to merge original offsets with new offsets from delims
     // offTruth is true at start of every segment (new or old)
     var offTruth: [this.values.a.domain] bool = delimHits;
-    forall o in this.offsets.a with (var agg = newDstAggregator(bool)) {
+    forall o in this.offsets.a with (var agg = newDstAggregator(bool), ref offTruth) {
       agg.copy(offTruth[o], true);
     }
     // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -275,7 +287,7 @@ module Flatten {
     if delim.numBytes == 1 {
       // Can simply overwrite delim with null byte
       val = this.values.a;
-      forall (vi, t) in zip(delimHits.domain, delimHits) {
+      forall (vi, t) in zip(delimHits.domain, delimHits) with (ref val) {
         if t {
           // Previous index is where delim occurred
           val[vi-1] = 0:uint(8);
@@ -306,7 +318,7 @@ module Flatten {
       // Each delim gets replaced by null byte (length 1)
       off -= delimsBefore * (delim.numBytes - 1);
       // Use dest offsets to overwrite the derivative at the substring boundaries
-      forall (o, d) in zip(off, boundaryDeriv) with (var agg = newDstAggregator(int)) {
+      forall (o, d) in zip(off, boundaryDeriv) with (var agg = newDstAggregator(int), ref srcIdx) {
         agg.copy(srcIdx[o], d);
       }
       // Force first derivative to match start of src domain
@@ -321,7 +333,7 @@ module Flatten {
         agg.copy(v, va[si]);
       }
       // Finally, fill in null terminators
-      forall o in off[offDom.interior(off.size-1)] with (var agg = newDstAggregator(uint(8))) {
+      forall o in off[offDom.interior(off.size-1)] with (var agg = newDstAggregator(uint(8)), ref val) {
         agg.copy(val[o-1], 0:uint(8));
       }
     }

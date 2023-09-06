@@ -95,7 +95,7 @@ module ReductionMsg
                     }
                     when "is_locally_sorted" {
                       var locSorted: [LocaleSpace] bool;
-                      coforall loc in Locales {
+                      coforall loc in Locales with (ref locSorted) {
                         on loc {
                           ref myA = e.a[e.a.localSubdomain()];
                           locSorted[here.id] = isSorted(myA);
@@ -671,7 +671,7 @@ module ReductionMsg
           fv = (false, val:t);
         }
       }
-      forall s in segments with (var agg = newDstAggregator(bool)) {
+      forall s in segments with (var agg = newDstAggregator(bool), ref flagvalues) {
         agg.copy(flagvalues[s][0], true);
       }
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -804,7 +804,7 @@ module ReductionMsg
       return res;
     }
 
-    proc segVar(values:[?vD] ?t, segments:[?D] int, ddof:int, skipNan=false): [D] real throws {
+    proc segVar(ref values:[?vD] ?t, segments:[?D] int, ddof:int, skipNan=false): [D] real throws {
       var res: [D] real;
       if D.size == 0 { return res; }
 
@@ -828,12 +828,12 @@ module ReductionMsg
       return res;
     }
 
-    proc segStd(values:[] ?t, segments:[?D] int, ddof:int, skipNan=false): [D] real throws {
+    proc segStd(ref values:[] ?t, segments:[?D] int, ddof:int, skipNan=false): [D] real throws {
       if D.size == 0 { return [D] 0.0; }
       return sqrt(segVar(values, segments, ddof, skipNan));
     }
 
-    proc segMean(values:[] ?t, segments:[?D] int, skipNan=false): [D] real throws {
+    proc segMean(ref values:[] ?t, segments:[?D] int, skipNan=false): [D] real throws {
       var res: [D] real;
       if (D.size == 0) { return res; }
       // convert to real early to avoid int overflow
@@ -860,7 +860,7 @@ module ReductionMsg
       return res;
     }
 
-    proc segMedian(values:[?vD] ?intype, segments:[?D] int, skipNan=false): [D] real throws {
+    proc segMedian(ref values:[?vD] ?intype, segments:[?D] int, skipNan=false): [D] real throws {
       type t = if intype == bool then int else intype;
       var res: [D] real;
       if (D.size == 0) { return res; }
@@ -1118,7 +1118,7 @@ module ReductionMsg
       if (D.size == 0) { return res; }
       // Set reset flag at segment boundaries
       var flagvalues: [vD] (bool, t) = [v in values] (false, v);
-      forall s in segments with (var agg = newDstAggregator(bool)) {
+      forall s in segments with (var agg = newDstAggregator(bool), ref flagvalues) {
         agg.copy(flagvalues[s][0], true);
       }
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -1206,7 +1206,7 @@ module ReductionMsg
       if (D.size == 0) { return res; }
       // Set reset flag at segment boundaries
       var flagvalues: [vD] (bool, t) = [v in values] (false, v);
-      forall s in segments with (var agg = newDstAggregator(bool)) {
+      forall s in segments with (var agg = newDstAggregator(bool), ref flagvalues) {
         agg.copy(flagvalues[s][0], true);
       }
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -1316,7 +1316,7 @@ module ReductionMsg
 
     proc expandKeys(kD, segments: [?sD] int): [kD] int throws {
       var truth: [kD] bool;
-      forall i in segments with (var agg = newDstAggregator(bool)) {
+      forall i in segments with (var agg = newDstAggregator(bool), ref truth) {
         agg.copy(truth[i], true);
       }
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -1364,7 +1364,7 @@ module ReductionMsg
         tr = (sortedVal != val);
       }
       // first value of every segment is automatically new
-      [s in segments] truth[s] = true;
+      [s in segments with (ref truth)] truth[s] = true;
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * truth.size);
       // count cumulative new values and take diffs at segment boundaries
@@ -1374,7 +1374,7 @@ module ReductionMsg
       var hD: domain(1) dmapped Block(boundingBox={0..#pop}) = {0..#pop};
       // save off only the key from each pair (now there will be nunique of each key)
       var keyhits: [hD] int;
-      forall i in truth.domain with (var agg = newDstAggregator(int)) {
+      forall i in truth.domain with (var agg = newDstAggregator(int), ref keyhits) {
         if (truth[i]) {
           var (key,_) = sortedKV[i];
           agg.copy(keyhits[count[i]-1], key);
@@ -1396,7 +1396,7 @@ module ReductionMsg
       // get step indices and take diff to get number of times each key appears
       var stepInds: [nD] int;
       stepInds[nKeysPresent] = keyhits.size;
-      forall i in hD with (var agg = newDstAggregator(int)) {
+      forall i in hD with (var agg = newDstAggregator(int), ref stepInds) {
         if (truth2[i]) {
           var idx = i;
           agg.copy(stepInds[kiv[i]-1], idx);

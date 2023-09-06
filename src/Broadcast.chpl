@@ -37,7 +37,7 @@ module Broadcast {
     }
     // Convert to the dense derivative (in full domain) of values
     var expandedVals: [D] t;
-    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(t)) {
+    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(t), ref expandedVals) {
       agg.copy(expandedVals[s], d);
     }
     // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -49,7 +49,7 @@ module Broadcast {
     expandedVals = (+ scan expandedVals);
     // Permute to the original array order
     var permutedVals: [D] t;
-    forall (i, v) in zip(perm, expandedVals) with (var agg = newDstAggregator(t)) {
+    forall (i, v) in zip(perm, expandedVals) with (var agg = newDstAggregator(t), ref permutedVals) {
       agg.copy(permutedVals[i], v);
     }
     return permutedVals;
@@ -79,7 +79,7 @@ module Broadcast {
     }
     // Convert to the dense derivative (in full domain) of values
     var expandedVals: [D] int(8);
-    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(int(8))) {
+    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(int(8)), ref expandedVals) {
       agg.copy(expandedVals[s], d);
     }
     // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -88,7 +88,7 @@ module Broadcast {
     expandedVals = (+ scan expandedVals);
     // Permute to the original array order and convert back to bool
     var permutedVals: [D] bool;
-    forall (i, v) in zip(perm, expandedVals) with (var agg = newDstAggregator(bool)) {
+    forall (i, v) in zip(perm, expandedVals) with (var agg = newDstAggregator(bool), ref permutedVals) {
       agg.copy(permutedVals[i], v == 1);
     }
     return permutedVals;
@@ -115,7 +115,7 @@ module Broadcast {
     const offsets = (+ scan broadDist) - broadDist;
     var expandedVals = makeDistArray(expandedLen, uint(8));
 
-    forall (off, str_len, seg, seg_len) in zip(offs, strLens, segs, segLens) with (var valAgg = newDstAggregator(uint(8))) {
+    forall (off, str_len, seg, seg_len) in zip(offs, strLens, segs, segLens) with (var valAgg = newDstAggregator(uint(8)), ref vals, ref expandedVals) {
       var localizedVals = new lowLevelLocalizingSlice(vals, off..#str_len);
       for i in seg..#seg_len {
         var expValOff = offsets[i];
@@ -148,7 +148,7 @@ module Broadcast {
     }
     // Convert to the dense derivative (in full domain) of values
     var expandedVals = makeDistArray(size, t);
-    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(t)) {
+    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(t), ref expandedVals) {
       agg.copy(expandedVals[s], d);
     }
     // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -177,7 +177,7 @@ module Broadcast {
     }
     // Convert to the dense derivative (in full domain) of values
     var expandedVals = makeDistArray(size, int(8));
-    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(int(8))) {
+    forall (s, d) in zip(segs, diffs) with (var agg = newDstAggregator(int(8)), ref expandedVals) {
       agg.copy(expandedVals[s], d);
     }
     // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -207,7 +207,7 @@ module Broadcast {
     const offsets = (+ scan broadDist) - broadDist;
     var expandedVals = makeDistArray(expandedLen, uint(8));
 
-    forall (off, str_len, seg, seg_len) in zip(offs, strLens, segs, segLens) with (var valAgg = newDstAggregator(uint(8))) {
+    forall (off, str_len, seg, seg_len) in zip(offs, strLens, segs, segLens) with (var valAgg = newDstAggregator(uint(8)), ref vals, ref expandedVals) {
       var localizedVals = new lowLevelLocalizingSlice(vals, off..#str_len);
       for i in seg..#seg_len {
         var expValOff = offsets[i];

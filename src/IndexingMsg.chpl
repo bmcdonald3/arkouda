@@ -54,7 +54,7 @@ module IndexingMsg
         overMemLimit(numBytes(int) * dims.size);
         var offsets = (+ scan dims) - dims;
 
-        forall i in 0..#typeCoords.size by 2 {
+        forall i in 0..#typeCoords.size by 2 with (ref scaledCoords) {
             select typeCoords[i] {
                 when "int" {
                     scaledCoords[offsets[i/2]] = typeCoords[i+1]:int * dimProdEntry.a[i/2];
@@ -440,7 +440,7 @@ module IndexingMsg
             ref ea = e.a;
             ref trutha = truth.a;
             ref aa = a.a;
-            forall (i, eai) in zip(ead, ea) with (var agg = newDstAggregator(XType)) {
+            forall (i, eai) in zip(ead, ea) with (var agg = newDstAggregator(XType), ref aa) {
               if (trutha[i] == true) {
                 agg.copy(aa[iv[i]-1], eai);
               }
@@ -687,7 +687,7 @@ module IndexingMsg
             // [i in iv.a] e.a[i] = val;
             ref iva = iv.a;
             ref ea = e.a;
-            forall i in iva with (var agg = newDstAggregator(dtype), var locVal = val) {
+            forall i in iva with (var agg = newDstAggregator(dtype), ref ea) {
               agg.copy(ea[i],locVal);
             }
             var repMsg = "%s success".doFormat(pn);
@@ -719,7 +719,7 @@ module IndexingMsg
             // [i in iv.a] e.a[i] = val;
             ref iva = iv.a;
             ref ea = e.a;
-            forall i in iva with (var agg = newDstAggregator(dtype), var locVal = val) {
+            forall i in iva with (var agg = newDstAggregator(dtype), ref ea) {
               agg.copy(ea[i:int],locVal);
             }
             var repMsg = "%s success".doFormat(pn);
@@ -861,14 +861,14 @@ module IndexingMsg
                 // NOTE y.etype will never be real when gX.dtype is bigint, but the compiler doesn't know that
                 var tmp = if y.etype == bigint then ya else if y.etype == real then ya:int:bigint else ya:bigint;
                 ref ea = e.a;
-                forall (i,v) in zip(iva,tmp) with (var agg = newDstAggregator(bigint)) {
+                forall (i,v) in zip(iva,tmp) with (var agg = newDstAggregator(bigint), ref ea) {
                     agg.copy(ea[i],v);
                 }
             }
             else {
                 var e = toSymEntry(gX,t);
                 ref ea = e.a;
-                forall (i,v) in zip(iva,ya) with (var agg = newDstAggregator(t)) {
+                forall (i,v) in zip(iva,ya) with (var agg = newDstAggregator(t), ref ea) {
                     agg.copy(ea[i],v);
                 }
             }
@@ -906,14 +906,14 @@ module IndexingMsg
                 // NOTE y.etype will never be real when gX.dtype is bigint, but the compiler doesn't know that
                 var tmp = if y.etype == bigint then ya else if y.etype == real then ya:int:bigint else ya:bigint;
                 ref ea = e.a;
-                forall (i,v) in zip(iva,tmp) with (var agg = newDstAggregator(bigint)) {
+                forall (i,v) in zip(iva,tmp) with (var agg = newDstAggregator(bigint), ref ea) {
                     agg.copy(ea[i:int],v);
                 }
             }
             else {
                 var e = toSymEntry(gX,t);
                 ref ea = e.a;
-                forall (i,v) in zip(iva,ya) with (var agg = newDstAggregator(t)) {
+                forall (i,v) in zip(iva,ya) with (var agg = newDstAggregator(t), ref ea) {
                     agg.copy(ea[i:int],v);
                 }
             }

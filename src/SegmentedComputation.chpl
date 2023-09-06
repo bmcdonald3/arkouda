@@ -15,7 +15,7 @@ module SegmentedComputation {
     // Mark true where owning locale changes
     const change = [(i, sl) in zip(D, startLocales)] if (i == D.low) then true else (sl != startLocales[i-1]);
     // Wherever the owning locale increments, record that as first segment for the locale
-    forall (c, sl, i) in zip(change, startLocales, D) {
+    forall (c, sl, i) in zip(change, startLocales, D) with (ref startSegInds) {
       if c {
         startSegInds[sl] = i;
       }
@@ -51,7 +51,7 @@ module SegmentedComputation {
     StringBytesToUintArr,
   }
   
-  proc computeOnSegments(segments: [?D] int, values: [?vD] ?t, param function: SegFunction, type retType, const strArg: string = "") throws {
+  proc computeOnSegments(segments: [?D] int, ref values: [?vD] ?t, param function: SegFunction, type retType, const strArg: string = "") throws {
     // type retType = if (function == SegFunction.StringToNumericReturnValidity) then (outType, bool) else outType;
     var res: [D] retType;
     if (D.size == 0) {
@@ -61,7 +61,7 @@ module SegmentedComputation {
     const (startSegInds, numSegs, lengths) = computeSegmentOwnership(segments, vD);
     
     // Start task parallelism
-    coforall loc in Locales {
+    coforall loc in Locales with (ref res, ref values) {
       on loc {
         const myFirstSegIdx = startSegInds[loc.id];
         const myNumSegs = max(0, numSegs[loc.id]);
@@ -69,18 +69,18 @@ module SegmentedComputation {
         // Segment offsets whose bytes are owned by loc
         // Lengths of segments whose bytes are owned by loc
         var mySegs, myLens: [mySegInds] int;
-        forall i in mySegInds with (var agg = new SrcAggregator(int)) {
+        forall i in mySegInds with (var agg = new SrcAggregator(int), ref mySegs, ref myLens) {
           agg.copy(mySegs[i], segments[i]);
           agg.copy(myLens[i], lengths[i]);
         }
         try {
           // Apply function to bytes of each owned segment, aggregating return value to res
           if function == SegFunction.StringSearch {
-            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(retType), var myRegex = _unsafeCompileRegex(strArg)) {
+            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(retType), ref values, ref res) {
               agg.copy(res[i], stringSearch(values, start..#len, myRegex));
             }
           } else {
-            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(retType)) {
+            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(retType), ref values, ref res) {
               select function {
                 when SegFunction.SipHash128 {
                   agg.copy(res[i], sipHash128(values, start..#len));
@@ -130,7 +130,7 @@ module SegmentedComputation {
     return res;
   }
 
-  proc computeOnSegmentsWithoutAggregation(segments: [?D] int, values: [?vD] ?t, param function: SegFunction, type retType, const strArg: string = "") throws {
+  proc computeOnSegmentsWithoutAggregation(segments: [?D] int, ref values: [?vD] ?t, param function: SegFunction, type retType, const strArg: string = "") throws {
     // perform computeOnSegments logic for types that dont support aggregation (namely bigint)
     var res: [D] retType;
     if (D.size == 0) {
@@ -140,7 +140,7 @@ module SegmentedComputation {
     const (startSegInds, numSegs, lengths) = computeSegmentOwnership(segments, vD);
 
     // Start task parallelism
-    coforall loc in Locales {
+    coforall loc in Locales with (ref values, ref res) {
       on loc {
         const myFirstSegIdx = startSegInds[loc.id];
         const myNumSegs = max(0, numSegs[loc.id]);
@@ -148,13 +148,13 @@ module SegmentedComputation {
         // Segment offsets whose bytes are owned by loc
         // Lengths of segments whose bytes are owned by loc
         var mySegs, myLens: [mySegInds] int;
-        forall i in mySegInds with (var agg = new SrcAggregator(int)) {
+        forall i in mySegInds with (var agg = new SrcAggregator(int, ref mySegs, ref myLens) {
           agg.copy(mySegs[i], segments[i]);
           agg.copy(myLens[i], lengths[i]);
         }
         try {
           // Apply function to bytes of each owned segment, aggregating return value to res
-          forall (start, len, i) in zip(mySegs, myLens, mySegInds) {
+          forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (ref values, ref res) {
             select function {
               when SegFunction.StringToNumericStrict {
                 res[i] = stringToNumericStrict(values, start..#len, retType);

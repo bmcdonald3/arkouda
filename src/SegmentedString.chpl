@@ -280,13 +280,13 @@ module SegmentedString {
         var diffs: [D] int;
         diffs[D.low] = left[D.low]; // first offset is not affected by scan
 
-        forall idx in D {
+        forall idx in D with (ref diffs) {
           if idx!=0 {
             diffs[idx] = left[idx] - (right[idx-1]-1);
           }
         }
         // Set srcIdx to diffs at segment boundaries
-        forall (go, d) in zip(gatheredOffsets, diffs) with (var agg = newDstAggregator(int)) {
+        forall (go, d) in zip(gatheredOffsets, diffs) with (var agg = newDstAggregator(int), ref srcIdx) {
           agg.copy(srcIdx[go], d);
         }
         // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
@@ -336,7 +336,7 @@ module SegmentedString {
         return (makeDistArray(0, int), makeDistArray(0, uint(8)));
       }
       var segInds = makeDistArray(newSize, int);
-      forall (t, dst, idx) in zip(iv, steps, D) with (var agg = newDstAggregator(int)) {
+      forall (t, dst, idx) in zip(iv, steps, D) with (var agg = newDstAggregator(int), ref segInds) {
         if t {
           agg.copy(segInds[dst], idx);
         }
@@ -419,7 +419,7 @@ module SegmentedString {
       ref offs = this.offsets.a;
       var lowerVals: [this.values.a.domain] uint(8);
       const lengths = this.getLengths();
-      forall (off, len) in zip(offs, lengths) with (var valAgg = newDstAggregator(uint(8))) {
+      forall (off, len) in zip(offs, lengths) with (var valAgg = newDstAggregator(uint(8)), ref origVals, ref lowerVals) {
         var i = 0;
         for b in interpretAsBytes(origVals, off..#len, borrow=true).toLower() {
           valAgg.copy(lowerVals[off+i], b:uint(8));
@@ -438,7 +438,7 @@ module SegmentedString {
       ref offs = this.offsets.a;
       var upperVals: [this.values.a.domain] uint(8);
       const lengths = this.getLengths();
-      forall (off, len) in zip(offs, lengths) with (var valAgg = newDstAggregator(uint(8))) {
+      forall (off, len) in zip(offs, lengths) with (var valAgg = newDstAggregator(uint(8)), ref origVals, ref upperVals) {
         var i = 0;
         for b in interpretAsBytes(origVals, off..#len, borrow=true).toUpper() {
           valAgg.copy(upperVals[off+i], b:uint(8));
@@ -459,7 +459,7 @@ module SegmentedString {
       ref offs = this.offsets.a;
       var titleVals: [this.values.a.domain] uint(8);
       const lengths = this.getLengths();
-      forall (off, len) in zip(offs, lengths) with (var valAgg = newDstAggregator(uint(8))) {
+      forall (off, len) in zip(offs, lengths) with (var valAgg = newDstAggregator(uint(8)), ref origVals, ref titleVals) {
         var i = 0;
         for b in interpretAsBytes(origVals, off..#len, borrow=true).toTitle() {
           valAgg.copy(titleVals[off+i], b:uint(8));
@@ -509,7 +509,7 @@ module SegmentedString {
         // should we do strings.getLengths()-1 to not account for null byte
         const lens = getLengths();
         var numeric1, numeric2: [offsets.a.domain] uint;
-        forall (o, l, n1, n2) in zip(off, lens, numeric1, numeric2) {
+        forall (o, l, n1, n2) in zip(off, lens, numeric1, numeric2) with (ref vals) {
           const half = (l/2):int;
           n1 = stringBytesToUintArr(vals, o..#half);
           n2 = stringBytesToUintArr(vals, (o+half)..#half);
@@ -564,7 +564,15 @@ module SegmentedString {
                                                                                var searchBoolAgg = newDstAggregator(bool),
                                                                                var matchBoolAgg = newDstAggregator(bool),
                                                                                var fullMatchBoolAgg = newDstAggregator(bool),
-                                                                               var numMatchAgg = newDstAggregator(int)) {
+                                                                               var numMatchAgg = newDstAggregator(int),
+                                                                               ref origVals,
+                                                                               ref numMatches,
+                                                                               ref matchStartBool,
+                                                                               ref sparseLens,
+                                                                               ref sparseStarts,
+                                                                               ref searchBools,
+                                                                               ref matchBools,
+                                                                               ref fullMatchBools) {
         var matchessize = 0;
         for m in myRegex.matches(interpretAsString(origVals, off..#len, borrow=true), regexMaxCaptures) {
           var match = m[0];
@@ -595,7 +603,7 @@ module SegmentedString {
       var matchesIndicies = (+ scan numMatches) - numMatches;
       var matchStarts: [makeDistDom(totalMatches)] int;
       var matchLens: [makeDistDom(totalMatches)] int;
-      [i in this.values.a.domain] if (matchStartBool[i] == true) {
+      [i in this.values.a.domain with (ref matchStarts)] if (matchStartBool[i] == true) {
         matchStarts[matchTransform[i]] = sparseStarts[i];
         matchLens[matchTransform[i]] = sparseLens[i];
       }
@@ -628,7 +636,7 @@ module SegmentedString {
 
       overMemLimit(matchLens.size * numBytes(int));
       var absoluteStarts: [makeDistDom(matchLens.size)] int;
-      forall (off, numMatch, matchInd) in zip(origOffsets, numMatches, indices) with (var absAgg = newDstAggregator(int)) {
+      forall (off, numMatch, matchInd) in zip(origOffsets, numMatches, indices) with (var absAgg = newDstAggregator(int), ref matchStarts, ref absoluteStarts) {
         var localizedStarts = new lowLevelLocalizingSlice(matchStarts, matchInd..#numMatch);
         for k in 0..#numMatch {
           // Each string has numMatches[stringInd] number of pattern matches, so matchOrigins needs to repeat stringInd for numMatches[stringInd] times
@@ -644,7 +652,7 @@ module SegmentedString {
       var matchesOffsets: [makeDistDom(matchLens.size)] int;
       // + current index to account for null bytes
       var matchesIndicies = + scan matchLens - matchLens + lensEntry.a.domain;
-      forall (i, start, len, matchesInd) in zip(lensEntry.a.domain, absoluteStarts, matchLens, matchesIndicies) with (var valAgg = newDstAggregator(uint(8)), var offAgg = newDstAggregator(int)) {
+      forall (i, start, len, matchesInd) in zip(lensEntry.a.domain, absoluteStarts, matchLens, matchesIndicies) with (var valAgg = newDstAggregator(uint(8)), ref matchesVals, ref matchesOffsets) {
         for j in 0..#len {
           // copy in match
           valAgg.copy(matchesVals[matchesInd + j], origVals[start + j]);
@@ -663,7 +671,7 @@ module SegmentedString {
       const matchOriginsDom = if returnMatchOrig then makeDistDom(matchesOffsets.size) else makeDistDom(0);
       var matchOrigins: [matchOriginsDom] int;
       if returnMatchOrig {
-        forall (stringInd, matchInd) in zip(this.offsets.a.domain, indices) with (var originAgg = newDstAggregator(int)) {
+        forall (stringInd, matchInd) in zip(this.offsets.a.domain, indices) with (var originAgg = newDstAggregator(int), ref matchOrigins) {
           for k in matchInd..#numMatches[stringInd] {
             // Each string has numMatches[stringInd] number of pattern matches, so matchOrigins needs to repeat stringInd for numMatches[stringInd] times
             originAgg.copy(matchOrigins[k], stringInd);
@@ -711,7 +719,12 @@ module SegmentedString {
                                                                                var numReplAgg = newDstAggregator(int),
                                                                                var LenAgg = newDstAggregator(int),
                                                                                var nonMatchAgg = newDstAggregator(bool),
-                                                                               var startAgg = newDstAggregator(bool)) {
+                                                                               var startAgg = newDstAggregator(bool),
+                                                                               ref origVals,
+                                                                               ref numReplacements,
+                                                                               ref replacedLens,
+                                                                               ref nonMatch,
+                                                                               ref matchStartBool) {
         var replacementCounter = 0;
         var replLen = 0;
         for m in myRegex.matches(interpretAsString(origVals, off..#len, borrow=true)) {
@@ -734,7 +747,7 @@ module SegmentedString {
       // new offsets can be directly calculated
       // new offsets is the original - (running sum of replaced lens) + (running sum of replacements * repl.size)
       var subbedOffsets = origOffsets - ((+ scan replacedLens) - replacedLens) + (repl.size * ((+ scan numReplacements) - numReplacements));
-      forall (subOff, origOff, origLen) in zip(subbedOffsets, origOffsets, lengths) with (var valAgg = newDstAggregator(uint(8))) {
+      forall (subOff, origOff, origLen) in zip(subbedOffsets, origOffsets, lengths) with (var valAgg = newDstAggregator(uint(8)), ref origVals, ref subbedVals) {
         var j = 0;
         var localizedVals = new lowLevelLocalizingSlice(origVals, origOff..#origLen);
         for i in 0..#origLen {
@@ -753,7 +766,7 @@ module SegmentedString {
       return (subbedOffsets, subbedVals, numReplacements);
     }
 
-    proc segStrWhere(otherStr: ?t, condition: [] bool, newLens: [] int) throws where t == string {
+    proc segStrWhere(otherStr: ?t, condition: [] bool, ref newLens: [] int) throws where t == string {
       // add one to account for null bytes
       newLens += 1;
       ref origOffs = this.offsets.a;
@@ -765,7 +778,7 @@ module SegmentedString {
       const valSize = (+ reduce newLens);
       var whereVals = makeDistArray(valSize, uint(8));
 
-      forall (whereOff, origOff, len, cond) in zip(whereOffs, origOffs, newLens, condition) with (var valAgg = newDstAggregator(uint(8))) {
+      forall (whereOff, origOff, len, cond) in zip(whereOffs, origOffs, newLens, condition) with (var valAgg = newDstAggregator(uint(8)), ref origVals, ref whereVals) {
         if cond {
           var localizedVals = new lowLevelLocalizingSlice(origVals, origOff..#len);
           for i in 0..#len {
@@ -783,7 +796,7 @@ module SegmentedString {
       return (whereOffs, whereVals);
     }
 
-    proc segStrWhere(other: ?t, condition: [] bool, newLens: [] int) throws where t == owned SegString {
+    proc segStrWhere(other: ?t, condition: [] bool, ref newLens: [] int) throws where t == owned SegString {
       // add one to account for null bytes
       newLens += 1;
       ref origOffs = this.offsets.a;
@@ -796,7 +809,7 @@ module SegmentedString {
       const valSize = (+ reduce newLens);
       var whereVals = makeDistArray(valSize, uint(8));
 
-      forall (whereOff, origOff, otherOff, len, cond) in zip(whereOffs, origOffs, otherOffs, newLens, condition) with (var valAgg = newDstAggregator(uint(8))) {
+      forall (whereOff, origOff, otherOff, len, cond) in zip(whereOffs, origOffs, otherOffs, newLens, condition) with (var valAgg = newDstAggregator(uint(8)), ref origVals, ref otherVals, ref whereVals) {
         const localizedVals = if cond then new lowLevelLocalizingSlice(origVals, origOff..#len) else new lowLevelLocalizingSlice(otherVals, otherOff..#len);
         for i in 0..#len {
           valAgg.copy(whereVals[whereOff+i], localizedVals.ptr[i]);
@@ -823,7 +836,7 @@ module SegmentedString {
 
       var replacedLens: [this.offsets.a.domain] int;
 
-      forall (off, len, rlen) in zip(origOffsets, lengths, replacedLens) {
+      forall (off, len, rlen) in zip(origOffsets, lengths, replacedLens) with (ref origVals) {
         if chars.isEmpty() {
           rlen = interpretAsBytes(origVals, off..#len).strip().size + 1;
         } else {
@@ -833,7 +846,7 @@ module SegmentedString {
       var retVals: [makeDistDom(+ reduce replacedLens)] uint(8);
       var retOffs = (+ scan replacedLens) - replacedLens;
 
-      forall (off, len, roff) in zip(origOffsets, lengths, retOffs) with (var valAgg = newDstAggregator(uint(8))) {
+      forall (off, len, roff) in zip(origOffsets, lengths, retOffs) with (var valAgg = newDstAggregator(uint(8)), ref origVals, ref retVals) {
         var i = 0;
         if chars.isEmpty() {
           for b in interpretAsBytes(origVals, off..#len).strip() {
@@ -902,7 +915,7 @@ module SegmentedString {
       var leftEnd: [offsets.a.domain] int;
       var rightStart: [offsets.a.domain] int;
 
-      forall (o, len, i) in zip(oa, lengths, offsets.a.domain) with (var myRegex = _unsafeCompileRegex(delimiter)) {
+      forall (o, len, i) in zip(oa, lengths, offsets.a.domain) with (var myRegex = _unsafeCompileRegex(delimiter), ref leftEnd, ref rightStart) {
         var matches = myRegex.matches(interpretAsString(va, o..#len, borrow=true));
         if matches.size < times {
           // not enough occurances of delim, the entire string stays together, and the param args
@@ -955,14 +968,14 @@ module SegmentedString {
       var leftVals = makeDistArray((+ reduce leftLengths), uint(8));
       var rightVals = makeDistArray((+ reduce rightLengths), uint(8));
       // Fill left values
-      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8))) {
+      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8)), ref leftVals) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(leftVals[dstStart+i], localIdx.ptr[i]);
         }
       }
       // Fill right values
-      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8))) {
+      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8)), ref rightVals) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(rightVals[dstStart+i], localIdx.ptr[i]);
@@ -984,7 +997,7 @@ module SegmentedString {
       overMemLimit(numBytes(int) * truth.size);
       var numHits = (+ scan truth) - truth;
       const high = offsets.a.domain.high;
-      forall i in offsets.a.domain {
+      forall i in offsets.a.domain with (ref leftEnd, ref rightStart) {
         // First, check whether string contains enough instances of delimiter to peel
         var hasEnough: bool;
         if oa[i] > D.high {
@@ -1078,14 +1091,14 @@ module SegmentedString {
       var rightVals = makeDistArray((+ reduce rightLengths), uint(8));
       ref va = values.a;
       // Fill left values
-      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8))) {
+      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8)), ref leftVals) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(leftVals[dstStart+i], localIdx.ptr[i]);
         }
       }
       // Fill right values
-      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8))) {
+      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8)), ref rightVals) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(rightVals[dstStart+i], localIdx.ptr[i]);
@@ -1117,7 +1130,7 @@ module SegmentedString {
       // Copy in the left and right-hand values, separated by the delimiter
       ref va1 = values.a;
       ref va2 = other.values.a;
-      forall (o1, o2, no, l1, l2) in zip(offsets.a, other.offsets.a, newOffsets, leftLen, rightLen) with (var agg = newDstAggregator(uint(8))) {
+      forall (o1, o2, no, l1, l2) in zip(offsets.a, other.offsets.a, newOffsets, leftLen, rightLen) with (var agg = newDstAggregator(uint(8)), ref newVals, ref va1, ref va2) {
         var pos = no;
         // Left side
         if right {
@@ -1219,7 +1232,7 @@ module SegmentedString {
       var dstInds = (+ scan longEnough) - longEnough;
       ref oa = offsets.a;
       if kind == Fixes.prefixes {
-        forall (d, o, le) in zip(dstInds, oa, longEnough) with (var agg = newDstAggregator(int)) {
+        forall (d, o, le) in zip(dstInds, oa, longEnough) with (var agg = newDstAggregator(int), ref srcInds) {
           if le {
             const srcIndStart = d * (n + 1);
             for j in 0..#(n+1) {
@@ -1228,7 +1241,7 @@ module SegmentedString {
           }
         }
       } else if kind == Fixes.suffixes {
-        forall (d, o, l, le) in zip(dstInds, oa, lengths, longEnough) with (var agg = newDstAggregator(int)) {
+        forall (d, o, l, le) in zip(dstInds, oa, lengths, longEnough) with (var agg = newDstAggregator(int), ref srcInds) {
           if le {
             const srcIndStart = d * (n + 1);
             const byteStart = o + l - n;
@@ -1352,7 +1365,7 @@ module SegmentedString {
     return compare(ss, testStr, SegFunction.StringCompareLiteralNeq);
   }
 
-  inline proc stringCompareLiteralEq(values, rng, testStr) {
+  inline proc stringCompareLiteralEq(ref values, rng, testStr) {
     if rng.size == (testStr.numBytes + 1) {
       const s = interpretAsString(values, rng);
       return (s == testStr);
@@ -1361,7 +1374,7 @@ module SegmentedString {
     }
   }
 
-  inline proc stringCompareLiteralNeq(values, rng, testStr) {
+  inline proc stringCompareLiteralNeq(ref values, rng, testStr) {
     if rng.size == (testStr.numBytes + 1) {
       const s = interpretAsString(values, rng);
       return (s != testStr);
@@ -1407,35 +1420,35 @@ module SegmentedString {
     return try! compile(pattern);
   }
 
-  inline proc stringSearch(values, rng, myRegex) throws {
+  inline proc stringSearch(ref values, rng, myRegex) throws {
     return myRegex.search(interpretAsString(values, rng, borrow=true)).matched;
   }
 
   /*
     The SegFunction called by computeOnSegments for isLower
   */
-  inline proc stringIsLower(values, rng) throws {
+  inline proc stringIsLower(ref values, rng) throws {
     return interpretAsString(values, rng, borrow=true).isLower();
   }
 
   /*
     The SegFunction called by computeOnSegments for isUpper
   */
-  inline proc stringIsUpper(values, rng) throws {
+  inline proc stringIsUpper(ref values, rng) throws {
     return interpretAsString(values, rng, borrow=true).isUpper();
   }
 
   /*
     The SegFunction called by computeOnSegments for isTitle
   */
-  inline proc stringIsTitle(values, rng) throws {
+  inline proc stringIsTitle(ref values, rng) throws {
     return interpretAsString(values, rng, borrow=true).isTitle();
   }
 
   /*
     The SegFunction called by computeOnSegments for bytesToUintArr
   */
-  inline proc stringBytesToUintArr(values, rng) throws {
+  inline proc stringBytesToUintArr(ref values, rng) throws {
       var localSlice = new lowLevelLocalizingSlice(values, rng);
       return | reduce [i in 0..#rng.size] (localSlice.ptr(i):uint)<<(8*(rng.size-1-i));
   }
@@ -1553,7 +1566,7 @@ module SegmentedString {
     const strSize = nullTermString.size;
     var values = makeDistArray(arrSize*strSize, uint(8));
 
-    forall (i, off) in zip(offsets.domain, offsets) with (var agg = newDstAggregator(uint(8))) {
+    forall (i, off) in zip(offsets.domain, offsets) with (var agg = newDstAggregator(uint(8, ref values) {
       off = i * strSize;
       for j in 0..#strSize {
         agg.copy(values[off + j], nullTermString[j]:uint(8));
@@ -1567,7 +1580,7 @@ module SegmentedString {
      new string is returned, otherwise the string borrows memory from the array
      (reduces memory allocations if the string isn't needed after array)
    */
-  proc interpretAsString(bytearray: [?D] uint(8), region: range(?), borrow=false): string {
+  proc interpretAsString(ref bytearray: [?D] uint(8), region: range(?), borrow=false): string {
     var localSlice = new lowLevelLocalizingSlice(bytearray, region);
     // Byte buffer is null-terminated, so length is region.size - 1
     try {
@@ -1587,7 +1600,7 @@ module SegmentedString {
   /*
      Interpret a region of a byte array as bytes. Modeled after interpretAsString
    */
-  proc interpretAsBytes(bytearray: [?D] uint(8), region: range(?), borrow=false): bytes {
+  proc interpretAsBytes(ref bytearray: [?D] uint(8), region: range(?), borrow=false): bytes {
     var localSlice = new lowLevelLocalizingSlice(bytearray, region);
     // Byte buffer is null-terminated, so length is region.size - 1
     try {

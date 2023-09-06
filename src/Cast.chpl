@@ -119,7 +119,7 @@ module Cast {
       num = stringToNumericStrict(values, rng, toType);
     } catch {
       if toType == real {
-        num = NAN;
+        num = nan;
       } else if toType == int {
         // Use pandas.NaT, i.e. -2**63, as NaN for int
         num = min(int);
@@ -136,7 +136,7 @@ module Cast {
       num = stringToNumericStrict(values, rng, toType);
     } catch {
       if toType == real {
-        num = NAN;
+        num = nan;
       } else if toType == int {
         // Use pandas.NaT, i.e. -2**63, as NaN for int
         num = min(int);

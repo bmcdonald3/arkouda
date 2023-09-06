@@ -155,7 +155,7 @@ module Flatten {
                                                                              var nbAgg = newDstAggregator(bool),
                                                                              var matchAgg = newDstAggregator(int),
                                                                              ref origVals,
-                                                                             ref numMatches.
+                                                                             ref numMatches,
                                                                              ref writeToVal,
                                                                              ref nullByteLocations) {
       var matchessize = 0;

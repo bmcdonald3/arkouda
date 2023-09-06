@@ -687,7 +687,7 @@ module IndexingMsg
             // [i in iv.a] e.a[i] = val;
             ref iva = iv.a;
             ref ea = e.a;
-            forall i in iva with (var agg = newDstAggregator(dtype), ref ea) {
+            forall i in iva with (var agg = newDstAggregator(dtype), var locVal = val, ref ea) {
               agg.copy(ea[i],locVal);
             }
             var repMsg = "%s success".doFormat(pn);
@@ -719,7 +719,7 @@ module IndexingMsg
             // [i in iv.a] e.a[i] = val;
             ref iva = iv.a;
             ref ea = e.a;
-            forall i in iva with (var agg = newDstAggregator(dtype), ref ea) {
+            forall i in iva with (var agg = newDstAggregator(dtype), var locVal = val, ref ea) {
               agg.copy(ea[i:int],locVal);
             }
             var repMsg = "%s success".doFormat(pn);

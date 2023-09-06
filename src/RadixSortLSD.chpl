@@ -96,7 +96,7 @@ module RadixSortLSD
                         }
                     }//coforall task
                     // write counts in to global counts in transposed order
-                    coforall tid in Tasks with (ref tasksBucketCounts) with (ref globalCounts) {
+                    coforall tid in Tasks with (ref tasksBucketCounts, ref globalCounts) {
                         var aggregator = newDstAggregator(int);
                         for task in Tasks {
                             ref taskBucketCounts = tasksBucketCounts[task];
@@ -134,7 +134,7 @@ module RadixSortLSD
                         }
                         aggregator.flush();
                     }//coforall task
-                    coforall task in Tasks with (ref tasksBucketPos) with (ref a) {
+                    coforall task in Tasks with (ref tasksBucketPos, ref a) {
                         ref taskBucketPos = tasksBucketPos[task];
                         // get local domain's indices
                         var lD = aD.localSubdomain();

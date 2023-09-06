@@ -76,7 +76,7 @@ module SegmentedComputation {
         try {
           // Apply function to bytes of each owned segment, aggregating return value to res
           if function == SegFunction.StringSearch {
-            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(retType), ref values, ref res) {
+            forall (start, len, i) in zip(mySegs, myLens, mySegInds) with (var agg = newDstAggregator(retType), var myRegex = _unsafeCompileRegex(strArg), ref values, ref res) {
               agg.copy(res[i], stringSearch(values, start..#len, myRegex));
             }
           } else {
@@ -148,7 +148,7 @@ module SegmentedComputation {
         // Segment offsets whose bytes are owned by loc
         // Lengths of segments whose bytes are owned by loc
         var mySegs, myLens: [mySegInds] int;
-        forall i in mySegInds with (var agg = new SrcAggregator(int, ref mySegs, ref myLens) {
+        forall i in mySegInds with (var agg = new SrcAggregator(int), ref mySegs, ref myLens) {
           agg.copy(mySegs[i], segments[i]);
           agg.copy(myLens[i], lengths[i]);
         }

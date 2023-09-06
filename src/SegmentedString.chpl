@@ -652,7 +652,7 @@ module SegmentedString {
       var matchesOffsets: [makeDistDom(matchLens.size)] int;
       // + current index to account for null bytes
       var matchesIndicies = + scan matchLens - matchLens + lensEntry.a.domain;
-      forall (i, start, len, matchesInd) in zip(lensEntry.a.domain, absoluteStarts, matchLens, matchesIndicies) with (var valAgg = newDstAggregator(uint(8)), ref matchesVals, ref matchesOffsets) {
+      forall (i, start, len, matchesInd) in zip(lensEntry.a.domain, absoluteStarts, matchLens, matchesIndicies) with (var valAgg = newDstAggregator(uint(8)), var offAgg = newDstAggregator(int), ref matchesVals, ref matchesOffsets) {
         for j in 0..#len {
           // copy in match
           valAgg.copy(matchesVals[matchesInd + j], origVals[start + j]);
@@ -1566,7 +1566,7 @@ module SegmentedString {
     const strSize = nullTermString.size;
     var values = makeDistArray(arrSize*strSize, uint(8));
 
-    forall (i, off) in zip(offsets.domain, offsets) with (var agg = newDstAggregator(uint(8, ref values) {
+    forall (i, off) in zip(offsets.domain, offsets) with (var agg = newDstAggregator(uint(8))) {
       off = i * strSize;
       for j in 0..#strSize {
         agg.copy(values[off + j], nullTermString[j]:uint(8));

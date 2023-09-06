@@ -1566,7 +1566,7 @@ module SegmentedString {
     const strSize = nullTermString.size;
     var values = makeDistArray(arrSize*strSize, uint(8));
 
-    forall (i, off) in zip(offsets.domain, offsets) with (var agg = newDstAggregator(uint(8))) {
+    forall (i, off) in zip(offsets.domain, offsets) with (var agg = newDstAggregator(uint(8)), ref values) {
       off = i * strSize;
       for j in 0..#strSize {
         agg.copy(values[off + j], nullTermString[j]:uint(8));

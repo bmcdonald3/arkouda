@@ -24,7 +24,7 @@ module In1d
        :returns truth: the distributed boolean array containing the result of ar1 being broadcast over ar2
        :type truth: [] bool
      */
-    proc in1d(ar1: [?aD1] ?t, ar2: [?aD2] t, invert: bool = false): [aD1] bool throws {
+    proc in1d(ar1: [?aD1] ?t, ref ar2: [?aD2] t, invert: bool = false): [aD1] bool throws {
         var truth = if ar2.size <= threshold then in1dAr2PerLocAssoc(ar1, ar2)
                                              else in1dSort(ar1, ar2);
         if invert then truth = !truth;

@@ -745,7 +745,7 @@ module IndexingMsg
             const ref ead = e.a.domain;
             ref ea = e.a;
             ref trutha = truth.a;
-            forall i in ead with (var agg = newDstAggregator(dtype), var locVal = val) {
+            forall i in ead with (var agg = newDstAggregator(dtype), var locVal = val, ref ea) {
               if (trutha[i]) {
                 agg.copy(ea[i],locVal);
               }

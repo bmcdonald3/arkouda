@@ -88,7 +88,7 @@ module Cast {
     const vname = st.nextName();
     var values = st.addEntry(vname, totBytes, uint(8));
     ref va = values.a;
-    forall (o, s) in zip(segments.a, strings) with (var agg = newDstAggregator(uint(8))) {
+    forall (o, s) in zip(segments.a, strings) with (var agg = newDstAggregator(uint(8)), ref va) {
       for (b, i) in zip(s.bytes(), 0..) {
         agg.copy(va[o+i], b);
       }

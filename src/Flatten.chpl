@@ -267,7 +267,7 @@ module Flatten {
     // Running segment number
     var scanOff = (+ scan offTruth) - offTruth;
     // Copy over the offsets; later we will shrink them if delim is > 1 byte
-    forall (i, o, t) in zip(this.values.a.domain, scanOff, offTruth) with (var agg = newDstAggregator(int)) {
+    forall (i, o, t) in zip(this.values.a.domain, scanOff, offTruth) with (var agg = newDstAggregator(int), ref off) {
       if t {
         agg.copy(off[o], i);
       }

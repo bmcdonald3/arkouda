@@ -300,7 +300,7 @@ module SegmentedString {
       } else {
         ref va = values.a;
         // Copy string data to gathered result
-        forall (go, gl, idx) in zip(gatheredOffsets, gatheredLengths, iv) {
+        forall (go, gl, idx) in zip(gatheredOffsets, gatheredLengths, iv) with (ref gatheredVals) {
           for pos in 0..#gl {
             gatheredVals[go+pos] = va[oa[idx:int]+pos];
           }
@@ -603,7 +603,7 @@ module SegmentedString {
       var matchesIndicies = (+ scan numMatches) - numMatches;
       var matchStarts: [makeDistDom(totalMatches)] int;
       var matchLens: [makeDistDom(totalMatches)] int;
-      [i in this.values.a.domain with (ref matchStarts)] if (matchStartBool[i] == true) {
+      [i in this.values.a.domain with (ref matchStarts, ref matchLens)] if (matchStartBool[i] == true) {
         matchStarts[matchTransform[i]] = sparseStarts[i];
         matchLens[matchTransform[i]] = sparseLens[i];
       }
@@ -915,7 +915,7 @@ module SegmentedString {
       var leftEnd: [offsets.a.domain] int;
       var rightStart: [offsets.a.domain] int;
 
-      forall (o, len, i) in zip(oa, lengths, offsets.a.domain) with (var myRegex = _unsafeCompileRegex(delimiter), ref leftEnd, ref rightStart) {
+      forall (o, len, i) in zip(oa, lengths, offsets.a.domain) with (var myRegex = _unsafeCompileRegex(delimiter), ref leftEnd, ref rightStart, ref va) {
         var matches = myRegex.matches(interpretAsString(va, o..#len, borrow=true));
         if matches.size < times {
           // not enough occurances of delim, the entire string stays together, and the param args
@@ -968,14 +968,14 @@ module SegmentedString {
       var leftVals = makeDistArray((+ reduce leftLengths), uint(8));
       var rightVals = makeDistArray((+ reduce rightLengths), uint(8));
       // Fill left values
-      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8)), ref leftVals) {
+      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8)), ref leftVals, ref va) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(leftVals[dstStart+i], localIdx.ptr[i]);
         }
       }
       // Fill right values
-      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8)), ref rightVals) {
+      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8)), ref rightVals, ref va) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(rightVals[dstStart+i], localIdx.ptr[i]);
@@ -1091,14 +1091,14 @@ module SegmentedString {
       var rightVals = makeDistArray((+ reduce rightLengths), uint(8));
       ref va = values.a;
       // Fill left values
-      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8)), ref leftVals) {
+      forall (srcStart, dstStart, len) in zip(oa, leftOffsets, leftLengths) with (var agg = newDstAggregator(uint(8)), ref leftVals, ref va) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(leftVals[dstStart+i], localIdx.ptr[i]);
         }
       }
       // Fill right values
-      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8)), ref rightVals) {
+      forall (srcStart, dstStart, len) in zip(rightStart, rightOffsets, rightLengths) with (var agg = newDstAggregator(uint(8)), ref rightVals, ref va) {
         var localIdx = new lowLevelLocalizingSlice(va, srcStart..#(len-1));
         for i in 0..#(len-1) {
           agg.copy(rightVals[dstStart+i], localIdx.ptr[i]);
@@ -1462,7 +1462,9 @@ module SegmentedString {
       var truth: [mainStr.offsets.a.domain] bool;
       return truth;
     }
-    return in1d(mainStr.siphash(), testStr.siphash(), invert);
+    var arg1 = mainStr.siphash();
+    var arg2 = testStr.siphash();
+    return in1d(arg1, arg2, invert);
   }
 
   proc concat(s1: [] int, v1: [] uint(8), s2: [] int, v2: [] uint(8)) throws {

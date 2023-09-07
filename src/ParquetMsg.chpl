@@ -1397,7 +1397,7 @@ module ParquetMsg {
       var bool_idx = (+ scan seg_sizes_bool) - seg_sizes_bool;
 
       // populate data based on object and data types
-      forall (i, column, ot, si, ui, ri, bi, segidx) in zip(0..#ncols, sym_names, col_objTypes, str_idx, int_idx, real_idx, bool_idx, segment_idx) with (ref ptrList, ref segmentPtr, ref datatypes, ref sizeList, ref segarray_sizes, ref c_names, ref segment_tracking, ref str_vals, ref int_vals, ref real_vals, ref bool_vals) {
+      forall (i, column, ot, si, ui, ri, bi, segidx) in zip(0..#ncols, sym_names, col_objTypes, str_idx, int_idx, real_idx, bool_idx, segment_idx) with (ref ptrList, ref segmentPtr, ref datatypes, ref sizeList, ref segarray_sizes, ref c_names, ref segment_tracking, ref str_vals, ref int_vals, ref real_vals, ref bool_vals, ref objTypes) {
         // generate the local c string list of column names
         c_names[i] = my_column_names[i].localize().c_str();
 

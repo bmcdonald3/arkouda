@@ -44,7 +44,7 @@ module Histogram
         var atomicHist: [hD] atomic int;
         
         // count into atomic histogram
-        forall v in a {
+        forall v in a with (ref atomicHist) {
             var vBin = ((v - aMin) / binWidth):int;
             if v == aMax {vBin = bins-1;}
             if (vBin < 0) | (vBin > (bins-1)) {
@@ -92,7 +92,7 @@ module Histogram
         var atomicHist: [PrivateSpace] [0..#bins] atomic int;
 
         // count into per-locale private atomic histogram
-        forall v in a {
+        forall v in a with (ref atomicHist) {
             var vBin = ((v - aMin) / binWidth):int;
             if v == aMax {vBin = bins-1;}
             atomicHist[here.id][vBin].add(1);

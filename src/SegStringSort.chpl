@@ -84,7 +84,7 @@ module SegStringSort {
                              "Sorted long strings in %? seconds".doFormat(timeSinceEpoch().totalSeconds() - tl));
       tl = timeSinceEpoch().totalSeconds();
 
-      forall (h, s) in zip(highDom, stringsWithInds.domain) with (var agg = newDstAggregator(int)) {
+      forall (h, s) in zip(highDom, stringsWithInds.domain) with (var agg = newDstAggregator(int), ref gatherInds) {
         const (_,val) = stringsWithInds[s];
         agg.copy(gatherInds[h], val);
       }
@@ -268,7 +268,7 @@ module SegStringSort {
       globalStarts = globalStarts - globalCounts;
             
       // calc new positions and permute
-      coforall loc in Locales {
+      coforall loc in Locales with (ref kr0, ref kr1) {
         on loc {
           coforall task in 0..#numTasks with (ref kr0, ref kr1) {
             // bucket domain

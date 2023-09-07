@@ -105,9 +105,9 @@ module JoinEqWithDTMsg
         // actual number of results per locale
         var locNumResults: [PrivateSpace] int;
         
-        coforall loc in Locales with (ref locResI, ref locResJ, ref locNumResults) {
+        coforall loc in Locales with (ref locResI, ref locResJ, ref locNumResults, ref resCounters) {
             on loc {
-                forall i in a1.localSubdomain() with (ref locResI, ref locResJ) {
+              forall i in a1.localSubdomain() with (ref locResI, ref locResJ, ref resCounters) {
                     // more space in result list???
                     if (resCounters[here.id].read() < resLimitPerLocale) {
                         // find matching value(unique key in g2) and

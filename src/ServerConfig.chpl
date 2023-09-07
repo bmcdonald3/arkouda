@@ -231,7 +231,7 @@ module ServerConfig
     }
 
     proc getEnv(name: string, default=""): string {
-        extern proc getenv(name : c_string) : c_string;
+        extern proc getenv(name : c_string_ptr) : c_string_ptr;
         var val = getenv(name.localize().c_str()): string;
         if val.isEmpty() { val = default; }
         return val;
@@ -436,7 +436,7 @@ module ServerConfig
     }
 
     proc getEnvInt(name: string, default: int): int {
-      extern proc getenv(name : c_string) : c_string;
+      extern proc getenv(name : c_string_ptr) : c_string_ptr;
       var strval = getenv(name.localize().c_str()): string;
       if strval.isEmpty() { return default; }
       return try! strval: int;

@@ -33,6 +33,8 @@ module HDF5Msg {
     use ArkoudaCTypesCompat;
     use ArkoudaIOCompat;
 
+    use ArkoudaBlockCompat;
+
 
     private config const logLevel = ServerConfig.logLevel;
     private config const logChannel = ServerConfig.logChannel;

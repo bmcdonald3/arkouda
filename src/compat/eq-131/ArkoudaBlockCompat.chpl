@@ -2,6 +2,6 @@ module ArkoudaBlockCompat {
 
   use BlockDist;
 
-  type blockDist Block;
+  type blockDist = Block;
 
 }

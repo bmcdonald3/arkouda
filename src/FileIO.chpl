@@ -235,7 +235,7 @@ module FileIO {
         var f:file = open(path, ioMode.r);
         var reader = fileIOReaderCompat(f);
         var header:bytes;
-        if (reader.binary()) {
+        if (binaryCheckCompat(reader)) {
           reader.bytesRead(header, 8);
         } else {
           throw getErrorWithContext(

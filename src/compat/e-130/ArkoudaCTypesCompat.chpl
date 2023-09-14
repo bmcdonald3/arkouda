@@ -59,5 +59,5 @@ module ArkoudaCTypesCompat {
     chpl_here_free(data);
   }
 
-  type c_string_ptr = c_ptrConst(c_char);
+  type c_string_ptr = c_string;
 }

@@ -64,4 +64,8 @@ module ArkoudaIOCompat {
   proc fileIOReaderCompat(infile) throws {
     return infile.reader(deserializer=new binarySerializer(endian=ioendian.native));
   }
+
+  proc binaryCheckCompat(reader) throws {
+    return reader.deserializerType == binarySerializer;
+  }
 }

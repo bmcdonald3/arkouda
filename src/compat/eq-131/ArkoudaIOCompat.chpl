@@ -60,4 +60,8 @@ module ArkoudaIOCompat {
   proc fileIOReaderCompat(infile) throws {
     return infile.reader(kind=ionative);
   }
+
+  proc binaryCheckCompat(reader) throws {
+    return reader.binary();
+  }
 }

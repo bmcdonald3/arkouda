@@ -24,6 +24,7 @@ module SegmentedString {
   use ArkoudaRegexCompat;
   use ArkoudaStringBytesCompat;
   use ArkoudaRangeCompat;
+  use ArkoudaSymEntryCompat;
 
   private config const logLevel = ServerConfig.logLevel;
   private config const logChannel = ServerConfig.logChannel;
@@ -74,7 +75,7 @@ module SegmentedString {
       return getSegString(offs.a, vals.a, st);
   }
 
-  proc assembleSegStringFromParts(offsets:SymEntry, values:SymEntry, st:borrowed SymTab): owned SegString throws {
+  proc assembleSegStringFromParts(offsets:SymEntry(int), values:SymEntry(uint(8)), st:borrowed SymTab): owned SegString throws {
       var stringsEntry = new shared SegStringSymEntry(offsets, values, string);
       var name = st.nextName();
       st.addEntry(name, stringsEntry);

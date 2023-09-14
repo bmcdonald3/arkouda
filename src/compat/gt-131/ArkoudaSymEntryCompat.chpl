@@ -1,7 +1,13 @@
 module ArkoudaSymEntryCompat {
   use MultiTypeSymEntry;
+  use Map;
+  
+  type SymEntryAny = SymEntry(?);
+  type mapAny = map(?);
+  
   override proc SymEntry.serialize(writer, ref serializer) throws {
     use Reflection;
+    var f = writer;
     proc writeField(f, param i) throws {
       if !isArray(getField(this, i)) {
         f.write(getFieldName(this.type, i), " = ", getField(this, i):string);

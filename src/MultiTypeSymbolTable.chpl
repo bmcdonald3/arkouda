@@ -16,6 +16,7 @@ module MultiTypeSymbolTable
     use ArkoudaFileCompat;
     use ArkoudaMapCompat;
     use ArkoudaIOCompat;
+    use ArkoudaSymEntryCompat;
     use Registry;
     
     private config const logLevel = ServerConfig.logLevel;
@@ -312,7 +313,7 @@ module MultiTypeSymbolTable
 
         :returns: array of JSON formatted strings
         */
-        proc getEntries(infoList:map): [] string throws {
+        proc getEntries(infoList: map(string,shared AbstractSymEntry)): [] string throws {
             var entries: [1..infoList.size] string;
             var i = 0;
             for name in infoList.keys() {

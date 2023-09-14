@@ -1,5 +1,9 @@
 module ArkoudaSymEntryCompat {
   use MultiTypeSymEntry;
+
+  type SymEntryAny = SymEntry;
+  type mapAny = map;
+
   override proc SymEntry.writeThis(f) throws {
     use Reflection;
     proc writeField(f, param i) throws {

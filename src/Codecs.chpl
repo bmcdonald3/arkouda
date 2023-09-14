@@ -3,6 +3,7 @@ module Codecs {
   use iconv;
 
   use AryUtil;
+  use CTypes;
 
   use ArkoudaCTypesCompat;
   

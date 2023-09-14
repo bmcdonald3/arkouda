@@ -18,6 +18,7 @@ module GenSymIO {
     use SegmentedString;
     use Map;
     use ArkoudaMapCompat;
+    use CTypes;
 
     use ArkoudaListCompat;
     use ArkoudaStringBytesCompat;

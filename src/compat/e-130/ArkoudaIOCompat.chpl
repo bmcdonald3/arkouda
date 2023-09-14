@@ -47,4 +47,17 @@ module ArkoudaIOCompat {
     var nreader = f.reader();
     nreader.readf("%jt", obj);
   }
+
+  proc getByteorder() throws {
+    use IO;
+    var writeVal = 1, readVal = 0;
+    var tmpf = openMemFile();
+    tmpf.writer(kind=iobig).write(writeVal);
+    tmpf.reader(kind=ionative).read(readVal);
+    return if writeVal == readVal then "big" else "little";
+  }
+
+  proc fileIOReaderCompat(infile) throws {
+    return infile.reader(kind=ionative);
+  }
 }

@@ -231,8 +231,9 @@ module FileIO {
     }
 
     proc getFirstEightBytesFromFile(path:string):bytes throws {
+        use ArkoudaIOCompat;
         var f:file = open(path, ioMode.r);
-        var reader = f.reader(kind=ionative);
+        var reader = fileIOReaderCompat(f);
         var header:bytes;
         if (reader.binary()) {
           reader.bytesRead(header, 8);

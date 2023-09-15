@@ -54,10 +54,8 @@ module ArkoudaIOCompat {
     use IO;
     var writeVal = 1, readVal = 0;
     var tmpf = openMemFile();
-    var nwriter = tmpf.writer(serializer = new binarySerializer(endian=ioendian.big));
-    nwriter.write(writeVal);
-    var nreader = tmpf.reader();
-    nreader.read(readVal);
+    tmpf.writer(serializer = new binarySerializer(endian=ioendian.big)).write(writeVal);
+    tmpf.reader(deserializer=new binaryDeserializer(endian=ioendian.native)).read(readVal);
     return if writeVal == readVal then "big" else "little";
   }
 

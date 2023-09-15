@@ -26,4 +26,6 @@ module ArkoudaSymEntryCompat {
     writeField(f, nFields-1);
     f.write("}");
   }
+
+  implements writeSerializable(SymEntry);
 }

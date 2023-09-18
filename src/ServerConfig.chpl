@@ -435,7 +435,7 @@ module ServerConfig
     proc getEnvInt(name: string, default: int): int {
       extern proc getenv(name : c_string_ptr) : c_string_ptr;
       var strval = getenv(name.localize().c_str()): string;
-      if strval.isEmpty() { return default; }
+      if strval.isEmpty() || (try! strval:int) == 0 { return default; }
       return try! strval: int;
     }
 

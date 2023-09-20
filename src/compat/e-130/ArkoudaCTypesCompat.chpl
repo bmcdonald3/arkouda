@@ -60,4 +60,8 @@ module ArkoudaCTypesCompat {
   }
 
   type c_string_ptr = c_string;
+
+  proc type bytes.createCopyingBuffer(x) {
+    return x:bytes;
+  }
 }

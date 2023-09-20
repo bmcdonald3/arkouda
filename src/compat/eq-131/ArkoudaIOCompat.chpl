@@ -48,7 +48,7 @@ module ArkoudaIOCompat {
     nreader.readf("%jt", obj);
   }
 
-  proc getByteorderCompat() throws {
+  proc getByteOrderCompat() throws {
     use IO;
     var writeVal = 1, readVal = 0;
     var tmpf = openMemFile();

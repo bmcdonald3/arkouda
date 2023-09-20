@@ -4,7 +4,7 @@ module ArkoudaBlockCompat {
 
   type blockDist = Block;
 
-  proc blockDist.distribution {
+  proc BlockDom.distribution {
     return this.dist;
   }
 }

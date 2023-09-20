@@ -12,6 +12,7 @@ module SegStringSort {
   use BlockDist;
 
   use ArkoudaStringBytesCompat;
+  use ArkoudaBlockCompat;
 
   private config const SSS_v = false;
   private const vv = SSS_v;

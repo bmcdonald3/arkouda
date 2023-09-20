@@ -9,6 +9,7 @@ module Cast {
   use ServerConfig;
 
   use ArkoudaBigIntCompat;
+  use ArkoudaMathCompat;
   
   private config const logLevel = ServerConfig.logLevel;
   const castLogger = new Logger(logLevel);

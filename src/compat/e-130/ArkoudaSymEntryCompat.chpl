@@ -1,5 +1,6 @@
 module ArkoudaSymEntryCompat {
   use MultiTypeSymEntry;
+  use Map;
 
   type SymEntryAny = SymEntry;
   type mapAny = map;

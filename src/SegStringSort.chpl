@@ -50,8 +50,8 @@ module SegStringSort {
                                        "Pivot = %?, nShort = %?".doFormat(pivot, nShort)); 
     t = timeSinceEpoch().totalSeconds();
     const longStart = ss.offsets.a.domain.low + nShort;
-    const isLong = (lengths >= pivot);
-    var locs = [i in ss.offsets.a.domain] i;
+    const isLong = makeDistArray(lengths.domain, (lengths >= pivot));
+    var locs = makeDistArray(ss.offsets.a.domain, [i in ss.offsets.a.domain] i);
     // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
     overMemLimit(numBytes(int) * isLong.size);
     var longLocs = + scan isLong;
@@ -319,7 +319,7 @@ module SegStringSort {
         kr0 = kr1;
       }
     } // for rshift
-    const ranks: [aD] int = [(a, b, c, d, i) in kr1] i;
+    const ranks = makeDistArray(aD, [(a, b, c, d, i) in kr1] i);
     return ranks;
   }
 }

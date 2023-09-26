@@ -859,7 +859,7 @@ module IndexingMsg
             if gX.dtype == DType.BigInt {
                 var e = toSymEntry(gX, bigint);
                 // NOTE y.etype will never be real when gX.dtype is bigint, but the compiler doesn't know that
-                var tmp = if y.etype == bigint then ya else if y.etype == real then ya:int:bigint else ya:bigint;
+                var tmp = makeDistArray(ya.domain, if y.etype == bigint then ya else if y.etype == real then ya:int:bigint else ya:bigint);
                 ref ea = e.a;
                 forall (i,v) in zip(iva,tmp) with (var agg = newDstAggregator(bigint)) {
                     agg.copy(ea[i],v);

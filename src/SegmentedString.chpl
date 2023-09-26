@@ -252,7 +252,7 @@ module SegmentedString {
         agg.copy(l, oa[idx:int]);
       }
       // Lengths of segments including null bytes
-      var gatheredLengths: [D] int = right - left;
+      var gatheredLengths = makeDistArray(D, right - left);
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * gatheredLengths.size);
       // The returned offsets are the 0-up cumulative lengths
@@ -375,7 +375,7 @@ module SegmentedString {
                                             "sorting took %? seconds".doFormat(timeSinceEpoch().totalSeconds() - t1));
         }
         if logLevel == LogLevel.DEBUG {
-          var sortedHashes = [i in iv] hashes[i];
+          var sortedHashes = makeDistArray(iv.domain, [i in iv] hashes[i]);
           var diffs = sortedHashes[(iv.domain.low+1)..#(iv.size-1)] - 
                                                  sortedHashes[(iv.domain.low)..#(iv.size-1)];
           printAry("diffs = ", diffs);
@@ -437,7 +437,7 @@ module SegmentedString {
     proc upper() throws {
       ref origVals = this.values.a;
       ref offs = this.offsets.a;
-      var upperVals: [this.values.a.domain] uint(8);
+      var upperVals = makeDistArray(this.values.a.domain, uint(8));
       const lengths = this.getLengths();
       forall (off, len) in zip(offs, lengths) with (var valAgg = newDstAggregator(uint(8))) {
         var i = 0;
@@ -528,7 +528,7 @@ module SegmentedString {
       // Start by making a right-truncated subdomain representing all valid starting positions for substr of given length
       var D: subdomain(values.a.domain) = values.a.domain[values.a.domain.low..#(values.size - substr.numBytes + 1)];
       // Every start position is valid until proven otherwise
-      var truth: [D] bool = true;
+      var truth = makeDistArray(D, true);
       // Shift the flat values one byte at a time and check against corresponding byte of substr
       for (b, i) in zip(substr.chpl_bytes(), 0..) {
         truth &= (values.a[D.translate(i)] == b);
@@ -946,8 +946,8 @@ module SegmentedString {
       }
       // this section is the same as `peel`
       // Compute lengths and offsets for left and right return arrays
-      const leftLengths = leftEnd - oa + 2;
-      const rightLengths = lengths - (rightStart - oa) + 1;
+      const leftLengths = makeDistArray(leftEnd.domain, leftEnd - oa + 2);
+      const rightLengths = makeDistArray(lengths.domain, lengths - (rightStart - oa) + 1);
       // check there's enough room to create copies for the scans and throw if creating copies would go over memory limit
       overMemLimit(numBytes(int) * (leftLengths.size + rightLengths.size));
       const leftOffsets = (+ scan leftLengths) - leftLengths;
@@ -1194,7 +1194,7 @@ module SegmentedString {
       if checkSorted && isSorted() {
           ssLogger.warn(getModuleName(),getRoutineName(),getLineNumber(),
                                                    "argsort called on already sorted array");
-          var ranks: [D] int = [i in D] i;
+          var ranks = makeDistArray(D, [i in D] i);
           return ranks;
       }
       var ranks = twoPhaseStringSort(this);
@@ -1215,8 +1215,8 @@ module SegmentedString {
         o = i * (n + 1);
       }
       const retDom = makeDistDom(nFound * (n + 1));
-      var retBytes: [retDom] uint(8);
-      var srcInds: [retDom] int;
+      var retBytes = makeDistArray(retDom, uint(8));
+      var srcInds = makeDistArray(retDom, int);
       var dstInds = (+ scan longEnough) - longEnough;
       ref oa = offsets.a;
       if kind == Fixes.prefixes {

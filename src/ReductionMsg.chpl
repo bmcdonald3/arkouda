@@ -322,7 +322,7 @@ module ReductionMsg
 
     proc nanCounts(values:[] ?t, segments:[?D] int) throws {
       // count cumulative nans over all values
-      var cumnans = isNan(values):int;
+      var cumnans = makeDistArray(values.domain, isNan(values):int);
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * values.size);
       cumnans = + scan cumnans;
@@ -773,7 +773,7 @@ module ReductionMsg
       // Regardless of input type, the product is real
       var res = makeDistArray(D, real);
       if (D.size == 0) { return res; }
-      const isZero = (values == 0);
+      const isZero = makeDistArray(values.domain, (values == 0));
       // Take absolute value, replacing zeros with ones
       // Ones will become zeros in log-domain and not affect + scan
       var magnitudes = makeDistArray(values.domain, real);
@@ -788,8 +788,8 @@ module ReductionMsg
       } else {
         magnitudes = abs(values) + isZero:real;
       }
-      var logs = log(magnitudes);
-      var negatives = (sgn(values) == -1);
+      var logs = makeDistArray(values.domain, log(magnitudes));
+      var negatives = makeDistArray(values.domain, (sgn(values) == -1));
       forall (r, v, n, z) in zip(res,
                                  segSum(logs, segments),
                                  segSum(negatives, segments),
@@ -813,7 +813,7 @@ module ReductionMsg
       var counts = segCount(segments, values.size);
       const means = segMean(values, segments, skipNan);
       // expand mean per segment to be size of values
-      const expandedMeans = [k in expandKeys(vD, segments)] means[k];
+      const expandedMeans = makeDistArray(vD, [k in expandKeys(vD, segments)] means[k]);
       var squaredDiffs = makeDistArray(vD, real);
       // First deal with any NANs and calculate squaredDiffs
       if isRealType(t) && skipNan {
@@ -840,14 +840,14 @@ module ReductionMsg
       if (D.size == 0) { return res; }
       // convert to real early to avoid int overflow
       overMemLimit(numBytes(real) * values.size);
-      var real_values = values: real;
+      var real_values = makeDistArray(values.domain, values: real);
       var sums;
       var counts;
       if skipNan {
         // first verify that we can make a copy of real_values
         overMemLimit(numBytes(real) * real_values.size);
         // calculate sum and counts with nan real_values replaced with 0.0
-        var arrCopy = [elem in real_values] if isNan(elem) then 0.0 else elem;
+        var arrCopy = makeDistArray(values.domain, [elem in real_values] if isNan(elem) then 0.0 else elem);
         sums = segSum(arrCopy, segments);
         counts = segCount(segments, real_values.size) - nanCounts(real_values, segments);
       } else {
@@ -868,8 +868,8 @@ module ReductionMsg
       if (D.size == 0) { return res; }
 
       var counts = segCount(segments, values.size);
-      var noNanVals = values: t;
-      // First deal with any nans
+      var noNanVals = makeDistArray(values.domain, values: t);
+      // First deal with any NANs
       if isRealType(t) && skipNan {
         // calculate counts with nan values excluded and replace nan with max(real)
         // this will force them at the very end of the sorted segment and since
@@ -922,12 +922,12 @@ module ReductionMsg
     }
 
     proc segMin(values:[?vD] ?t, segments:[?D] int, skipNan=false): [D] t throws {
-      var res: [D] t = if t != bigint then max(t) else (1:bigint << class_lvl_max_bits) - 1;
+      var res = makeDistArray(D, if t != bigint then max(t) else (1:bigint << class_lvl_max_bits) - 1);
       if (D.size == 0) { return res; }
       var keys = expandKeys(vD, segments);
       var kv: [keys.domain] (int, t);
       if (isRealType(t) && skipNan) {
-        var arrCopy = [elem in values] if isNan(elem) then max(real) else elem;
+        var arrCopy = makeDistArray(values.domain, [elem in values] if isNan(elem) then max(real) else elem);
         kv = [(k, v) in zip(keys, arrCopy)] (-k, v);
       } else {
         kv = [(k, v) in zip(keys, values)] (-k, v);
@@ -988,7 +988,7 @@ module ReductionMsg
       var keys = expandKeys(vD, segments);
       var kv = makeDistArray(keys.domain, (int, t));
       if (isRealType(t) && skipNan) {
-        var arrCopy = [elem in values] if isNan(elem) then min(real) else elem;
+        var arrCopy = makeDistArray(vD, [elem in values] if isNan(elem) then min(real) else elem);
         kv = [(k, v) in zip(keys, arrCopy)] (k, v);
       } else {
         kv = [(k, v) in zip(keys, values)] (k, v);
@@ -1049,7 +1049,7 @@ module ReductionMsg
       var vals = makeDistArray(D, max(t));
       if (D.size == 0) { return (vals, locs); }
       var keys = expandKeys(vD, segments);
-      var kvi = [(k, v, i) in zip(keys, values, vD)] ((-k, v), i);
+      var kvi = makeDistArray(vD, [(k, v, i) in zip(keys, values, vD)] ((-k, v), i));
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * kvi.size);
       var cummin = minloc scan kvi;
@@ -1076,7 +1076,7 @@ module ReductionMsg
       var vals = makeDistArray(D, min(t));
       if (D.size == 0) { return (vals, locs); }
       var keys = expandKeys(vD, segments);
-      var kvi = [(k, v, i) in zip(keys, values, vD)] ((k, v), i);
+      var kvi = makeDistArray(vD, [(k, v, i) in zip(keys, values, vD)] ((k, v), i));
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
       overMemLimit(numBytes(int) * kvi.size);
       var cummax = maxloc scan kvi;
@@ -1119,7 +1119,7 @@ module ReductionMsg
       var res = makeDistArray(D, t);
       if (D.size == 0) { return res; }
       // Set reset flag at segment boundaries
-      var flagvalues: [vD] (bool, t) = [v in values] (false, v);
+      var flagvalues = makeDistArray(vD, [v in values] (false, v));
       forall s in segments with (var agg = newDstAggregator(bool)) {
         agg.copy(flagvalues[s][0], true);
       }
@@ -1207,7 +1207,7 @@ module ReductionMsg
       var res = makeDistArray(D, t);
       if (D.size == 0) { return res; }
       // Set reset flag at segment boundaries
-      var flagvalues: [vD] (bool, t) = [v in values] (false, v);
+      var flagvalues = makeDistArray(vD, [v in values] (false, v));
       forall s in segments with (var agg = newDstAggregator(bool)) {
         agg.copy(flagvalues[s][0], true);
       }

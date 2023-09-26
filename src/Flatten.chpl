@@ -296,7 +296,7 @@ module Flatten {
       forall (d, o) in zip(followsDelim, off) with (var agg = newSrcAggregator(bool)) {
         agg.copy(d, delimHits[o]);
       }
-      const boundaryDeriv = (followsDelim:int * (delim.numBytes - 1)) + 1;
+      const boundaryDeriv = makeDistArray(offDom, (followsDelim:int * (delim.numBytes - 1)) + 1);
       // Next step requires offsets to be translated to new domain, i.e. with
       // delims removed.
       // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit

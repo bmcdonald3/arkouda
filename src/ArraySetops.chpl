@@ -35,7 +35,7 @@ module ArraySetops
 
       // All elements except the first
       const ref tail = aux[aux.domain.low+1..];
-      const mask = head == tail;
+      const mask = makeDistArray(head.domain, head == tail);
 
       return boolIndexer(head, mask);
     }

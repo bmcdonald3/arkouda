@@ -93,7 +93,7 @@ module SegmentedArray {
     // calculate segment indices (we use this to prevent segXor from zeroing out arrays like [5,5,5,5])
     // see comments of issue #2459 for more details
     // temporarily add to symtab for hashArrays and then delete entry
-    var segInds = [(b, i) in zip (broadcastedSegs, valInd)] i - b;
+    var segInds = makeDistArray(values.domain, [(b, i) in zip (broadcastedSegs, valInd)] i - b);
     var siName = st.nextName();
     st.addEntry(siName, createSymEntry(segInds));
     // we can't just call hashArrays because the compiler complains about recursion

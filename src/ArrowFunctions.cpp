@@ -280,20 +280,25 @@ int64_t cpp_getStringColumnNumBytes(const char* filename, const char* colname, v
           static_cast<parquet::ByteArrayReader*>(column_reader.get());
 
         int64_t numRead = 0;
+        int batchSize = 10;
+        std::vector<parquet::ByteArray> string_values(batchSize);
         while (ba_reader->HasNext() && numRead < numElems) {
-          parquet::ByteArray value;
-          (void)ba_reader->ReadBatch(1, &definition_level, nullptr, &value, &values_read);
+          if((numElems - i) < batchSize)
+            batchSize = numElems - i;
+          (void)ba_reader->ReadBatch(batchSize, &definition_level, nullptr, string_values.data(), &values_read);
           if ((ty == ARROWLIST && definition_level == 3) || ty == ARROWSTRING) {
-            if(values_read > 0) {
-              offsets[i] = value.len + 1;
-              byteSize += value.len + 1;
-              numRead += values_read;
-            } else {
-              offsets[i] = 1;
-              byteSize+=1;
-              numRead+=1;
+            for(auto value : string_values) {
+              if(value.len > 0) {
+                offsets[i] = value.len + 1;
+                byteSize += value.len + 1;
+                numRead += values_read;
+              } else {
+                offsets[i] = 1;
+                byteSize+=1;
+                numRead+=1;
+              }
+              i++;
             }
-            i++;
           }
         }
       }
@@ -800,7 +805,10 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
         parquet::ByteArrayReader* reader =
           static_cast<parquet::ByteArrayReader*>(column_reader.get());
 
-        while (reader->HasNext()) {
+        std::cout << "Starting" << std::endl;
+        int numRead = 0;
+        while (reader->HasNext() && i < numElems) {
+          //std::cout << numRead << std::endl;
           parquet::ByteArray value;
           (void)reader->ReadBatch(1, &definition_level, nullptr, &value, &values_read);
           // if values_read is 0, that means that it was a null value
@@ -811,7 +819,9 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
             }
           }
           i++; // skip one space so the strings are null terminated with a 0
+          numRead += values_read;
         }
+        std::cout << "Nice work" << std::endl;
       } else if(ty == ARROWFLOAT) {
         auto chpl_ptr = (double*)chpl_arr;
         parquet::FloatReader* reader =

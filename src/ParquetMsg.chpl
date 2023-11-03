@@ -850,11 +850,22 @@ module ParquetMsg {
           rnames.pushBack((dsetname, ObjType.PDARRAY, valName));
         } else if ty == ArrowTypes.stringArr {
           var entrySeg = createSymEntry(len, int);
+          use Time;
+          var t: stopwatch;
+          t.start();
           byteSizes = calcStrSizesAndOffset(entrySeg.a, filenames, sizes, dsetname);
+          t.stop();
+          writeln("Calculating sizes took: ", t.elapsed());
+          writeln(byteSizes);
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
           
           var entryVal = createSymEntry((+ reduce byteSizes), uint(8));
+
+          t.reset();
+          t.start();
           readStrFilesByName(entryVal.a, filenames, byteSizes, dsetname, ty);
+          t.stop();
+          writeln("Reading into arr took: ", t.elapsed());
           
           var stringsEntry = assembleSegStringFromParts(entrySeg, entryVal, st);
           rnames.pushBack((dsetname, ObjType.STRINGS, "%s+%?".doFormat(stringsEntry.name, stringsEntry.nBytes)));

@@ -805,10 +805,7 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
         parquet::ByteArrayReader* reader =
           static_cast<parquet::ByteArrayReader*>(column_reader.get());
 
-        std::cout << "Starting" << std::endl;
-        int numRead = 0;
         while (reader->HasNext() && i < numElems) {
-          //std::cout << numRead << std::endl;
           parquet::ByteArray value;
           (void)reader->ReadBatch(1, &definition_level, nullptr, &value, &values_read);
           // if values_read is 0, that means that it was a null value
@@ -819,9 +816,7 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
             }
           }
           i++; // skip one space so the strings are null terminated with a 0
-          numRead += values_read;
         }
-        std::cout << "Nice work" << std::endl;
       } else if(ty == ARROWFLOAT) {
         auto chpl_ptr = (double*)chpl_arr;
         parquet::FloatReader* reader =

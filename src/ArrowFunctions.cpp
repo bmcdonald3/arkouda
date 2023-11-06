@@ -281,25 +281,24 @@ int64_t cpp_getStringColumnNumBytes(const char* filename, const char* colname, v
 
         int64_t numRead = 0;
         int batchSize = 10;
-        std::vector<parquet::ByteArray> string_values(batchSize);
         while (ba_reader->HasNext() && numRead < numElems) {
-          if((numElems - i) < batchSize)
-            batchSize = numElems - i;
+          if((numElems - numRead) < batchSize)
+            batchSize = 1;
+          std::vector<parquet::ByteArray> string_values(batchSize);
           (void)ba_reader->ReadBatch(batchSize, &definition_level, nullptr, string_values.data(), &values_read);
-          if ((ty == ARROWLIST && definition_level == 3) || ty == ARROWSTRING) {
-            for(auto value : string_values) {
-              if(value.len > 0) {
-                offsets[i] = value.len + 1;
-                byteSize += value.len + 1;
-                numRead += values_read;
-              } else {
-                offsets[i] = 1;
-                byteSize+=1;
-                numRead+=1;
-              }
+          for(int j = 0; j < values_read; j++) {
+            auto value = string_values[j];
+            if(value.len > 0) {
+              offsets[i] = value.len + 1;
+              byteSize += value.len + 1;
+              i++;
+            } else {
+              offsets[i] = 1;
+              byteSize+=1;
               i++;
             }
           }
+          numRead += values_read;
         }
       }
       return byteSize;

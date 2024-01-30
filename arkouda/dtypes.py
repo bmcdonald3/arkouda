@@ -52,6 +52,8 @@ def dtype(x):
     # gives them dtype=object there's no np equivalent
     if (isinstance(x, str) and x == "bigint") or isinstance(x, BigInt):
         return bigint
+    elif x == "UNDEF":
+        return uint8
     else:
         return np.dtype(x)
 

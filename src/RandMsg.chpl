@@ -59,6 +59,11 @@ module RandMsg
                 randLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                   "compute time = %i sec".doFormat(Time.timeSinceEpoch().totalSeconds() - t1));
             }
+            when (DType.Bytes) {
+              var e = st.addEntry(rname, (...shape), bytes);
+              for val in e.a do
+                val = b"a";
+            }
             when (DType.UInt8) {
                 overMemLimit(len);
                 var aMin = low.getUInt8Value();

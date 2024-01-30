@@ -65,6 +65,16 @@ module GenSymIO {
             return name;
         }
 
+        proc sportsFans(size:int, type t, st: borrowed SymTab, ref data:bytes): string throws {
+          var entry = createSymEntry(size, t);
+          var curr:bytes;
+          var i = 0;
+          entry.a = data;
+          var name = st.nextName();
+          st.addEntry(name, entry);
+          return name;
+        }
+
         if dtype == DType.Int64 {
             rname = bytesToSymEntry(size, int, st, data);
         } else if dtype == DType.UInt64 {
@@ -75,6 +85,8 @@ module GenSymIO {
             rname = bytesToSymEntry(size, bool, st, data);
         } else if dtype == DType.UInt8 {
             rname = bytesToSymEntry(size, uint(8), st, data);
+        } else if dtype == DType.Bytes {
+          rname = sportsFans(size, bytes, st, data);
         } else {
             msg = "Unhandled data type %s".doFormat(msgArgs.getValueOf("dtype"));
             msgType = MsgType.ERROR;

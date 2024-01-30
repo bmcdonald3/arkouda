@@ -5,7 +5,7 @@ module NumPyDType
 
     /* In chapel the types int and real defalut to int(64) and real(64).
        We also need other types like float32, int32, etc */
-  enum DType {Int64, Float64, Bool, UInt8, UNDEF, Strings, UInt64, BigInt};
+  enum DType {Int64, Float64, Bool, UInt8, UNDEF, Strings, UInt64, BigInt, Bytes};
 
     /* 
     Take a chapel type and returns the matching DType 
@@ -58,6 +58,7 @@ module NumPyDType
         if dstr == "uint8" {return DType.UInt8;}
         if dstr == "str" {return DType.Strings;}
         if dstr == "bigint" {return DType.BigInt;}
+        if dstr == "bytes" {return DType.Bytes;}
         return DType.UNDEF;
     }
     

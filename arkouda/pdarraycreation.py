@@ -252,17 +252,16 @@ def array(
                 f"allowed transfer size. Increase ak.client.maxTransferBytes to force."
             )
         encoded_np = np.array(encoded, dtype=np.uint8)
+        print('here')
         rep_msg = generic_msg(
             cmd="array",
-            args={"dtype": encoded_np.dtype.name, "size": encoded_np.size, "seg_string": True},
+            args={"dtype": "bytes", "size": a.size, "seg_string": False},
             payload=_array_memview(encoded_np),
             send_binary=True,
         )
         parts = cast(str, rep_msg).split("+", maxsplit=3)
         return (
-            Strings.from_parts(parts[0], parts[1])
-            if dtype is None
-            else akcast(Strings.from_parts(parts[0], parts[1]), dtype)
+            create_pdarray(rep_msg)
         )
 
     # If not strings, then check that dtype is supported in arkouda
@@ -977,7 +976,7 @@ def randint(
         cmd=f"randint{ndim}D",
         args={
             "shape": shape,
-            "dtype": dtype.name,
+            "dtype": "bytes",
             "low": NUMBER_FORMAT_STRINGS[dtype.name].format(low),
             "high": NUMBER_FORMAT_STRINGS[dtype.name].format(high),
             "seed": seed,

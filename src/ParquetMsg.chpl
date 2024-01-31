@@ -173,6 +173,8 @@ module ParquetMsg {
                                                  dsetname.localize().c_str(), intersection.size, 0,
                                                  batchSize, -1, c_ptrTo(pqErr.errMsg)): c_ptr(MyByteArray);
             var j = 0;
+            writeln(filedom);
+            writeln(filedom.size);
             forall (i, j) in zip(filedom, 0..#filedom.size) {
               var curr = pqList[j];
               A[i] = bytes.createBorrowingBuffer(curr.ptr, curr.len);
@@ -883,7 +885,10 @@ module ParquetMsg {
           rnames.pushBack((dsetname, ObjType.PDARRAY, valName));
         } else if ty == ArrowTypes.stringArr {
           var entryVal = createSymEntry(len, bytes);
-          readBytesFilesByName(entryVal.a, filenames, byteSizes, dsetname, ty);
+          readBytesFilesByName(entryVal.a, filenames, sizes, dsetname, ty);
+          var valName = st.nextName();
+          st.addEntry(valName, entryVal);
+          rnames.pushBack((dsetname, ObjType.PDARRAY, valName));
           /*
           var entrySeg = createSymEntry(len, int);
           byteSizes = calcStrSizesAndOffset(entrySeg.a, filenames, sizes, dsetname);

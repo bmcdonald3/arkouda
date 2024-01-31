@@ -780,10 +780,22 @@ void* cpp_readBytesColumnByName(const char* filename, void* chpl_arr, const char
         parquet::ByteArrayReader* reader =
           static_cast<parquet::ByteArrayReader*>(column_reader.get());
 
+        /*
         parquet::ByteArray* string_values =
           (parquet::ByteArray*)malloc(numElems*sizeof(parquet::ByteArray));
         std::vector<int16_t> definition_level(numElems);
-        (void)reader->ReadBatch(batchSize, definition_level.data(), nullptr, string_values, &values_read);
+        (void)reader->ReadBatch(numElems, definition_level.data(), nullptr, string_values, &values_read);*/
+        parquet::ByteArray* string_values =
+          (parquet::ByteArray*)malloc(numElems*sizeof(parquet::ByteArray));
+        parquet::ByteArray value;
+        int16_t definition_level;
+        int numRead = 0;
+        while(numRead < numElems) {
+          (void)reader->ReadBatch(1, &definition_level, nullptr, &value, &values_read);
+          if(values_read == 1)
+            string_values[numRead] = value;
+          numRead += values_read;
+        }
         return (void*)string_values;
       }
     }

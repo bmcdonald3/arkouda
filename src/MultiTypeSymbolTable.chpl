@@ -433,11 +433,11 @@ module MultiTypeSymbolTable
             var entry = tab[name];
             if entry.isAssignableTo(SymbolEntryType.TypedArraySymEntry) {
                 var u: borrowed GenSymEntry = toGenSymEntry(entry);
-                if u.dtype == DType.UNDEF {
+                /*if u.dtype == DType.UNDEF {
                     var s = unrecognizedTypeError("datarepr",dtype2str(u.dtype));
                     mtLogger.error(getModuleName(),getRoutineName(),getLineNumber(),s);
                     return s;
-                }
+                    }*/
                 var frmt:string = if (u.dtype == DType.Float64) then "%.17r" else "%?";
                 return u.entry__str__(thresh=thresh, prefix="array([", suffix="])", baseFormat=frmt);
             } else {

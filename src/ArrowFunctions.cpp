@@ -740,6 +740,59 @@ int cpp_readListColumnByName(const char* filename, void* chpl_arr, const char* c
   }
 }
 
+void* cpp_readBytesColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, int64_t byteLength, char** errMsg) {
+  try {
+    int64_t ty = cpp_getType(filename, colname, errMsg);
+  
+    std::unique_ptr<parquet::ParquetFileReader> parquet_reader =
+      parquet::ParquetFileReader::OpenFile(filename, false);
+
+    std::shared_ptr<parquet::FileMetaData> file_metadata = parquet_reader->metadata();
+    int num_row_groups = file_metadata->num_row_groups();
+
+    int64_t i = 0;
+    for (int r = 0; r < num_row_groups; r++) {
+      std::shared_ptr<parquet::RowGroupReader> row_group_reader =
+        parquet_reader->RowGroup(r);
+
+      int64_t values_read = 0;
+
+      std::shared_ptr<parquet::ColumnReader> column_reader;
+
+      auto idx = file_metadata -> schema() -> ColumnIndex(colname);
+      auto max_def = file_metadata -> schema() -> Column(idx) -> max_definition_level(); // needed to determine if nulls are allowed
+
+      if(idx < 0) {
+        std::string dname(colname);
+        std::string fname(filename);
+        std::string msg = "Dataset: " + dname + " does not exist in file: " + fname;
+        *errMsg = strdup(msg.c_str());
+        //return ARROWERROR;
+      }
+
+      column_reader = row_group_reader->Column(idx);
+
+      // Since int64 and uint64 Arrow dtypes share a physical type and only differ
+      // in logical type, they must be read from the file in the same way
+      if(ty == ARROWSTRING) {
+        auto numCols = file_metadata -> num_columns();
+        auto chpl_ptr = (unsigned char*)chpl_arr;
+        parquet::ByteArrayReader* reader =
+          static_cast<parquet::ByteArrayReader*>(column_reader.get());
+
+        parquet::ByteArray* string_values =
+          (parquet::ByteArray*)malloc(numElems*sizeof(parquet::ByteArray));
+        std::vector<int16_t> definition_level(numElems);
+        (void)reader->ReadBatch(batchSize, definition_level.data(), nullptr, string_values, &values_read);
+        return (void*)string_values;
+      }
+    }
+  } catch (const std::exception& e) {
+    *errMsg = strdup(e.what());
+    return (void*)10;
+  }
+}
+
 int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, int64_t byteLength, char** errMsg) {
   try {
     int64_t ty = cpp_getType(filename, colname, errMsg);
@@ -2125,5 +2178,9 @@ extern "C" {
 
   int c_getPrecision(const char* filename, const char* colname, char** errMsg) {
     return cpp_getPrecision(filename, colname, errMsg);
+  }
+
+  void* c_readBytesColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, int64_t byteLength, char** errMsg) {
+    return cpp_readBytesColumnByName(filename, chpl_arr, colname, numElems, startIdx, batchSize, byteLength, errMsg);
   }
 }

@@ -41,6 +41,11 @@ extern "C" {
 #define ZSTD_COMP 4
 #define LZ4_COMP 5
 
+  typedef struct {
+    uint32_t len;
+    const uint8_t* ptr;
+  } MyByteArray;
+
   // Each C++ function contains the actual implementation of the
   // functionality, and there is a corresponding C function that
   // Chapel can call into through C interoperability, since there
@@ -156,6 +161,9 @@ extern "C" {
 
   void c_free_string(void* ptr);
   void cpp_free_string(void* ptr);
+
+  void* c_readBytesColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, int64_t byteLength, char** errMsg);
+  void* cpp_readBytesColumnByName(const char* filename, void* chpl_arr, const char* colname, int64_t numElems, int64_t startIdx, int64_t batchSize, int64_t byteLength, char** errMsg);
   
 #ifdef __cplusplus
 }

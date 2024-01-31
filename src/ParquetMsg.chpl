@@ -148,6 +148,41 @@ module ParquetMsg {
     }
   }
 
+  extern record MyByteArray {
+    var len: uint(32);
+    var ptr: c_ptr(uint(8));
+  }
+
+  proc readBytesFilesByName(A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
+    extern proc c_readBytesColumnByName(filename, arr_chpl, colNum, numElems, startIdx, batchSize, byteLength, errMsg): c_ptr(void);
+    var (subdoms, length) = getSubdomains(sizes);
+    
+    coforall loc in A.targetLocales() do on loc {
+      var locFiles = filenames;
+      var locFiledoms = subdoms;
+
+      forall (filedom, filename) in zip(locFiledoms, locFiles) {
+        for locdom in A.localSubdomains() {
+          const intersection = domain_intersection(locdom, filedom);
+
+          if intersection.size > 0 {
+            var pqErr = new parquetErrorMsg();
+            var col: [filedom] t;
+
+            var pqList = c_readBytesColumnByName(filename.localize().c_str(), c_ptrTo(col),
+                                                 dsetname.localize().c_str(), intersection.size, 0,
+                                                 batchSize, -1, c_ptrTo(pqErr.errMsg)): c_ptr(MyByteArray);
+            var j = 0;
+            forall (i, j) in zip(filedom, 0..#filedom.size) {
+              var curr = pqList[j];
+              A[i] = bytes.createBorrowingBuffer(curr.ptr, curr.len);
+            }
+          }
+        }
+      }
+    }
+  }
+
   proc readStrFilesByName(A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty) throws {
     extern proc c_readColumnByName(filename, arr_chpl, colNum, numElems, startIdx, batchSize, byteLength, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
@@ -847,6 +882,9 @@ module ParquetMsg {
           st.addEntry(valName, entryVal);
           rnames.pushBack((dsetname, ObjType.PDARRAY, valName));
         } else if ty == ArrowTypes.stringArr {
+          var entryVal = createSymEntry(len, bytes);
+          readBytesFilesByName(entryVal.a, filenames, byteSizes, dsetname, ty);
+          /*
           var entrySeg = createSymEntry(len, int);
           byteSizes = calcStrSizesAndOffset(entrySeg.a, filenames, sizes, dsetname);
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
@@ -856,6 +894,7 @@ module ParquetMsg {
           
           var stringsEntry = assembleSegStringFromParts(entrySeg, entryVal, st);
           rnames.pushBack((dsetname, ObjType.STRINGS, "%s+%?".doFormat(stringsEntry.name, stringsEntry.nBytes)));
+          */
         } else if ty == ArrowTypes.double || ty == ArrowTypes.float {
           var entryVal = createSymEntry(len, real);
           readFilesByName(entryVal.a, filenames, sizes, dsetname, ty);

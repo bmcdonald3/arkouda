@@ -172,12 +172,14 @@ module ParquetMsg {
             var pqList = c_readBytesColumnByName(filename.localize().c_str(), c_ptrTo(col),
                                                  dsetname.localize().c_str(), intersection.size, 0,
                                                  batchSize, -1, c_ptrTo(pqErr.errMsg)): c_ptr(MyByteArray);
+            writeln('done reading');
             var j = 0;
             writeln(filedom);
             writeln(filedom.size);
             forall (i, j) in zip(filedom, 0..#filedom.size) {
               var curr = pqList[j];
               A[i] = bytes.createBorrowingBuffer(curr.ptr, curr.len);
+              writeln(A[i]);
             }
           }
         }

@@ -258,9 +258,6 @@ module MultiTypeSymEntry
                 var s:string = "";
                 if (this.size == 0) {
                     s =  ""; // Unnecessary, but left for clarity
-                } else if (this.size < thresh || this.size <= 6) {
-                    for i in 0..(this.size-2) {s += try! baseFormat.doFormat(this.a[i]) + " ";}
-                    s += try! baseFormat.doFormat(this.a[this.size-1]);
                 } else {
                     var b = baseFormat + " " + baseFormat + " " + baseFormat + " ... " +
                                 baseFormat + " " + baseFormat + " " + baseFormat;

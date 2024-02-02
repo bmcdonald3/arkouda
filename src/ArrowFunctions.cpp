@@ -788,14 +788,20 @@ void* cpp_readBytesColumnByName(const char* filename, void* chpl_arr, const char
         parquet::ByteArray* string_values =
           (parquet::ByteArray*)malloc(numElems*sizeof(parquet::ByteArray));
         parquet::ByteArray value;
-        int16_t definition_level;
+        std::vector<int16_t> definition_level(numElems);
         int numRead = 0;
-        while(numRead < numElems) {
-          (void)reader->ReadBatch(1, &definition_level, nullptr, &value, &values_read);
-          if(values_read == 1)
-            string_values[numRead] = value;
+        while(reader->HasNext() && numRead < numElems) {
+          if((numElems - numRead) < batchSize)
+            batchSize = numElems - numRead;
+          (void)reader->ReadBatch(10, definition_level.data(), nullptr, string_values+numRead, &values_read);
           numRead += values_read;
+          std::cout << "Values read: " << values_read << std::endl;
         }
+        std::cout << "Numread: " << numRead << std::endl;
+        std::cout << "Num elems: " << numElems << std::endl;
+        for(int16_t val:definition_level)
+          std::cout << val << " ";
+        std::cout << std::endl;
         return (void*)string_values;
       }
     }

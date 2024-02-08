@@ -45,8 +45,16 @@ __all__ = [
     "random_strings_lognormal",
     "from_series",
     "bigint_from_uint_arrays",
+    "addOne"
 ]
 
+
+def addOne(pda: pdarray) -> pdarray:
+    if isinstance(pda, pdarray):
+        repMsg = generic_msg(cmd="addOne", args={"arg1" : pda})
+        return create_pdarray(repMsg)
+    else:
+        raise TypeError("addOne only supports pdarrays.")
 
 @typechecked
 def from_series(series: pd.Series, dtype: Optional[Union[type, str]] = None) -> Union[pdarray, Strings]:

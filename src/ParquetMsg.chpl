@@ -124,6 +124,88 @@ module ParquetMsg {
     return (subdoms, (+ reduce lengths));
   }
 
+  proc openStrFiles(ref entrySeg: [] int, ref numRowGroups: [] int, filenames: [] string, sizes: [] int, dsetname: string) throws {
+    extern proc c_openFile(filename, idx);
+    var (subdoms, length) = getSubdomains(sizes);
+    var fileOffsets = (+ scan sizes) - sizes;
+
+    coforall loc in entrySeg.targetLocales() with (ref entrySeg) do on loc {
+        var locFiles = filenames;
+        var locFiledoms = subdoms;
+        var locOffsets = fileOffsets;
+        var readerIdx = 0;
+        for (off, filedom, i) in zip(locOffsets, locFiledoms, locFiles.domain) {
+          for locdom in entrySeg.localSubdomains() {
+            const intersection = domain_intersection(locdom, filedom);
+
+            if intersection.size > 0 {
+              c_openFile(c_ptrTo(locFiles[i]), readerIdx);
+              readerIdx+=1;
+              numRowGroups[i] = c_getNumRowGroups(i);
+              for j in 2..numRowGroups[i] {
+                c_openFile(c_ptrTo(locFiles[i]), readerIdx);
+                readerIdx+=1;
+              }
+            }
+          }
+        } 
+      }
+  }
+
+  proc loadStrColumnChunks(ref segs, ref numRowGroups, ref tempVals, ref valsRead, sizes: [] int, filenames: [] string, dsetname: string, len: int) {
+    var (subdoms, length) = getSubdomains(sizes);
+    var byteSizes = 0;
+    
+    coforall loc in segs.targetLocales() with (ref segs, + reduce byteSizes) do on loc {
+      var readerIdx = 0;
+      var locFiles = filenames;
+      var locFiledoms = subdoms;
+      var numCopied = 0;
+      var dname = dsetname;
+      for i in sizes.domain {
+        for locdom in segs.localSubdomains() {
+          const intersection = domain_intersection(locdom, locFiledoms[i]);
+          if intersection.size > 0 {
+            for rg in 0..#numRowGroups[i] {
+              c_createRowGroupReader(rg, readerIdx);
+              c_createColumnReader(c_ptrTo(dname), readerIdx);
+
+              var numRead = 0;
+              tempVals[readerIdx] = c_readParquetColumnChunks(c_ptrTo(locFiles[i]), 8192, len, readerIdx, c_ptrTo(numRead)): c_ptr(MyByteArray);
+              forall (id, j) in zip(0..#numRead, numCopied..#numRead) with (+ reduce byteSizes) {
+                ref curr = tempVals[i][id];
+                segs[j] = curr.len+1;
+                byteSizes += segs[j];
+              }
+              valsRead[readerIdx] = numRead;
+              readerIdx+=1;
+              numCopied+=numRead;
+            }
+        }
+      }
+    }
+      }
+    return byteSizes;
+  }
+
+  proc copyByteValues(ref A, ref tempVals, ref valsRead) {
+    coforall loc in tempVals.targetLocales() do on loc {
+      var entryIdx = 0;
+      var valsIdx = 0;
+      for numRead in valsRead {
+        for i in 0..#numRead {
+          ref curr = tempVals[valsIdx][i];
+          for j in 0..#curr.len {
+            A[entryIdx] = curr.ptr[j];
+            entryIdx+=1;
+          }
+          entryIdx += 1;
+        }
+        valsIdx+=1;
+      }
+    }
+  }
+
   proc readFilesByName(ref A: [] ?t, filenames: [] string, sizes: [] int, dsetname: string, ty, byteLength=-1) throws {
     extern proc c_readColumnByName(filename, chpl_arr, colNum, numElems, startIdx, batchSize, byteLength, errMsg): int;
     var (subdoms, length) = getSubdomains(sizes);
@@ -868,9 +950,11 @@ module ParquetMsg {
           extern proc c_createColumnReader(colname, readerIdx);
           extern proc c_readParquetColumnChunks(filename, batchSize,
                                       numElems, readerIdx, numRead): c_ptr(void);
+          
           var entrySeg = createSymEntry(len, int);
           var numRowGroups: [filenames.domain] int;
 
+          /*
           // get number of row groups from all files,
           // so we know how many row group readers we
           // need to create
@@ -885,48 +969,25 @@ module ParquetMsg {
               c_openFile(c_ptrTo(fname), readerIdx);
               readerIdx+=1;
             }
-          }           
+          }
+          */
+
+          openStrFiles(entrySeg.a, numRowGroups, filenames, sizes, dsetname);
           
           var tempVals: [0..#(+ reduce numRowGroups)] c_ptr(MyByteArray);
           var valsRead: [0..#(+ reduce numRowGroups)] int;
 
-          var valsIdx = 0;
-          var numCopied = 0;
-          var byteSizes = 0;
-          readerIdx = 0;
-
-          use Time;
-          var t: stopwatch;
-          t.start();
-          for i in filenames.domain {
-            var fname = filenames[i];
-            for rg in 0..#numRowGroups[i] {
-              c_createRowGroupReader(rg, readerIdx);
-              c_createColumnReader(c_ptrTo(dsetname), readerIdx);
-
-              var numRead = 0;
-              tempVals[valsIdx] = c_readParquetColumnChunks(c_ptrTo(fname), 8192, len, readerIdx, c_ptrTo(numRead)): c_ptr(MyByteArray);
-              forall (id, j) in zip(0..#numRead, numCopied..#numRead) with (+ reduce byteSizes) {
-                ref curr = tempVals[i][id];
-                entrySeg.a[j] = curr.len + 1;
-                byteSizes += entrySeg.a[j];
-              }
-              valsRead[valsIdx] = numRead;
-              valsIdx += 1;
-              numCopied += numRead;
-              readerIdx+=1;
-            }
-          }
+          var byteSizes = loadStrColumnChunks(entrySeg.a, numRowGroups, tempVals, valsRead, sizes, filenames, dsetname, len);
 
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
           
-          t.stop();
-          writeln("Read from file and create seg took ", t.elapsed());
-          t.reset();
           var entryVal = createSymEntry(byteSizes, uint(8));
+
+          copyByteValues(entryVal.a, tempVals, valsRead);
+
+          /*
           var entryIdx = 0;
-          valsIdx = 0;
-          t.start();
+          var valsIdx = 0;
           for numRead in valsRead {
             for i in 0..#numRead {
               ref curr = tempVals[valsIdx][i];
@@ -938,9 +999,7 @@ module ParquetMsg {
             }
             valsIdx+=1;
           }
-          t.stop();
-          writeln("fill entry val took ", t.elapsed());
-          // TODO: fill entryval
+          */
           var stringsEntry = assembleSegStringFromParts(entrySeg, entryVal, st);
           rnames.pushBack((dsetname, ObjType.STRINGS, "%s+%?".doFormat(stringsEntry.name, stringsEntry.nBytes)));
         } else if ty == ArrowTypes.double || ty == ArrowTypes.float {

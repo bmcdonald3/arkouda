@@ -788,29 +788,39 @@ module ParquetMsg {
   }
 
   proc copyValuesFromC(ref entryVal, ref distFiles, ref externalData, ref valsRead, ref numRowGroups, ref rgSubdomains, maxRowGroups, sizes, ref segArr, ref startIdxs) {
+    use Time;
+    
     var (subdoms, length) = getSubdomains(sizes);
     coforall loc in distFiles.targetLocales() with (ref externalData) do on loc {
+	var forallT: stopwatch;
       var locValsRead: [valsRead.localSubdomain()] [0..#maxRowGroups] int = valsRead[valsRead.localSubdomain()];
       var locNumRowGroups: [numRowGroups.localSubdomain()] int = numRowGroups[numRowGroups.localSubdomain()];
+      var locRgSubdomains: [rgSubdomains.localSubdomain()] [0..#maxRowGroups] domain(1) = rgSubdomains[rgSubdomains.localSubdomain()];
       var locStartIdxs: [startIdxs.localSubdomain()] [0..#maxRowGroups] int = startIdxs[startIdxs.localSubdomain()];
       var locSubdoms = subdoms;
 
+      forallT.start();
       forall i in locNumRowGroups.domain {
         var numRgs = locNumRowGroups[i];
         for rg in 0..#numRgs {
-          var entryIdx = rgSubdomains[i][rg].low;
+          var entryIdx = locRgSubdomains[i][rg].low;
           var numRead = locValsRead[i][rg];
           var offsetIdx = locStartIdxs[i][rg];
-	  var tmp: [rgSubdomains[i][rg]] uint(8);
+	  var tmp: [locRgSubdomains[i][rg]] uint(8);
+	  var locSeg: [offsetIdx..#numRead] int = segArr[offsetIdx..#numRead];
 	  forall (idx, oIdx) in zip(0..#numRead, offsetIdx..#numRead) {
+	    var cI = locSeg[oIdx];
 	    ref curr = (externalData[i][rg]: c_ptr(MyByteArray))[idx];
             for j in 0..#curr.len {
-	      tmp[segArr[oIdx]+j] = curr.ptr[j];
+	      tmp[cI+j] = curr.ptr[j];
             }
 	  }
-	  entryVal.a[rgSubdomains[i][rg]] = tmp;
+	  entryVal[locRgSubdomains[i][rg]] = tmp;
         }
       }
+      forallT.stop();
+
+      writeln("forallT      : ", forallT.elapsed());
     }
   }
 
@@ -981,15 +991,28 @@ module ParquetMsg {
           var bytesPerRG: [distFiles.domain] [0..#maxRowGroups] int;
           var startIdxs: [distFiles.domain] [0..#maxRowGroups] int; // correspond to starting idx in entrySeg
 
+	  use Time;
+	  var persistT: stopwatch;
+	  var getSubT: stopwatch;
+	  var copyT: stopwatch;
+	  var freeT: stopwatch;
+
+	  persistT.start();
           fillSegmentsAndPersistData(distFiles, entrySeg, externalData, valsRead, dsetname, sizes, len, numRowGroups, bytesPerRG, startIdxs);
+	  persistT.stop();
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
 
+	  getSubT.start();
           var (rgSubdomains, totalBytes) = getRGSubdomains(bytesPerRG, maxRowGroups);
+	  getSubT.stop();
           
           var entryVal = createSymEntry(totalBytes, uint(8));
 
-          copyValuesFromC(entryVal, distFiles, externalData, valsRead, numRowGroups, rgSubdomains, maxRowGroups, sizes, entrySeg.a, startIdxs);
+	  copyT.start();
+          copyValuesFromC(entryVal.a, distFiles, externalData, valsRead, numRowGroups, rgSubdomains, maxRowGroups, sizes, entrySeg.a, startIdxs);
+	  copyT.stop();
 
+	  freeT.start();
           for i in externalData.domain {
             for j in externalData[i].domain {
               if valsRead[i][j] > 0 then
@@ -997,7 +1020,11 @@ module ParquetMsg {
                   c_freeMapValues(externalData[i][j]);
             }
           }
-          // TODO: Need to free c++ memory for the maps and malloced stuff
+	  freeT.stop();
+	  writeln("Fill and persist    : ", persistT.elapsed());
+	  writeln("Get sub domains     : ", getSubT.elapsed());
+	  writeln("Copy to Chapel      : ", copyT.elapsed());
+	  writeln("Free C data         : ", freeT.elapsed());
           
           var stringsEntry = assembleSegStringFromParts(entrySeg, entryVal, st);
           rnames.pushBack((dsetname, ObjType.STRINGS, "%s+%?".doFormat(stringsEntry.name, stringsEntry.nBytes)));

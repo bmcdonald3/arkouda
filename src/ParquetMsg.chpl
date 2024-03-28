@@ -749,9 +749,14 @@ module ParquetMsg {
   proc fillSegmentsAndPersistData(ref distFiles, ref entrySeg, ref externalData, valsRead, dsetname, sizes, len, numRowGroups, ref bytesPerRG, ref startIdxs) {
     var (subdoms, length) = getSubdomains(sizes);
     coforall loc in distFiles.targetLocales() with (ref externalData, ref valsRead, ref bytesPerRG) do on loc {
+	use Time;
       var locFiles: [distFiles.localSubdomain()] string = distFiles[distFiles.localSubdomain()];
       var locSubdoms = subdoms;
 
+      var fileT: stopwatch;
+      var forallT: stopwatch;
+
+      fileT.start();
       for i in locFiles.domain {
         var fname = locFiles[i];
         var locDsetname = dsetname;
@@ -760,7 +765,9 @@ module ParquetMsg {
           c_createColumnReader(c_ptrTo(locDsetname), getReaderIdx(i,rg));
         }
       }
+      fileT.stop();
 
+      forallT.start();
       forall i in locFiles.domain {
         var fname = locFiles[i];
         var locDsetname = dsetname;
@@ -770,7 +777,7 @@ module ParquetMsg {
           startIdxs[i][rg] = startIdx;
 
           var numRead = 0;
-          externalData[i][rg] = c_readParquetColumnChunks(c_ptrTo(fname), 8192, len, getReaderIdx(i,rg), c_ptrTo(numRead));
+          externalData[i][rg] = c_readParquetColumnChunks(c_ptrTo(fname), batchSize, len, getReaderIdx(i,rg), c_ptrTo(numRead));
 	  var tmp: [startIdx..#numRead] int;
           forall (id, j) in zip(0..#numRead, startIdx..#numRead) with (+ reduce totalBytes) {
             ref curr = (externalData[i][rg]: c_ptr(MyByteArray))[id];
@@ -784,6 +791,10 @@ module ParquetMsg {
           totalBytes = 0;
         }
       }
+      forallT.stop();
+      writeln("Create readers took         : ", fileT.elapsed());
+      writeln("Fill segments and read took : ", forallT.elapsed());
+      writeln("BATCH SIZE                  : ", batchSize);
     }
   }
 
@@ -1003,13 +1014,13 @@ module ParquetMsg {
           entrySeg.a = (+ scan entrySeg.a) - entrySeg.a;
 
 	  getSubT.start();
-          var (rgSubdomains, totalBytes) = getRGSubdomains(bytesPerRG, maxRowGroups);
+          //var (rgSubdomains, totalBytes) = getRGSubdomains(bytesPerRG, maxRowGroups);
 	  getSubT.stop();
           
-          var entryVal = createSymEntry(totalBytes, uint(8));
+	  var entryVal = createSymEntry(10, uint(8));//var entryVal = createSymEntry(totalBytes, uint(8));
 
 	  copyT.start();
-          copyValuesFromC(entryVal.a, distFiles, externalData, valsRead, numRowGroups, rgSubdomains, maxRowGroups, sizes, entrySeg.a, startIdxs);
+          //copyValuesFromC(entryVal.a, distFiles, externalData, valsRead, numRowGroups, rgSubdomains, maxRowGroups, sizes, entrySeg.a, startIdxs);
 	  copyT.stop();
 
 	  freeT.start();

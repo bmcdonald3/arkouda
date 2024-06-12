@@ -810,7 +810,8 @@ module ParquetMsg {
     var tagData: bool = msgArgs.get("tag_data").getBoolValue();
     var strictTypes: bool = msgArgs.get("strict_types").getBoolValue();
 
-    var fixedLen = msgArgs.get("fixed_len").getIntValue();
+    // add one for null terminators
+    var fixedLen = msgArgs.get("fixed_len").getIntValue()+1;
     
     var allowErrors: bool = msgArgs.get("allow_errors").getBoolValue(); // default is false
     var hasNonFloatNulls: bool = msgArgs.get("has_non_float_nulls").getBoolValue();

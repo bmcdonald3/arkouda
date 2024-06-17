@@ -86,7 +86,7 @@ endif
 
 CHPL_FLAGS += -lhdf5 -lhdf5_hl -lzmq -liconv -lidn2 -lparquet -larrow
 
-ARROW_FILE_NAME += $(ARKOUDA_SOURCE_DIR)/ArrowFunctions
+ARROW_FILE_NAME += $(ARKOUDA_SOURCE_DIR)/../standalone/ArrowFunctions
 ARROW_CPP += $(ARROW_FILE_NAME).cpp
 ARROW_H += $(ARROW_FILE_NAME).h
 ARROW_O += $(ARROW_FILE_NAME).o

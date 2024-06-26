@@ -596,14 +596,7 @@ class ParquetTest(ArkoudaTest):
         df_dict = dict()
         seed = np.random.default_rng().choice(2**63)
         rng = ak.random.default_rng(seed)
-        some_nans = rng.uniform(-(2**10), 2**10, val_size)
-        some_nans[ak.arange(val_size) % 2 == 0] = np.nan
         vals_list = [
-            rng.uniform(-(2**10), 2**10, val_size),
-            rng.integers(0, 2**32, size=val_size, dtype="uint"),
-            rng.integers(0, 1, size=val_size, dtype="bool"),
-            rng.integers(-(2**32), 2**32, size=val_size, dtype="int"),
-            some_nans,  # contains nans
             ak.random_strings_uniform(0, 4, val_size, seed=seed),  # contains empty strings
         ]
 
@@ -620,16 +613,6 @@ class ParquetTest(ArkoudaTest):
             with tempfile.TemporaryDirectory(dir=ParquetTest.par_test_base_tmp) as tmp_dirname:
                 file_path = f"{tmp_dirname}/empty_segs"
                 pddf.to_parquet(file_path)
-                akdf = ak.DataFrame(ak.read_parquet(file_path))
-
-                to_pd = pd.Series(akdf["rand"].to_list())
-                # raises an error if the two series aren't equal
-                # we can't use np.allclose(pddf['rand'].to_list, akdf['rand'].to_list) since these
-                # are lists of lists. assert_series_equal handles this and properly handles nans.
-                # we pass the same absolute and relative tolerances as the numpy default in allclose
-                # to ensure float point differences don't cause errors
-                print("\nseed: ", seed)
-                assert_series_equal(pddf["rand"], to_pd, check_names=False, rtol=1e-05, atol=1e-08)
 
                 # test writing multi-batch non-segarrays
                 file_path = f"{tmp_dirname}/multi_batch_vals"

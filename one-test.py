@@ -6,10 +6,15 @@ size = 10
 str_length = 2
 test_dir = '/Users/ben.mcdonald/test-data/'
 
+scale_down_files = True
+
 correctness_test = False
 
-def generate_arr():
-    return ak.random_strings_uniform(str_length, str_length+1, size)
+def generate_arr(num_files):
+    if scale_down_files:
+        return ak.random_strings_uniform(str_length, str_length+1, size/num_files)
+    else:
+        return ak.random_strings_uniform(str_length, str_length+1, size)
 
 def compare_arrs(a,b):
     for i in range(len(a)):
@@ -19,7 +24,7 @@ def compare_arrs(a,b):
 
 def read_files(num, fixed=False):
     for i in range(num):
-        a = generate_arr()
+        a = generate_arr(num)
         a.to_parquet(test_dir+"test"+str(i))
     start = time.time()
     if fixed:

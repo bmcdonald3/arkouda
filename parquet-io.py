@@ -30,7 +30,7 @@ def read_files(num, scaling=False, info=""):
     start = time.time()
     b = ak.read(test_dir +"*", fixed_len=str_length)
     stop = time.time()
-    test_results[info] = (False, stop-start)
+    test_results[info] = (False, ((a.nbytes*num)/2**30/(stop-start)))
     delete_folder_contents(test_dir)
     for i in range(num):
         a = generate_arr(num, scaling)
@@ -38,7 +38,7 @@ def read_files(num, scaling=False, info=""):
     start = time.time()
     b = ak.read(test_dir +"*", fixed_len=str_length)
     stop = time.time()
-    test_results[info+"-fixed"] = (True, stop-start)
+    test_results[info+"-fixed"] = (True, ((a.nbytes*num)/2**30/(stop-start)))
     delete_folder_contents(test_dir)
 
 def delete_folder_contents(folder_path):
@@ -52,8 +52,8 @@ def delete_folder_contents(folder_path):
 
 def print_performance_table(test_results):
     data = [(test, fixed, time) for test, (fixed, time) in test_results.items()]
-    df = pd.DataFrame(data, columns=["test", "fixed", "exec time"])
-    df["exec time"] = df["exec time"].apply(lambda x: f"{x:.3f}s")
+    df = pd.DataFrame(data, columns=["test", "fixed", "GB/s"])
+    df["GB/s"] = df["GB/s"].apply(lambda x: f"{x:.3f}")
     print(df.to_markdown(index=False))
                 
 def create_parser():
@@ -68,7 +68,7 @@ def create_parser():
     parser.add_argument(
         "-p",
         "--path",
-        default=os.path.join(os.getcwd(), "ak-io-test"),
+        default=os.path.join(os.getcwd(), "ak-io-test/"),
         help="Target path for measuring read/write rates",
     )
     return parser
@@ -78,6 +78,8 @@ if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
     ak.connect(args.hostname, args.port)
+    if not os.path.exists(args.path):
+        os.makedirs(args.path)
     test_dir = args.path
     size = args.size
 

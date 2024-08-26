@@ -48,7 +48,7 @@ def read_files_fixed():
     start = time.time()
     a = ak.read(test_dir +"single-file*", fixed_len=str_length)
     stop = time.time()
-    test_results["fixed-single"] = (False, stop-start)
+    test_results["fixed-single"] = (True, stop-start)
     
     start = time.time()
     a = ak.read(test_dir +"scaled-five*", fixed_len=str_length)

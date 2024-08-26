@@ -43,22 +43,12 @@ def write_files():
     for i in range(10):
         a = generate_arr(10,False)
         a.to_parquet(test_dir+"ten"+str(i))
-            
-def read_files():
-    start = time.time()
-    a = ak.read(test_dir +"single-file*")
-    stop = time.time()
-    test_results["single-file"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
 
+def read_files_fixed():
     start = time.time()
     a = ak.read(test_dir +"single-file*", fixed_len=str_length)
     stop = time.time()
     test_results["fixed-single"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
-
-    start = time.time()
-    a = ak.read(test_dir +"scaled-five*")
-    stop = time.time()
-    test_results["scaled-five"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
     
     start = time.time()
     a = ak.read(test_dir +"scaled-five*", fixed_len=str_length)
@@ -66,34 +56,45 @@ def read_files():
     test_results["fixed-scaled-five"] = (True, ((a['strings_array'].nbytes)/2**30/(stop-start)))
 
     start = time.time()
-    a = ak.read(test_dir +"five*")
-    stop = time.time()
-    test_results["five"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
-    
-    start = time.time()
     a = ak.read(test_dir +"five*", fixed_len=str_length)
     stop = time.time()
     test_results["fixed-five"] = (True, ((a['strings_array'].nbytes)/2**30/(stop-start)))
 
-    start = time.time()
-    a = ak.read(test_dir +"scaled-ten*")
-    stop = time.time()
-    test_results["scaled-ten"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
-    
     start = time.time()
     a = ak.read(test_dir +"scaled-ten*", fixed_len=str_length)
     stop = time.time()
     test_results["fixed-scaled-ten"] = (True, ((a['strings_array'].nbytes)/2**30/(stop-start)))
 
     start = time.time()
-    a = ak.read(test_dir +"ten*")
-    stop = time.time()
-    test_results["ten"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
-    
-    start = time.time()
     a = ak.read(test_dir +"ten*", fixed_len=str_length)
     stop = time.time()
     test_results["fixed-ten"] = (True, ((a['strings_array'].nbytes)/2**30/(stop-start)))
+        
+def read_files():
+    start = time.time()
+    a = ak.read(test_dir +"single-file*")
+    stop = time.time()
+    test_results["single-file"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
+
+    start = time.time()
+    a = ak.read(test_dir +"scaled-five*")
+    stop = time.time()
+    test_results["scaled-five"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
+
+    start = time.time()
+    a = ak.read(test_dir +"five*")
+    stop = time.time()
+    test_results["five"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
+
+    start = time.time()
+    a = ak.read(test_dir +"scaled-ten*")
+    stop = time.time()
+    test_results["scaled-ten"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
+
+    start = time.time()
+    a = ak.read(test_dir +"ten*")
+    stop = time.time()
+    test_results["ten"] = (False, ((a['strings_array'].nbytes)/2**30/(stop-start)))
 
 def delete_folder_contents(folder_path):
     for root, _, files in os.walk(folder_path):
@@ -123,6 +124,9 @@ def create_parser():
         "-w", "--write", default=False, action="store_true",
     )
     parser.add_argument(
+        "-f", "--fixed", default=False, action="store_true",
+    )
+    parser.add_argument(
         "-p",
         "--path",
         default=os.path.join(os.getcwd(), "ak-io-test/"),
@@ -144,7 +148,10 @@ if __name__ == "__main__":
     if args.write:
         write_files()
     else:
-        read_files()
+        if args.fixed:
+            read_files_fixed()
+        else:
+            read_files()
 
     print_performance_table(test_results)
 

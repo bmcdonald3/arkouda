@@ -7,7 +7,17 @@ import pandas as pd
 
 str_length = 2
 test_dir = ''
-test_results = {}
+test_results = {
+    'single-file':0,
+    'fixed-single':0,
+    'scaled-five':0,
+    'fixed-scaled-five':0,
+    'five':0,
+    'fixed-five':0,
+    'scaled-ten':0,
+    'fixed-scaled-ten':0,
+    'ten':0,
+    'fixed-ten':0}
 
 correctness_test = False
 
@@ -48,53 +58,53 @@ def read_files_fixed():
     start = time.time()
     a = ak.read(test_dir +"single-file*", fixed_len=str_length)
     stop = time.time()
-    test_results["fixed-single"] = (True, stop-start)
+    test_results["fixed-single"] += stop-start
     
     start = time.time()
     a = ak.read(test_dir +"scaled-five*", fixed_len=str_length)
     stop = time.time()
-    test_results["fixed-scaled-five"] = (True, stop-start)
+    test_results["fixed-scaled-five"] += stop-start
 
     start = time.time()
     a = ak.read(test_dir +"five*", fixed_len=str_length)
     stop = time.time()
-    test_results["fixed-five"] = (True, stop-start)
+    test_results["fixed-five"] += stop-start
 
     start = time.time()
     a = ak.read(test_dir +"scaled-ten*", fixed_len=str_length)
     stop = time.time()
-    test_results["fixed-scaled-ten"] = (True, stop-start)
+    test_results["fixed-scaled-ten"] += stop-start
 
     start = time.time()
     a = ak.read(test_dir +"ten*", fixed_len=str_length)
     stop = time.time()
-    test_results["fixed-ten"] = (True, stop-start)
+    test_results["fixed-ten"] += stop-start
         
 def read_files():
     start = time.time()
     a = ak.read(test_dir +"single-file*")
     stop = time.time()
-    test_results["single-file"] = (False, stop-start)
+    test_results["single-file"] += stop-start
 
     start = time.time()
     a = ak.read(test_dir +"scaled-five*")
     stop = time.time()
-    test_results["scaled-five"] = (False, stop-start)
+    test_results["scaled-five"] += stop-start
 
     start = time.time()
     a = ak.read(test_dir +"five*")
     stop = time.time()
-    test_results["five"] = (False, stop-start)
+    test_results["five"] += stop-start
 
     start = time.time()
     a = ak.read(test_dir +"scaled-ten*")
     stop = time.time()
-    test_results["scaled-ten"] = (False, stop-start)
+    test_results["scaled-ten"] += stop-start
 
     start = time.time()
     a = ak.read(test_dir +"ten*")
     stop = time.time()
-    test_results["ten"] = (False, stop-start)
+    test_results["ten"] += stop-start
 
 def delete_folder_contents(folder_path):
     for root, _, files in os.walk(folder_path):
@@ -106,8 +116,8 @@ def delete_folder_contents(folder_path):
                 print(f"Error deleting file {file_path}: {e}")
 
 def print_performance_table(test_results):
-    data = [(test, fixed, time) for test, (fixed, time) in test_results.items()]
-    df = pd.DataFrame(data, columns=["test", "fixed", "sec"])
+    data = [(test, time) for test, time in test_results.items()]
+    df = pd.DataFrame(data, columns=["test", "sec"])
     df["sec"] = df["sec"].apply(lambda x: f"{x:.3f}")
     print(df.to_markdown(index=False))
                 
@@ -144,14 +154,12 @@ if __name__ == "__main__":
     test_dir = args.path
     size = args.size
 
-    # 1 string single file read
-    if args.write:
-        write_files()
-    else:
-        if args.fixed:
-            read_files_fixed()
-        else:
-            read_files()
+    write_files()
+        
+    read_files_fixed()
+    read_files()
+
+    delete_folder_contents(test_dir)
 
     print_performance_table(test_results)
 
